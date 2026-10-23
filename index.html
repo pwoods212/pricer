@@ -1730,6 +1730,7 @@ function buildQuoteText(q) {
     L.push("");
   }
   if (!D) L.push(LAB + ": " + fmtHrs(c.totalHours) + " hours");
+  else if (q.rate > 0) L.push("Labour: " + fmt(c.totalHours * q.rate));
   L.push("Materials at cost: " + fmt(c.materialsBase) + (c.sundries > 0 ? " (includes sundries at " + SUNDRIES_PCT + "%: " + fmt(c.sundries) + ")" : ""));
   if (q.survey && q.survey.kitLines) {
     const mb = matBreakdown(q.survey, c);
@@ -1761,6 +1762,7 @@ function buildQuoteText(q) {
       L.push("");
       L.push(title);
       if (!D) L.push(LAB + ": " + fmtHrs(hrs) + " hours");
+      else if (q.rate > 0) L.push("Labour: " + fmt(hrs * q.rate));
       L.push("Materials at cost: " + fmt(mat) + (note || ""));
       if (extraSup > 0) L.push("Trades and supplied items: " + fmt(extraSup));
       const tot = mat + extraSup + (q.rate > 0 ? hrs * q.rate : 0);
@@ -3109,7 +3111,7 @@ function QuoteView(p) {
       <table className="q-table">
         <thead><tr><th>${direct ? "Quote" : "Estimate"}</th><th>Total</th></tr></thead>
         <tbody>
-          ${direct ? null : html`<tr><td>Labour (estimated)</td><td>${fmtHrs(calc.totalHours)} hrs</td></tr>`}
+          ${direct ? (rateOn ? html`<tr><td>Labour</td><td>${fmt(labourCost)}</td></tr>` : null) : html`<tr><td>Labour (estimated)</td><td>${fmtHrs(calc.totalHours)} hrs</td></tr>`}
           ${calc.sundries > 0 && html`<tr><td>Materials (listed)</td><td>${fmt(calc.materialsBase - calc.sundries)}</td></tr>`}
           ${calc.sundries > 0 && html`<tr><td>Sundries (${SUNDRIES_PCT}% of materials)</td><td>${fmt(calc.sundries)}</td></tr>`}
           <tr className="total"><td>Materials at cost</td><td>${fmt(calc.materialsBase)}</td></tr>
