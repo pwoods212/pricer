@@ -2300,6 +2300,111 @@ function Picker({ label, onPick }) {
   </div>`;
 }
 
+/* =====================================================================
+   IMPORT FROM A RECEIPT: photo -> text (Tesseract.js in the browser) -> lines to check -> Price Book
+   ===================================================================== */
+const RCPT_SKIP = /\b(sub\s*-?total|total|vat|change|cash|card|visa|mastercard|debit|credit|contactless|tender|balance|receipt|thank|invoice|customer|trade|account|points|saving|discount|terminal|auth|approved|number of items|items?\s*:|www\.|tel|branch|store|date|time|served|operator|cashier|vat no|reg)\b/i;
+const rcMoney = (s) => { const out = []; const re = /(?:£\s*)?(\d{1,4}[.,]\d{2})(?!\d)/g; let m; while ((m = re.exec(s))) out.push({ v: Number(m[1].replace(",", ".")), i: m.index, len: m[0].length }); return out; };
+function parseReceipt(text) {
+  const raw = String(text || "").split(/\r?\n/).map((l) => l.replace(/[|_]+/g, " ").replace(/\s+/g, " ").trim()).filter(Boolean);
+  /* join a description line with the next one when only the next one carries the price */
+  const rows = []; let pend = "";
+  raw.forEach((ln) => {
+    const hasPrice = rcMoney(ln).length > 0;
+    if (!hasPrice) { if (!RCPT_SKIP.test(ln) && /[A-Za-z]{3,}/.test(ln) && ln.length < 60) pend = (pend ? pend + " " : "") + ln; else pend = ""; return; }
+    if (RCPT_SKIP.test(ln) && !/\d{4,}/.test(ln.replace(/\d{1,4}[.,]\d{2}/g, ""))) { pend = ""; return; }
+    let line = ln; const am = rcMoney(line);
+    let qty = 1, unit = 0;
+    const qx = /(\d{1,3})\s*[xX@]\s*£?\s*(\d{1,4}[.,]\d{2})/.exec(line);
+    if (qx) { qty = Number(qx[1]) || 1; unit = Number(qx[2].replace(",", ".")); line = line.replace(qx[0], " "); }
+    else {
+      const total = am[am.length - 1].v;
+      const lq = /^(\d{1,2})\s+(?=[A-Za-z])/.exec(line) || /\s(\d{1,2})\s*$/.exec(line.replace(/£?\s*\d{1,4}[.,]\d{2}\s*$/, "").trim());
+      if (lq && Number(lq[1]) >= 1 && Number(lq[1]) < 100) { qty = Number(lq[1]); line = line.replace(lq[0], " "); }
+      unit = Math.round((total / qty) * 100) / 100;
+    }
+    line = line.replace(/£?\s*\d{1,4}[.,]\d{2}/g, " ").replace(/\s+/g, " ").trim();
+    /* a product code: a 4 to 7 character word with a digit in it (Screwfix style, such as 85858 or 1043W) */
+    let code = ""; const words = line.split(" ");
+    const codeLike = (w) => /^(?=[0-9A-Z]*\d)[0-9A-Z]{4,7}$/i.test(w);
+    const idx = codeLike(words[0] || "") ? 0 : words.findIndex((w) => codeLike(w) && !/^\d+(mm|cm|m|l|kg|w|v|a)$/i.test(w));
+    if (idx >= 0) { code = words[idx].toUpperCase(); words.splice(idx, 1); }
+    let item = words.join(" ").replace(/^[\W_]+|[\W_]+$/g, "").trim();
+    if (pend && item.length < 18) item = (pend + " " + item).trim();
+    pend = "";
+    if (item.length < 3 || !(unit > 0)) return;
+    item = item.toLowerCase().replace(/(^|\s)([a-z])/g, (_m, a, b) => a + b.toUpperCase());
+    rows.push({ id: rows.length + 1, on: true, code, item, qty, price: unit });
+  });
+  return rows;
+}
+const RC_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+const loadTesseract = () => new Promise((res, rej) => {
+  if (window.Tesseract) return res(window.Tesseract);
+  const sc = document.createElement("script"); sc.src = RC_CDN; sc.onload = () => (window.Tesseract ? res(window.Tesseract) : rej(new Error("The text reader did not load."))); sc.onerror = () => rej(new Error("Could not load the text reader. Check your connection and try again.")); document.head.appendChild(sc);
+});
+/* shrink and sharpen the photo so the reader copes with a crumpled receipt */
+const rcPrep = (file) => new Promise((res, rej) => {
+  const fr = new FileReader(); fr.onerror = () => rej(new Error("Could not open that photo.")); fr.onload = () => { const im = new Image(); im.onerror = () => rej(new Error("That file is not a photo I can open.")); im.onload = () => {
+    const k = Math.min(1, 2000 / Math.max(im.width, im.height)), w = Math.round(im.width * k), h = Math.round(im.height * k), cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0, w, h);
+    try { const d = cx.getImageData(0, 0, w, h), a = d.data; for (let i = 0; i < a.length; i += 4) { let g = 0.3 * a[i] + 0.59 * a[i + 1] + 0.11 * a[i + 2]; g = Math.max(0, Math.min(255, (g - 110) * 1.5 + 128)); a[i] = a[i + 1] = a[i + 2] = g; } cx.putImageData(d, 0, 0); } catch (e) { /* keep colour */ }
+    res(cv); }; im.src = fr.result; }; fr.readAsDataURL(file);
+});
+function ReceiptImport() {
+  const [sup, setSup] = useState("Screwfix");
+  const [state, setState] = useState("idle");
+  const [prog, setProg] = useState(0);
+  const [msg, setMsg] = useState("");
+  const [rows, setRows] = useState([]);
+  const [raw, setRaw] = useState("");
+  const [showRaw, setShowRaw] = useState(false);
+  const run = async (file) => {
+    if (!file) return;
+    setMsg(""); setRows([]); setRaw(""); setState("busy"); setProg(0);
+    try {
+      const cv = await rcPrep(file);
+      const T = await loadTesseract();
+      const worker = await T.createWorker("eng", 1, { logger: (m) => { if (m && m.status === "recognizing text") setProg(Math.round((m.progress || 0) * 100)); } });
+      try { await worker.setParameters({ tessedit_pageseg_mode: "4", preserve_interword_spaces: "1" }); } catch (e) { /* ignore */ }
+      const out = await worker.recognize(cv);
+      try { await worker.terminate(); } catch (e) { /* ignore */ }
+      const txt = (out && out.data && out.data.text) || "";
+      setRaw(txt);
+      const r = parseReceipt(txt);
+      setRows(r);
+      setState("done");
+      if (!r.length) setMsg("I could not find any item lines. Try a flatter, brighter photo with the whole receipt filling the frame, or add the prices by hand.");
+    } catch (e) { setState("idle"); setMsg(String((e && e.message) || e)); }
+  };
+  const upd = (id, patch) => setRows((p) => p.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  const chosen = rows.filter((r) => r.on && r.item.trim() && Number(r.price) > 0);
+  const save = () => { chosen.forEach((r) => bookAdd(r.item.trim(), Number(r.price), sup, "", (r.code || "").trim())); setMsg(chosen.length + " price" + (chosen.length === 1 ? "" : "s") + " saved to your Price Book."); setRows([]); setRaw(""); setState("idle"); };
+  return html`<div>
+    <p className="note">Take a photo of a receipt, or choose one from your gallery. The app reads it on your phone, then you check each line before it is saved. Prices are saved as printed on the receipt, one item at a time.</p>
+    <${Lbl} label="Supplier" wide=${true}><input className="text-in" type="text" value=${sup} onChange=${(e) => setSup(e.target.value)} /><//>
+    <div className="link-row" style=${{ margin: "8px 0" }}>
+      <label className="btn btn-accent" style=${{ cursor: "pointer" }}>Take a photo<input type="file" accept="image/*" capture="environment" style=${{ display: "none" }} onChange=${(e) => { run(e.target.files && e.target.files[0]); e.target.value = ""; }} /></label>
+      <label className="btn" style=${{ cursor: "pointer" }}>Choose a photo<input type="file" accept="image/*" style=${{ display: "none" }} onChange=${(e) => { run(e.target.files && e.target.files[0]); e.target.value = ""; }} /></label>
+    </div>
+    ${state === "busy" ? html`<p className="note" role="status">Reading the receipt${prog ? "… " + prog + "%" : "… this can take up to a minute the first time"}</p>` : null}
+    ${msg ? html`<p className="note" role="status">${msg}</p>` : null}
+    ${rows.length ? html`<div>
+      <div className="mini-label">Check each line, then save</div>
+      ${rows.map((r) => html`<div key=${r.id} className="card" style=${{ margin: "0 0 8px", opacity: r.on ? 1 : 0.5 }}>
+        <label className="kit-row"><input type="checkbox" checked=${r.on} onChange=${() => upd(r.id, { on: !r.on })} /><span className="name">${r.qty > 1 ? "Bought " + r.qty + ". Price below is for one." : "Include this line"}</span></label>
+        <div className="mat-grid">
+          <${Lbl} label="Item" wide=${true}><input className="text-in" type="text" value=${r.item} onChange=${(e) => upd(r.id, { item: e.target.value })} /><//>
+          <${Lbl} label="Product code"><input className="text-in" type="text" autoCapitalize="characters" value=${r.code} onChange=${(e) => upd(r.id, { code: e.target.value })} /><//>
+          <${Lbl} label="Price for one (£)"><input className="text-in" type="number" inputMode="decimal" min="0" step="0.01" value=${r.price} onChange=${(e) => upd(r.id, { price: e.target.value })} /><//>
+        </div></div>`)}
+      <button type="button" className="btn btn-accent" onClick=${save} disabled=${!chosen.length}>Save ${chosen.length} to Price Book</button>
+    </div>` : null}
+    ${raw ? html`<div style=${{ marginTop: 8 }}><button type="button" className="linkbtn" onClick=${() => setShowRaw(!showRaw)}>${showRaw ? "Hide" : "Show"} the text the app read</button>
+      ${showRaw ? html`<textarea className="manual" readOnly value=${raw} aria-label="Text read from the receipt" style=${{ minHeight: 140 }}></textarea>` : null}</div>` : null}
+  </div>`;
+}
+
 function PriceBookView({ auth }) {
   const book = useBook();
   const kits = useKits();
@@ -2327,6 +2432,9 @@ function PriceBookView({ auth }) {
     </div>
     <${Sec}>Add, kits and catalogue<//>
     <div className="group">
+      <${Fold} title="Import from a receipt" sub="scan a photo of a receipt">
+        <${ReceiptImport} />
+      <//>
       <${Fold} title="Add a price I paid" sub="item, price, supplier" defaultOpen=${book.length === 0}>
         <div className="mat-grid">
           <${Lbl} label="Item" wide=${true}><input className="text-in" type="text" placeholder="e.g. Bath 1700" value=${nItem} onChange=${(e) => setNItem(e.target.value)} /><//>
