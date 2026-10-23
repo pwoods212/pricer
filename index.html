@@ -1729,7 +1729,7 @@ function buildQuoteText(q) {
     q.scopeItems.forEach((s) => L.push("- " + String(s).replace(/\n/g, "\n  ")));
     L.push("");
   }
-  if (!D) L.push(LAB + ": " + fmtHrs(c.totalHours) + " hours");
+  L.push(LAB + ": " + fmtHrs(c.totalHours) + " hours");
   L.push("Materials at cost: " + fmt(c.materialsBase) + (c.sundries > 0 ? " (includes sundries at " + SUNDRIES_PCT + "%: " + fmt(c.sundries) + ")" : ""));
   if (q.survey && q.survey.kitLines) {
     const mb = matBreakdown(q.survey, c);
@@ -1751,7 +1751,7 @@ function buildQuoteText(q) {
   if (c.provItems.length) {
     L.push("");
     L.push("PROVISIONAL TASKS (only if needed once work starts, priced in Option B below):");
-    c.provItems.forEach((i) => L.push(D ? "- " + i.label + ": " + fmt(i.materials + (q.rate > 0 ? i.hours * q.rate : 0)) : "- " + i.label + ": approx " + fmtHrs(i.hours) + " hours + materials " + fmt(i.materials)));
+    c.provItems.forEach((i) => L.push("- " + i.label + ": approx " + fmtHrs(i.hours) + " hours + materials " + fmt(i.materials)));
     L.push(D ? "These tasks are only charged if they are needed once the work starts, and will be agreed with you before they are done." : "Please quote for these provisional items and have them accepted by the customer before any of this work starts.");
     /* both options side by side: as surveyed, and with every "if needed" item */
     const extraSup = (c.supply > 0 ? c.supply : 0) + tr.reduce((x, t) => x + t.cost, 0);
@@ -1760,7 +1760,7 @@ function buildQuoteText(q) {
     const optLines = (title, hrs, mat, note) => {
       L.push("");
       L.push(title);
-      if (!D) L.push(LAB + ": " + fmtHrs(hrs) + " hours");
+      L.push(LAB + ": " + fmtHrs(hrs) + " hours");
       L.push("Materials at cost: " + fmt(mat) + (note || ""));
       if (extraSup > 0) L.push("Trades and supplied items: " + fmt(extraSup));
       const tot = mat + extraSup + (q.rate > 0 ? hrs * q.rate : 0);
@@ -1772,7 +1772,7 @@ function buildQuoteText(q) {
     const totA = optLines("OPTION A — AS SURVEYED (without the provisional tasks):", c.totalHours, c.materialsBase, c.sundries > 0 ? " (includes sundries at " + SUNDRIES_PCT + "%: " + fmt(c.sundries) + ")" : "");
     const totB = optLines("OPTION B — INCLUDING THE PROVISIONAL TASKS:", hB, matB, c.sundriesNeeded ? " (includes sundries at " + SUNDRIES_PCT + "%: " + fmt(c.sundries + sundB) + ")" : "");
     L.push("");
-    L.push("Extra for the provisional tasks" + (D ? "" : " (+" + fmtHrs(c.provHours) + " hours)") + ": " + fmt(totB - totA));
+    L.push("Extra for the provisional tasks (+" + fmtHrs(c.provHours) + " hours): " + fmt(totB - totA));
   }
   if (!D && q.officeNotes && q.officeNotes.trim()) {
     L.push("");
@@ -3109,7 +3109,7 @@ function QuoteView(p) {
       <table className="q-table">
         <thead><tr><th>${direct ? "Quote" : "Estimate"}</th><th>Total</th></tr></thead>
         <tbody>
-          ${direct ? null : html`<tr><td>Labour (estimated)</td><td>${fmtHrs(calc.totalHours)} hrs</td></tr>`}
+          <tr><td>${direct ? "Labour" : "Labour (estimated)"}</td><td>${fmtHrs(calc.totalHours)} hrs</td></tr>
           ${calc.sundries > 0 && html`<tr><td>Materials (listed)</td><td>${fmt(calc.materialsBase - calc.sundries)}</td></tr>`}
           ${calc.sundries > 0 && html`<tr><td>Sundries (${SUNDRIES_PCT}% of materials)</td><td>${fmt(calc.sundries)}</td></tr>`}
           <tr className="total"><td>Materials at cost</td><td>${fmt(calc.materialsBase)}</td></tr>
@@ -3140,8 +3140,8 @@ function QuoteView(p) {
       ${calc.provItems.length > 0 && html`<div>
         <div className="mini-label" style=${{ marginTop: 16 }}>Provisional items — only if needed once work starts (extra to the totals above)</div>
         <table className="q-table">
-          <thead><tr><th>Item</th>${direct ? null : html`<th>Est. hours</th>`}<th>${direct ? "Price" : "Materials"}</th></tr></thead>
-          <tbody>${calc.provItems.map((i, k) => html`<tr key=${k}><td>${i.label}</td>${direct ? null : html`<td>${fmtHrs(i.hours)}</td>`}<td>${fmt(direct ? i.materials + (rateOn ? i.hours * rateVal : 0) : i.materials)}</td></tr>`)}</tbody>
+          <thead><tr><th>Item</th><th>Est. hours</th><th>Materials</th></tr></thead>
+          <tbody>${calc.provItems.map((i, k) => html`<tr key=${k}><td>${i.label}</td><td>${fmtHrs(i.hours)}</td><td>${fmt(i.materials)}</td></tr>`)}</tbody>
         </table>
         <p style=${{ fontSize: 13.5, fontWeight: 700, margin: "8px 0 0" }}>${direct ? "These are only charged if needed once the work starts, and will be agreed with the customer first." : "Please quote for these provisional items and have them accepted before any of this work starts."}</p>
       </div>`}
