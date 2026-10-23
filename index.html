@@ -13,80 +13,80 @@ img { max-width: 100%; }
 <title>Bathroom Job Pricer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&family=Oswald:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap">
 <style>
 /* Layout: tabbed tool. Site Survey (tick boxes + live total strip) and Job Pricer (rates + estimate ticket) share one state; the quote is a paper sheet built from both. */
 :root {
-  --bg: #EDE7DD;
-  --dot: rgba(33, 31, 28, 0.06);
-  --panel: #FBF8F2;
-  --panel2: #F2ECDD;
-  --line: #E1D9C7;
-  --line2: #D8D0C0;
-  --ink: #211F1C;
-  --ink2: #4A4438;
-  --muted: #6F6757;
-  --accent: #B5651D;
-  --accent-ink: #FFF8EC;
+  --bg: #F2F4F1;
+  --dot: rgba(0, 0, 0, 0);
+  --panel: #FFFFFF;
+  --panel2: #EFF3F1;
+  --line: #E1E6E3;
+  --line2: #C6CFCB;
+  --ink: #16212A;
+  --ink2: #364550;
+  --muted: #5A6870;
+  --accent: #0B6B68;
+  --accent-ink: #FFFFFF;
   --field: #FFFFFF;
-  --active-bg: #211F1C;
-  --active-fg: #F2ECDD;
-  --ticket: #211F1C;
-  --ticket-ink: #F2ECDD;
-  --ticket-muted: #B8AF9C;
-  --ticket-line: rgba(242, 236, 221, 0.25);
+  --active-bg: #16212A;
+  --active-fg: #F4F7F6;
+  --ticket: #12222B;
+  --ticket-ink: #F1F6F5;
+  --ticket-muted: #A9B9BD;
+  --ticket-line: rgba(241, 246, 245, 0.22);
   --paper: #FFFFFF;
-  --paper-ink: #211F1C;
-  --font-display: 'Oswald', 'Arial Narrow', sans-serif;
+  --paper-ink: #16212A;
+  --font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #161411;
-    --dot: rgba(242, 236, 221, 0.05);
-    --panel: #201D19;
-    --panel2: #2A2620;
-    --line: #38332B;
-    --line2: #4A4438;
-    --ink: #F2ECDD;
-    --ink2: #CFC6B2;
-    --muted: #A39A87;
-    --accent: #E0903F;
-    --accent-ink: #1A1510;
-    --field: #171512;
-    --active-bg: #F2ECDD;
-    --active-fg: #161411;
-    --ticket: #0F0E0C;
-    --ticket-ink: #F2ECDD;
-    --ticket-muted: #A39A87;
-    --ticket-line: rgba(242, 236, 221, 0.2);
-    --paper: #25211C;
-    --paper-ink: #F2ECDD;
+    --bg: #0D1316;
+    --dot: rgba(0, 0, 0, 0);
+    --panel: #152026;
+    --panel2: #1C2A31;
+    --line: #26353D;
+    --line2: #384A54;
+    --ink: #EAF0EF;
+    --ink2: #C3CFCE;
+    --muted: #93A4A7;
+    --accent: #4DC4B4;
+    --accent-ink: #04201C;
+    --field: #0E171B;
+    --active-bg: #EAF0EF;
+    --active-fg: #0D1316;
+    --ticket: #091014;
+    --ticket-ink: #EAF0EF;
+    --ticket-muted: #93A4A7;
+    --ticket-line: rgba(234, 240, 239, 0.2);
+    --paper: #1A272D;
+    --paper-ink: #EAF0EF;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #161411;
-  --dot: rgba(242, 236, 221, 0.05);
-  --panel: #201D19;
-  --panel2: #2A2620;
-  --line: #38332B;
-  --line2: #4A4438;
-  --ink: #F2ECDD;
-  --ink2: #CFC6B2;
-  --muted: #A39A87;
-  --accent: #E0903F;
-  --accent-ink: #1A1510;
-  --field: #171512;
-  --active-bg: #F2ECDD;
-  --active-fg: #161411;
-  --ticket: #0F0E0C;
-  --ticket-ink: #F2ECDD;
-  --ticket-muted: #A39A87;
-  --ticket-line: rgba(242, 236, 221, 0.2);
-  --paper: #25211C;
-  --paper-ink: #F2ECDD;
+  --bg: #0D1316;
+  --dot: rgba(0, 0, 0, 0);
+  --panel: #152026;
+  --panel2: #1C2A31;
+  --line: #26353D;
+  --line2: #384A54;
+  --ink: #EAF0EF;
+  --ink2: #C3CFCE;
+  --muted: #93A4A7;
+  --accent: #4DC4B4;
+  --accent-ink: #04201C;
+  --field: #0E171B;
+  --active-bg: #EAF0EF;
+  --active-fg: #0D1316;
+  --ticket: #091014;
+  --ticket-ink: #EAF0EF;
+  --ticket-muted: #93A4A7;
+  --ticket-line: rgba(234, 240, 239, 0.2);
+  --paper: #1A272D;
+  --paper-ink: #EAF0EF;
   color-scheme: dark;
 }
 
@@ -496,6 +496,223 @@ input[type=checkbox] { width: 24px; height: 24px; margin: 0; flex-shrink: 0; acc
 .next-step { margin: 14px 0 6px; }
 .next-step .btn { width: 100%; justify-content: center; }
 @media (min-width: 761px) { .tabbtn { flex-direction: row; gap: 8px; font-size: 13px; } .tabbar { justify-content: center; } .tabbtn { max-width: 190px; } }
+
+/* ===== thumb-first layer (round 4): chips, steppers, bigger targets, press feedback ===== */
+.qchips { display: flex; gap: 8px; overflow-x: auto; padding: 6px 0 2px; margin: 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
+.qchips::-webkit-scrollbar { display: none; }
+.qchip { flex: 0 0 auto; min-height: 44px; padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--line2); background: var(--field); color: var(--ink2); font: 600 14px/1.1 var(--font-body); cursor: pointer; scroll-snap-align: start; white-space: nowrap; }
+.qchip.on { background: var(--active-bg); color: var(--active-fg); border-color: var(--active-bg); }
+.hrs .qchips { flex: 1 0 100%; }
+.nstep { display: inline-flex; }
+.nstep .num-in { width: 84px; text-align: center; font-size: 17px !important; font-weight: 600; }
+.mat-f .nstep, .field .nstep { width: auto; }
+.mat-f .nstep .num-in { width: 76px; text-align: center; }
+.dim-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 420px) { .dim-grid { grid-template-columns: 1fr 1fr; } }
+.dim-cell { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dim-cap { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.step-btn { width: 48px; height: 48px; font-size: 24px; font-weight: 600; touch-action: manipulation; }
+.step-btn:active, .qchip:active, .seg-btn:active, .btn:active, .opt:active, .pk:active, .tabbtn:active { transform: scale(0.97); filter: brightness(0.94); }
+button, .seg-btn, .qchip, .step-btn, .tabbtn { touch-action: manipulation; }
+.seg-btn { min-height: 48px; padding-inline: 16px; font-size: 14.5px; }
+.btn { min-height: 48px; }
+.bar-go { min-height: 52px; }
+.item-head { min-height: 64px; }
+.sh-foot { position: sticky; bottom: 0; background: var(--panel); }
+.sh-foot .btn { min-height: 52px; font-size: 15px; }
+.actionbar { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.tabbtn { font-size: 11px; }
+@media (max-width: 380px) { .tabbtn { font-size: 10px; } .seg-btn { padding-inline: 12px; } .step-btn { width: 44px; } .nstep .num-in { width: 70px; } }
+/* ===== round 2 design layer: one calm, modern look on every tab ===== */
+:root { --r: 16px; --r-s: 12px; --shadow: 0 1px 2px rgba(16, 28, 36, 0.06), 0 6px 20px rgba(16, 28, 36, 0.05); --tint: rgba(11, 107, 104, 0.09); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3); --tint: rgba(77, 196, 180, 0.13); } }
+:root[data-theme="dark"] { --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3); --tint: rgba(77, 196, 180, 0.13); }
+body { background-image: none; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+h1 { font-family: var(--font-body); font-weight: 800; font-size: clamp(25px, 7vw, 32px); letter-spacing: -0.02em; text-transform: none; line-height: 1.1; }
+.lead { font-size: 15px; color: var(--ink2); margin: 6px 0 16px; line-height: 1.5; }
+.title-row { margin-bottom: 2px; }
+/* headings: sentence case, one weight */
+.card-title, .item-title, .sh-title, .ord-title, .sec, .section-label, .ticket-h, .range-label, .tab, .q-table tr.total td:first-child, .btn-accent {
+  font-family: var(--font-body); text-transform: none; letter-spacing: 0; }
+.sec { font-size: 15px; font-weight: 700; color: var(--ink); margin: 26px 0 10px; }
+.sec-n { width: 26px; height: 26px; background: var(--accent); color: var(--accent-ink); font-family: var(--font-body); font-weight: 700; }
+.card-title { font-size: 16px; font-weight: 700; }
+.item-title { font-size: 16px; font-weight: 700; }
+.sh-title { font-size: 18px; font-weight: 700; }
+.ord-title { font-size: 20px; font-weight: 800; }
+.mini-label { font-weight: 700; letter-spacing: 0.04em; }
+/* surfaces */
+.card, .group, .form-card, .ord-card, .tip, .example, .suite-bar { border-radius: var(--r); }
+.card, .group, .ord-card { box-shadow: var(--shadow); border-color: var(--line); }
+.group { border-radius: var(--r); }
+.card { padding: 16px; margin-bottom: 12px; }
+.card.sp, .card.link-row { margin-top: 12px; }
+.tip { background: var(--tint); border: 0; border-left: 4px solid var(--accent); }
+.example { border-radius: var(--r-s); background: var(--tint); border: 0; }
+.item.active { box-shadow: inset 4px 0 0 var(--accent); background: linear-gradient(90deg, var(--tint), transparent 55%); }
+.item-head { padding-block: 12px; }
+.chip { border-radius: 999px; font-size: 12.5px; padding: 5px 11px; background: var(--panel2); border-color: transparent; }
+.chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.fold.flat .fold-head { border-top: 1px solid var(--line); font-weight: 700; }
+.fold.flat .fold-body { background: var(--panel2); }
+.drop.bare { border-top: 1px solid var(--line); }
+.mat-sum { color: var(--ink2); }
+/* controls */
+.btn { border-radius: var(--r-s); border-width: 1.5px; font-weight: 600; font-size: 15px; background: var(--panel); }
+.btn-accent { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; font-size: 15px; box-shadow: 0 2px 8px rgba(11, 107, 104, 0.25); }
+.btn-dark { box-shadow: none; }
+.btn-add { box-shadow: none; background: transparent; border-color: var(--line2); }
+.seg-btn { border-radius: var(--r-s); background: var(--panel); }
+.seg-btn.on, .qchip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.qchip { background: var(--panel); }
+.text-in, .num-in, .manual { border-radius: var(--r-s); border: 1.5px solid var(--line2); background: var(--field); }
+.text-in:focus, .num-in:focus, .manual:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+.step-btn { border-radius: 14px; background: var(--panel); color: var(--accent); }
+.field-label, .mat-f > span, .suite-lbl, .dim-cap { color: var(--ink2); }
+.badge { border-radius: 999px; }
+/* header */
+.apphead { display: flex; align-items: center; gap: 10px; padding: 4px 0 14px; }
+.brand-mark { width: 38px; height: 38px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(11, 107, 104, 0.3); }
+.brand-mark .ico { width: 22px; height: 22px; stroke-width: 2.2; }
+.brand-txt { flex: 1; min-width: 0; line-height: 1.15; }
+.brand-name { font-weight: 800; font-size: 17px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand-sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.apphead .btn { min-height: 44px; padding: 8px 14px; font-size: 14px; flex-shrink: 0; }
+/* tab bar and action bar */
+.tabbar { background: var(--panel); border-top: 1px solid var(--line); box-shadow: 0 -4px 20px rgba(16, 28, 36, 0.08); }
+.tabbtn { color: var(--muted); font-weight: 600; }
+.tabbtn.on { color: var(--accent); }
+.tabbtn.on::before { height: 3px; left: 28%; right: 28%; }
+.tabbtn.on .ico { stroke-width: 2.4; }
+.actionbar { border-radius: 18px 18px 0 0; box-shadow: 0 -8px 24px rgba(10, 20, 26, 0.25); }
+.bar-main { font-size: 20px; letter-spacing: -0.01em; }
+.bar-go.btn-accent { box-shadow: none; }
+.live { border-radius: var(--r); }
+/* sheets */
+.sh-pane { border-radius: 22px 22px 0 0; }
+.sh-head { padding-top: 10px; }
+.opt { border-radius: 0; }
+.opt.on { color: var(--accent); }
+.sh-foot .btn-dark { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+/* estimate sheet (the on-screen quote) */
+.sheet { border-radius: var(--r); box-shadow: var(--shadow); border: 1px solid var(--line); border-top: 5px solid var(--accent); padding: 26px 24px 28px; }
+.biz-input { font-family: var(--font-body); font-weight: 800; font-size: 24px; letter-spacing: -0.02em; }
+.sheet-sub { font-weight: 600; color: var(--accent); text-transform: none; }
+.q-table { border-radius: 10px; overflow: hidden; }
+.q-table th { background: var(--panel2); color: var(--ink2); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+.q-table tr.total td { background: var(--tint); color: var(--paper-ink); border-top: 2px solid var(--accent); }
+.q-table tr.total td:last-child { color: var(--accent); }
+.mb-table td { border-bottom: 1px solid var(--line); }
+.scope-list li::marker { color: var(--accent); }
+.disclaimer { border-radius: var(--r-s); background: var(--panel2); border-color: transparent; }
+.sign-line { border-bottom-color: var(--ink2); }
+/* order list */
+.ord-prog { border-radius: var(--r); background: var(--ticket); }
+.ord-bar { height: 10px; border-radius: 6px; }
+.ord-grp-h { background: var(--tint); border-bottom-color: var(--accent); color: var(--ink); border-radius: 10px 10px 0 0; }
+.ord-jump { border-radius: var(--r-s); }
+.ord-row.done { background: var(--tint); }
+/* empty states */
+.empty { text-align: center; padding: 22px 16px 18px; background: var(--panel2); border: 1.5px dashed var(--line2); border-radius: var(--r); margin: 4px 0 8px; }
+.empty .ico { width: 34px; height: 34px; color: var(--accent); margin-bottom: 6px; }
+.empty b { display: block; font-size: 16px; margin-bottom: 4px; }
+.empty p { margin: 0 auto; max-width: 36ch; font-size: 14px; color: var(--ink2); line-height: 1.5; }
+.empty .btn { margin-top: 12px; }
+/* Glasgow notes */
+.gl h3 { font-size: 15px; margin: 16px 0 6px; color: var(--accent); }
+.gl h3:first-child { margin-top: 4px; }
+.gl ul { margin: 0 0 6px; padding-left: 20px; line-height: 1.55; font-size: 14.5px; }
+.gl li { margin-bottom: 5px; }
+.gl p { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 10px 0 0; }
+.scot { border-left: 4px solid var(--accent); background: var(--tint); border-radius: var(--r-s); margin: 10px 0 4px; }
+.scot > summary { padding-inline: 14px; color: var(--ink); }
+.scot ul { margin: 0 0 4px; padding-left: 18px; line-height: 1.55; font-size: 14px; }
+.scot li { margin-bottom: 4px; }
+.scot .drop-body { padding-bottom: 10px; }
+@media (max-width: 380px) { .brand-sub { display: none; } .apphead .btn { padding-inline: 10px; } }
+/* ===== round 3 merge: status language (status card, flow steps, pills, quick picks, stats) in the teal/slate look ===== */
+:root { --ok: #1F7A4D; --warn: #A85F00; --bad: #B3261E; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #5BBF86; --warn: #E0A23F; --bad: #F2766E; } }
+:root[data-theme="dark"] { --ok: #5BBF86; --warn: #E0A23F; --bad: #F2766E; }
+.status { background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--st, var(--line2)); border-radius: 14px; padding: 10px 12px 6px; margin: 0 0 10px; box-shadow: 0 1px 2px rgba(15,35,40,.05); }
+.status.ok { --st: var(--ok); } .status.warn { --st: var(--warn); } .status.bad { --st: var(--bad); } .status.go { --st: var(--accent); }
+.status-t { font-family: var(--font-body); font-weight: 700; font-size: 15px; line-height: 1.25; }
+.status-n { font-size: 13.5px; line-height: 1.4; color: var(--ink2); margin: 3px 0 4px; }
+.status-l { margin: 6px 0 0; padding: 8px 0 0 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink2); line-height: 1.5; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 4px; }
+.pill { display: inline-flex; align-items: center; font-size: 11.5px; font-weight: 700; line-height: 1.2; padding: 3px 9px; border-radius: 999px; border: 1.5px solid var(--line2); color: var(--ink2); }
+.pill.ok { color: var(--ok); border-color: var(--ok); } .pill.warn { color: var(--warn); border-color: var(--warn); } .pill.bad { color: var(--bad); border-color: var(--bad); }
+.flow { display: flex; margin: 6px 0 4px; padding: 0; list-style: none; }
+.flow li { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; line-height: 1.2; text-align: center; color: var(--muted); }
+.flow li::before { content: ""; position: absolute; top: 10px; left: -50%; right: 50%; height: 2px; background: var(--line2); }
+.flow li:first-child::before { display: none; }
+.flow-dot { position: relative; z-index: 1; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line2); background: var(--panel); display: flex; align-items: center; justify-content: center; font: 600 11px var(--font-mono); }
+.flow li.done { color: var(--ink2); } .flow li.done .flow-dot { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.flow li.done::before, .flow li.now::before { background: var(--accent); }
+.flow li.now { color: var(--ink); } .flow li.now .flow-dot { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 3px var(--panel2); }
+.flow .ico { width: 12px; height: 12px; stroke-width: 3; }
+.qpicks { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 12px; }
+.qpick { min-height: 44px; padding: 8px 13px; border-radius: 999px; border: 1.5px dashed var(--line2); background: var(--field); color: var(--ink2); font-family: var(--font-body); font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.qpick.on { border-style: solid; background: var(--active-bg); color: var(--active-fg); border-color: var(--active-bg); }
+.chk { padding: 2px 0 6px; }
+.chk-pill { margin: 0 0 4px 34px; }
+.stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 6px 0 4px; }
+.stat { background: var(--panel2); border-radius: 10px; padding: 6px; text-align: center; min-width: 0; }
+.stat b { display: block; font: 600 18px var(--font-mono); color: var(--ink); }
+.stat span { font-size: 11.5px; color: var(--muted); }
+.age-old { color: var(--warn); font-weight: 600; }
+.kind-tag { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--line2); color: var(--ink2); margin-right: 6px; }
+.gtips { margin: 4px 0 2px; border-top: 1px solid var(--line); padding-top: 2px; }
+.gtips summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 700; font-size: 13.5px; color: var(--accent); list-style: none; }
+.gtips summary::-webkit-details-marker { display: none; }
+.gtips summary::after { content: "+"; margin-left: auto; font: 600 18px var(--font-mono); }
+.gtips[open] summary::after { content: "\2212"; }
+.gtips ul { margin: 0 0 6px; padding-left: 18px; font-size: 13px; line-height: 1.5; color: var(--ink2); }
+.gtips li { margin-bottom: 6px; }
+@media (max-width: 400px) { .status { padding: 8px 10px 4px; } .flow li { font-size: 10.5px; } }
+/* round 3 merge: what-is-left card, recent chips, resume strip, undo toast, pill tab */
+.progress { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--accent); border-radius: 14px; padding: 10px 12px 12px; margin: 0 0 12px; box-shadow: 0 1px 2px rgba(15,35,40,.05); }
+.progress-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-weight: 700; font-size: 15px; }
+.progress-n { font-family: var(--font-mono); font-size: 12px; font-weight: 400; color: var(--muted); }
+.progress-bar { height: 6px; border-radius: 99px; background: var(--panel2); border: 1px solid var(--line); margin: 8px 0 10px; overflow: hidden; }
+.progress-bar > i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .25s ease; }
+.progress-steps { display: flex; flex-wrap: wrap; gap: 6px; }
+.pstep { min-height: 36px; padding: 6px 12px; border-radius: 999px; border: 1.5px solid var(--line2); background: var(--field); color: var(--ink2); font: 600 13px/1.2 var(--font-body); cursor: pointer; }
+.pstep.done { background: var(--panel2); color: var(--muted); border-color: var(--line); }
+.pstep.opt { border-style: dashed; }
+.progress-next { width: 100%; justify-content: center; margin-top: 10px; }
+.progress .note { margin: 10px 0 0; }
+.rchips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 4px; align-items: center; }
+.rchips-l { font-size: 12px; color: var(--muted); font-weight: 600; }
+.rchip { min-height: 38px; max-width: 100%; padding: 6px 12px; border-radius: 999px; border: 1.5px dashed var(--line2); background: var(--panel); color: var(--ink2); font: 600 13px/1.2 var(--font-body); cursor: pointer; overflow: hidden; text-overflow: ellipsis; }
+.rchip:active { background: var(--panel2); }
+.resume { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: var(--panel2); border: 1px solid var(--line2); border-radius: 12px; padding: 8px 12px; margin-bottom: 12px; font-size: 13px; color: var(--ink2); }
+.resume .rchip { border-style: solid; border-color: var(--accent); color: var(--ink); }
+.undo { position: fixed; left: 12px; right: 12px; bottom: calc(var(--tabh) + 84px + env(safe-area-inset-bottom, 0px)); z-index: 40; max-width: 520px; margin: 0 auto; display: flex; align-items: center; gap: 8px; background: var(--ticket); color: var(--ticket-ink); border-radius: 14px; padding: 8px 10px 8px 14px; box-shadow: 0 8px 24px rgba(10,20,26,.3); font-size: 14px; }
+.undo > span { flex: 1; min-width: 0; }
+.undo .btn { min-height: 40px; background: transparent; color: var(--ticket-ink); border-color: var(--ticket-line); }
+.undo .btn.go { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+body.kb .undo { bottom: 12px; }
+.tabico { position: relative; display: flex; align-items: center; justify-content: center; width: 52px; height: 28px; border-radius: 999px; transition: background .15s; }
+.tabbtn.on .tabico { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.tabbtn.on::before { display: none; }
+.tabbtn { gap: 2px; }
+.tabbtn.on { font-weight: 700; }
+.tabdot { position: absolute; top: 1px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--warn); border: 2px solid var(--panel); box-sizing: content-box; }
+@media (min-width: 761px) { .tabico { width: auto; height: auto; background: none !important; } .tabdot { right: -6px; } .undo { bottom: calc(var(--tabh) + 84px); } }
+.homecard { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; margin: 0 0 10px; }
+.homecard > summary { cursor: pointer; padding: 0 14px; min-height: 44px; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: space-between; list-style: none; }
+.homecard > summary::-webkit-details-marker { display: none; }
+.homecard > summary::after { content: "Hide"; font-size: 12px; font-weight: 600; color: var(--muted); }
+.homecard:not([open]) > summary::after { content: "Show"; }
+.homesteps { margin: 0; padding: 0 14px 12px 32px; font-size: 13.5px; line-height: 1.5; color: var(--ink2); }
+.homesteps li { margin-bottom: 4px; }
+.gchips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
+.gchip { min-height: 44px; padding: 8px 14px; border-radius: 999px; border: 1.5px solid var(--line2); background: var(--panel2); color: var(--ink2); font: inherit; font-size: 13.5px; font-weight: 600; line-height: 1.2; cursor: pointer; text-align: left; }
+.gchip.on { border-color: var(--accent); color: var(--ink); background: transparent; }
+.gchip:active { transform: scale(.98); }
+.gchip-warn { flex-basis: 100%; margin: 0; font-size: 12.5px; color: var(--warn); font-weight: 600; }
+.gla-hint { margin: 0 0 10px; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--panel2); border-radius: 8px; font-size: 13px; line-height: 1.45; color: var(--ink2); }
 </style>
 
 </head>
@@ -1819,11 +2036,62 @@ const ICONS = {
   wrench: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>',
   tag: '<path d="M20 13 13 20a2 2 0 0 1-2.8 0L3 12.8V4h8.8L20 12.2a1 1 0 0 1 0 .8z"/><path d="M7.5 8h.01"/>',
   folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+  tick: '<path d="m5 12 5 5 9-10"/>',
   copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
 };
 function Icon({ name }) {
   return html`<svg className="ico" viewBox="0 0 24 24" aria-hidden="true" dangerouslySetInnerHTML=${{ __html: ICONS[name] }}></svg>`;
 }
+
+/* one status language for every tab: a headline, a "what next" line, small pills, and a row of steps */
+function Pill({ tone, children }) {
+  return html`<span className=${"pill" + (tone ? " " + tone : "")}>${children}</span>`;
+}
+function Steps({ steps }) {
+  return html`<ol className="flow" aria-label="Progress">${steps.map((st, i) => html`<li key=${i} className=${st[1]} aria-current=${st[1] === "now" ? "step" : undefined}>
+    <span className="flow-dot">${st[1] === "done" ? html`<${Icon} name="tick" />` : i + 1}</span><span>${st[0]}</span></li>`)}</ol>`;
+}
+/* flags: one true/false per step, in order. The first false step is the one you are on; the last step is never "done". */
+function flowSteps(labels, flags) {
+  let seen = false;
+  return labels.map((l, i) => {
+    const ok = !!flags[i] && i < labels.length - 1;
+    if (ok && !seen) return [l, "done"];
+    if (!seen) { seen = true; return [l, "now"]; }
+    return [l, "todo"];
+  });
+}
+function StatusCard({ title, tone, next, pills, steps, children }) {
+  return html`<div className=${"status " + (tone || "")} role="status">
+    <div className="status-h"><div className="status-t">${title}</div></div>
+    ${next ? html`<div className="status-n">${next}</div>` : null}
+    ${steps ? html`<${Steps} steps=${steps} />` : null}
+    ${pills && pills.length ? html`<div className="pills">${pills.map((x, i) => html`<${Pill} key=${i} tone=${x[1]}>${x[0]}<//>`)}</div>` : null}
+    ${children || null}
+  </div>`;
+}
+/* Glasgow notes: advice only, folded away so they do not crowd a phone screen */
+const GLASGOW_TIPS = {
+  survey: ["Tenement flat? Ask about the close: door entry, stair width for a bath or vanity, and where the van can stop or park to load.",
+    "Pipes, drains and the roof in a tenement can be common property. Before cutting into shared pipework, check with the owners or the factor.",
+    "Older sandstone tenement and 1930s to 1970s housing can have lead pipe or old galvanised pipe. Lead is not priced here, so say so on the estimate.",
+    "Wet room or new shower? Ask what is below the floor, and tell the customer if a neighbour's ceiling could be affected.",
+    "Bins and stair access matter for deliveries and waste. Agree where skips, bags and packaging go before the day."],
+  job: ["Tenant access: the landlord or agent arranges notice with the tenant. Write down the date and time agreed in the job notes.",
+    "Repairing Standard jobs (leaks, no hot water, damp, mould): record what you found and what was done, so the landlord has a clear record.",
+    "Mould or damp report: note the date the landlord or agent was told. The mould guide in Checks has the steps.",
+    "Gas appliances: Gas Safe registered engineers only. Electrics: SELECT, NICEIC or NAPIT registered electricians only. Put these under Trade needed.",
+    "Tenement flat: record floor/door (such as 2/1), the stair door code and whether a neighbour above or below is affected."]
+};
+function GlasgowTips({ kind }) {
+  const L = GLASGOW_TIPS[kind] || [];
+  return html`<details className="gtips"><summary>Glasgow and tenement notes</summary>
+    <ul>${L.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul>
+    <p className="note">Advice only. Check the current rules for the job before relying on them.</p></details>`;
+}
+const daysFromToday = (iso) => { if (!iso) return NaN; const a = new Date(iso + "T12:00:00"), b = new Date(localYmd() + "T12:00:00"); return Math.round((a - b) / 864e5); };
+const ageDays = (iso) => { const d = daysFromToday(iso); return isNaN(d) ? 0 : -d; };
 
 function Field({ label, children }) {
   return html`<div className="field"><div className="field-label">${label}</div>${children}</div>`;
@@ -1974,7 +2242,27 @@ function RateBox({ on, rate, onOn, onRate, hours }) {
   </div>`;
 }
 
-function HoursInput({ label, value, onChange }) {
+/* thumb helpers: tap-to-fill chips and a + / - stepper, so common answers need no typing */
+const SUPPLIER_CHIPS = ["Screwfix", "Toolstation", "Plumb Center", "City Plumbing", "Howdens", "Wickes", "B&Q", "Local merchant"];
+const QUICK_HRS = ["0.5", "1", "2", "3", "4", "8"];
+function QuickChips({ items, value, onPick, label }) {
+  return html`<div className="qchips" role="group" aria-label=${label || "Quick pick"}>
+    ${items.map((v) => html`<button type="button" key=${v} className=${"qchip" + (String(value || "").trim().toLowerCase() === String(v).toLowerCase() ? " on" : "")} onClick=${() => onPick(v)}>${v}</button>`)}
+  </div>`;
+}
+const stepNum = (cur, d, dp, start, max) => { const n = parseFloat(cur); const base = isNaN(n) ? start : n; const f = Math.pow(10, dp); return String(Math.min(max, Math.max(0, Math.round((base + d) * f) / f))); };
+function NumStepper({ value, onChange, step, dp, start, max, label, unit, placeholder, mode }) {
+  const st = step || 1; const d = dp === undefined ? 0 : dp; const mx = max || 9999;
+  return html`<span className="stepper nstep">
+    <button type="button" className="step-btn" aria-label=${"Less: " + label} onClick=${() => onChange(stepNum(value, -st, d, start === undefined ? 0 : start + st, mx))}>−</button>
+    <input className="num-in" type=${mode || "number"} inputMode=${d ? "decimal" : "numeric"} min="0" step=${st} placeholder=${placeholder || ""} value=${value} aria-label=${label}
+      onFocus=${(e) => { try { e.target.select(); } catch (err) { /* ignore */ } }} onChange=${(e) => onChange(e.target.value)} />
+    <button type="button" className="step-btn" aria-label=${"More: " + label} onClick=${() => onChange(stepNum(value, st, d, start === undefined ? 0 : start - st, mx))}>+</button>
+    ${unit ? html`<span className="hrs-u">${unit}</span>` : null}
+  </span>`;
+}
+
+function HoursInput({ label, value, onChange, quick }) {
   return html`<div className="hrs"><span className="lbl">${label}</span>
     <span className="stepper">
       <button type="button" className="step-btn" aria-label=${"Less time: " + label} onClick=${() => onChange(stepHrs(value, -0.5))}>−</button>
@@ -1982,7 +2270,8 @@ function HoursInput({ label, value, onChange }) {
         onFocus=${(e) => { try { e.target.select(); } catch (err) { /* ignore */ } }} onChange=${(e) => onChange(e.target.value)} />
       <button type="button" className="step-btn" aria-label=${"More time: " + label} onClick=${() => onChange(stepHrs(value, 0.5))}>+</button>
       <span className="hrs-u">hrs</span>
-    </span></div>`;
+    </span>
+    ${quick ? html`<${QuickChips} items=${QUICK_HRS} value=${value} onPick=${onChange} label="Common times in hours" />` : null}</div>`;
 }
 
 /* bottom sheet: used for every picker (item state, products, copy fallback) */
@@ -2002,7 +2291,7 @@ function Sheet({ title, onClose, foot, children }) {
       <div className="sh-head"><span className="sh-title">${title}</span>
         <button type="button" className="sh-x" aria-label="Close" onClick=${onClose}><${Icon} name="x" /></button></div>
       <div className="sh-body">${children}</div>
-      ${foot ? html`<div className="sh-foot">${foot}</div>` : null}
+      ${foot ? html`<div className="sh-foot">${foot}</div>` : html`<div className="sh-foot"><button type="button" className="btn btn-dark" style=${{ width: "100%" }} onClick=${onClose}>Done</button></div>`}
     </div>
   </div>`;
 }
@@ -2073,9 +2362,10 @@ function MatEditor(p) {
     ${canMore && more ? html`<div className="mat-body">
       ${onUnk && !locked ? html`<label className="kit-row"><input type="checkbox" checked=${!!unk} onChange=${(e) => onUnk(e.target.checked)} /><span className="name">Price not known yet${unk && !(Number(price) > 0) ? " (type it in the £ box when you have it)" : ""}</span></label>` : null}
       ${!locked ? html`<div className="mat-grid">
-        ${onQty ? html`<${Lbl} label="Quantity"><input className="text-in" type="number" inputMode="numeric" min="1" step="1" placeholder=${qtyPh || "1"} value=${qty} onFocus=${(e) => { try { e.target.select(); } catch (err) { /* ignore */ } }} onChange=${(e) => onQty(e.target.value)} /><//>` : null}
+        ${onQty ? html`<${Lbl} label="Quantity"><${NumStepper} value=${qty} onChange=${onQty} step=${1} dp=${0} start=${1} max=${999} label=${"Quantity of " + (nm || "item")} placeholder=${qtyPh || "1"} /><//>` : null}
         <${Lbl} label="Product code"><input className="text-in" type="text" autoCapitalize="none" placeholder="e.g. Screwfix 168jn" value=${code} onChange=${(e) => onCode(e.target.value)} onBlur=${commit("code")} /><//>
-        <${Lbl} label="Supplier" wide=${true}><input className="text-in" type="text" placeholder="e.g. Screwfix, or quote ref" value=${where} onChange=${(e) => onWhere(e.target.value)} onBlur=${commit("where")} /><//>
+        <${Lbl} label="Supplier" wide=${true}><input className="text-in" type="text" placeholder="e.g. Screwfix, or quote ref" value=${where} onChange=${(e) => onWhere(e.target.value)} onBlur=${commit("where")} />
+          <${QuickChips} items=${SUPPLIER_CHIPS} value=${where} label="Common suppliers" onPick=${(v) => { onWhere(v); if (onCommit) onCommit("where", v); }} /><//>
       </div>` : null}
       ${!locked && onPick ? html`<${Picker} label=${pickLabel || ""} onPick=${onPick} />` : null}
       ${React.Children.toArray(children)}
@@ -2246,6 +2536,7 @@ function OrderList({ survey, calc, ticks, setTick, customerName, siteAddress, to
       <label className="ord-hide"><input type="checkbox" checked=${hideDone} onChange=${(e) => setHideDone(e.target.checked)} /> Hide ticked</label>
       ${undoOn ? html`<button type="button" className="btn" onClick=${() => { setTick("ord:" + last.id, false); setLast(null); }}>Undo tick: ${String(last.name).length > 24 ? String(last.name).slice(0, 23) + "…" : last.name}</button>` : null}
     </div>
+    <p className="note" style=${{ margin: "0 0 10px" }}>Delivering to a flat? Give the merchant the floor, the close entry or buzzer, and where the van can stop. Check the stair and door width for baths and cylinders.</p>
     ${hideDone && st.total > 0 && st.left === 0 ? html`<p className="note" style=${{ margin: "4px 0 10px" }}>Everything to order is ticked off. Untick "Hide ticked" to see it all.</p>` : null}
     ${renderGroups(main, false)}
     <div className="ord-total"><span>Total at cost</span><b>${fmt(calc.materialsBase)}</b></div>
@@ -2413,20 +2704,28 @@ function PriceBookView({ auth }) {
   const [q, setQ] = useState("");
   const [cq, setCq] = useState("");
   const [nItem, setNItem] = useState(""); const [nPrice, setNPrice] = useState(""); const [nSup, setNSup] = useState(""); const [nCode, setNCode] = useState("");
+  const [supF, setSupF] = useState("");
   const groups = {};
   book.forEach((e) => { (groups[e.item] = groups[e.item] || []).push(e); });
   const allNames = Object.keys(groups);
-  const names = allNames.filter((n) => n.toLowerCase().includes(q.toLowerCase())).sort();
+  const supList = Array.from(new Set(book.map((e) => (e.supplier || "").trim()).filter(Boolean))).sort();
+  const names = allNames.filter((n) => n.toLowerCase().includes(q.toLowerCase()) && (!supF || groups[n].some((e) => (e.supplier || "").trim() === supF))).sort();
+  const staleN = allNames.filter((n) => ageDays(groups[n][groups[n].length - 1].date) > 180).length;
   const hits = cq.trim() ? searchCatalog(cq, 30) : [];
   return html`<div>
     <div className="title-row"><h1>Price Book</h1></div>
     <p className="lead">Every price you type into a survey is saved here against the item, so you build up what you actually pay.${auth && auth.user ? " It is also saved to your account." : " Sign in at My Jobs to keep it across devices."}</p>
+    <${StatusCard} title=${allNames.length ? "Your price book" : "Price book is empty"} tone=${allNames.length ? (staleN ? "warn" : "ok") : ""}
+      next=${allNames.length ? (staleN ? staleN + (staleN === 1 ? " item was last priced" : " items were last priced") + " over 6 months ago. Check those before you quote." : "Prices are up to date. The newest price paid is used next time you add the item.") : "Add a price below, scan a receipt, or just type prices into a survey. They collect here."}>
+      <div className="stat-row"><div className="stat"><b>${allNames.length}</b><span>items</span></div><div className="stat"><b>${supList.length}</b><span>suppliers</span></div><div className="stat"><b>${kits.length}</b><span>kits</span></div></div>
+    <//>
     <${Sec}>Prices I have paid<//>
     <div className="card">
       ${allNames.length > 0 ? html`<input className="text-in" style=${{ marginBottom: 8 }} type="text" placeholder="Filter your items" aria-label="Filter your items" value=${q} onChange=${(e) => setQ(e.target.value)} />` : null}
-      ${names.length === 0 ? html`<p className="note">${allNames.length === 0 ? "Nothing yet. Enter a price on a survey item and it appears here, or add one below." : "No item matches that filter."}</p>` : null}
+      ${supList.length > 1 ? html`<div className="qpicks" role="group" aria-label="Filter by supplier"><button type="button" className=${"qpick" + (!supF ? " on" : "")} aria-pressed=${!supF} onClick=${() => setSupF("")}>All suppliers</button>${supList.map((n) => html`<button type="button" key=${n} className=${"qpick" + (supF === n ? " on" : "")} aria-pressed=${supF === n} onClick=${() => setSupF(supF === n ? "" : n)}>${n}</button>`)}</div>` : null}
+      ${names.length === 0 ? (allNames.length === 0 ? html`<${EmptyState} icon="tag" title="No prices saved yet">Enter a price on any survey item and it is saved here with the supplier and code. You can also add one below or import a receipt.<//>` : html`<p className="note">No item matches that filter.</p>`) : null}
       ${names.map((n) => { const g = groups[n]; const last = g[g.length - 1]; return html`<details key=${n} className="pb">
-        <summary><span>${n}${last.code ? html`<span className="muted-s"> · code ${last.code}</span>` : null}</span><b className="mono">${fmtKit(last.price)}</b></summary>
+        <summary><span>${n}${last.code ? html`<span className="muted-s"> · code ${last.code}</span>` : null}</span><span><b className="mono">${fmtKit(last.price)}</b>${ageDays(last.date) > 180 ? html` <span className="muted-s age-old">check price</span>` : null}</span></summary>
         ${g.slice().reverse().map((e, i) => html`<div key=${i} className="pb-hist">
           <span>${e.date}${e.supplier ? " · " + e.supplier : ""}${e.product ? " · " + e.product : ""}${e.code ? " · code " + e.code : ""}</span>
           <span><b className="mono">${fmtKit(e.price)}</b> <${RemoveBtn} label="Remove this price" onClick=${() => bookRemove(e)} /></span></div>`)}
@@ -2442,7 +2741,7 @@ function PriceBookView({ auth }) {
           <${Lbl} label="Item" wide=${true}><input className="text-in" type="text" placeholder="e.g. Bath 1700" value=${nItem} onChange=${(e) => setNItem(e.target.value)} /><//>
           <${Lbl} label="Price (£)"><input className="text-in" type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value=${nPrice} onChange=${(e) => setNPrice(e.target.value)} /><//>
           <${Lbl} label="Product code"><input className="text-in" type="text" autoCapitalize="none" value=${nCode} onChange=${(e) => setNCode(e.target.value)} /><//>
-          <${Lbl} label="Supplier" wide=${true}><input className="text-in" type="text" placeholder="e.g. Screwfix, or quote ref" value=${nSup} onChange=${(e) => setNSup(e.target.value)} /><//>
+          <${Lbl} label="Supplier" wide=${true}><input className="text-in" type="text" placeholder="e.g. Screwfix, or quote ref" value=${nSup} onChange=${(e) => setNSup(e.target.value)} /><${QuickChips} items=${SUPPLIER_CHIPS} value=${nSup} label="Common suppliers" onPick=${(v) => setNSup(v)} /><//>
         </div>
         <button type="button" className="btn btn-accent" onClick=${() => { if (nItem.trim() && Number(nPrice) > 0) { bookAdd(nItem.trim(), nPrice, nSup, "", nCode); setNItem(""); setNPrice(""); setNSup(""); setNCode(""); } }}>Save price</button>
       <//>
@@ -2582,6 +2881,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
     : v === "fit" ? onChange({ remove: false, fit: true, repair: false, condition: "new" })
     : onChange({ remove: true, fit: true, repair: false, condition: v }));
   return html`<${ItemCard} title=${def.label} valueLabel=${modeName} active=${active} sub=${sub} options=${FIX_MODES} value=${mode} onPick=${pick}>
+    ${GLA_HINTS[def.key] ? html`<p className="gla-hint">${GLA_HINTS[def.key]}</p>` : null}
     <${HoursInput} label=${hrsLabel} value=${hrRaw(hrs, hk, fxDefH(state))} onChange=${(v) => setHr(hk, v)} />
     ${su && active ? html`<${SuitePanel} def=${def} state=${state} onChange=${onChange} fixtures=${fixtures} tier=${tier} />` : null}
     ${!su && list.length > 0 ? html`<div>
@@ -2696,10 +2996,109 @@ function OtherWork({ x, size, hrs, setHr }) {
   <//>`;
 }
 
+/* ---- speed layer: remembered answers, quick-add chips and "what is left" ---- */
+const RECENT_KEY = "pricer-recent-v1";
+function loadRecent(kind) {
+  try { const r = JSON.parse(localStorage.getItem(RECENT_KEY)); const l = r && Array.isArray(r[kind]) ? r[kind] : []; return l.filter((x) => typeof x === "string"); } catch (e) { return []; }
+}
+function pushRecent(kind, val) {
+  const v = String(val || "").trim();
+  if (v.length < 3) return;
+  try {
+    let r = null; try { r = JSON.parse(localStorage.getItem(RECENT_KEY)); } catch (e) { r = null; }
+    if (!r || typeof r !== "object") r = {};
+    const list = Array.isArray(r[kind]) ? r[kind] : [];
+    r[kind] = [v].concat(list.filter((x) => x !== v)).slice(0, 8);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(r));
+  } catch (e) { /* storage unavailable */ }
+}
+/* small one-tap suggestions under an empty field: your own recent entries first, then any fixed starters */
+function RecentChips({ kind, value, onPick, starters, label }) {
+  if (String(value || "").trim()) return null;
+  const seen = new Set();
+  const list = loadRecent(kind).concat(starters || []).filter((x) => { const k = x.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 5);
+  if (!list.length) return null;
+  return html`<div className="rchips" role="group" aria-label=${label || "Quick fill"}><span className="rchips-l">${label || "Quick fill"}</span>
+    ${list.map((x) => html`<button type="button" key=${x} className="rchip" onClick=${() => onPick(x)}>${x}</button>`)}</div>`;
+}
+
+function goTo(id) {
+  try {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    if (typeof el.focus === "function" && /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(el.tagName)) el.focus({ preventScroll: true });
+  } catch (e) { /* ignore */ }
+}
+/* steps: [{ id: element id to jump to, label, next: wording for the Next button, done, opt }]. Optional steps are shown but not counted. */
+function JobProgress({ title, steps, doneText, onDone, doneLabel }) {
+  const req = steps.filter((s) => !s.opt);
+  const left = req.filter((s) => !s.done);
+  const n = req.length - left.length;
+  const pct = req.length ? Math.round((n / req.length) * 100) : 100;
+  const next = left[0];
+  return html`<div className="progress" role="status" aria-live="polite">
+    <div className="progress-top"><span>${title}</span><span className="progress-n">${n} of ${req.length} done</span></div>
+    <div className="progress-bar" aria-hidden="true"><i style=${{ width: pct + "%" }}></i></div>
+    <div className="progress-steps">${steps.map((s, i) => html`<button type="button" key=${i + s.id} className=${"pstep" + (s.done ? " done" : "") + (s.opt ? " opt" : "")} onClick=${() => goTo(s.id)}>${s.done ? "\u2713 " : ""}${s.label}${s.opt && !s.done ? " (optional)" : ""}</button>`)}</div>
+    ${next ? html`<button type="button" className="btn btn-accent progress-next" onClick=${() => goTo(next.id)}>Next: ${next.next || next.label}</button>`
+      : onDone ? html`<button type="button" className="btn btn-accent progress-next" onClick=${onDone}>${doneLabel || "Carry on"}</button>`
+      : html`<p className="note">${doneText || "Everything needed is filled in."}</p>`}
+  </div>`;
+}
+
+/* Glasgow job prompts: tap a line to add it to a notes box. Prompts only, nothing is added twice, and each one is for the user to check against the real job. */
+const GLA_SURVEY = [
+  ["Tenement flat", "Tenement flat: floor and flat number, how to get in (buzzer, key or close door), stair width, no lift for heavy items."],
+  ["Parking and deliveries", "Parking: permit or restricted street? Where can the van stop, and how far is the carry to the close?"],
+  ["Shared stair and close", "Shared stair and close: protect the common areas, keep the close clear, take rubbish away (do not leave it in the bin store or back green)."],
+  ["Shut-off location", "Shut-off: where is the stopcock for this flat (under the sink, meter cupboard, common close, another flat)? Does it work?"],
+  ["Shared stack or pipe", "Shared stack, pipe or tank: if it serves other flats it may be a common repair, so the owners or factor may need to agree before work starts. Not in this price."],
+  ["Lead pipe", "Lead pipework seen or likely (older tenement): not priced in this estimate. Agree any renewal separately."],
+  ["Old tank or cylinder", "Old cold water tank or hot water cylinder: note where it is, the size, how it gets out of the building, and who takes it away."],
+  ["Wet room", "Wet room: floor type and falls to the drain, tanking and drain position. Check the floor before pricing."],
+  ["Older building", "Older building: ask for any asbestos information before disturbing old boards, textured ceilings or lagging."],
+  ["Tenant access", "Tenant: access to be arranged through the landlord or agent, who gives the tenant written notice. Tenant contact: [fill in]"],
+  ["Factor or agent", "Factor or agent contact for approval: [fill in]"]
+];
+const GLA_JOBTYPES = ["Dripping tap", "Leak from above", "No hot water", "Blocked waste or toilet", "Cistern fault", "Radiator valve", "Low pressure", "Overflow"];
+const GLA_WORK = [
+  ["Leak from above", "Leak traced to the flat above or next door. Owner or landlord told. Access to their flat is needed."],
+  ["Shared stack or pipe", "Shared stack, pipe or tank in the common area: this may be a common repair, so the factor or owners need to be told before more work."],
+  ["Shut-off not found", "Stopcock not found at the flat. Checked: under the sink, meter cupboard, common close, neighbour's flat."],
+  ["Lead pipe seen", "Lead pipework seen at: [fill in]. Landlord or customer told."],
+  ["Old tank or cylinder", "Old cold water tank or hot water cylinder: condition, location and advice given: [fill in]"],
+  ["Worked from shared stair", "Worked from the shared stair: common areas protected and the close left clear."],
+  ["Photos taken", "Photos taken before and after."]
+];
+const GLA_FURTHER = [
+  ["Tenant access", "Return visit: access to be arranged with the tenant through the landlord or agent, who gives written notice."],
+  ["No access", "No access: tenant not in or could not be reached. Agent or landlord to rearrange."],
+  ["Factor or owners", "Common repair: factor or owners to agree before work starts. Quote to go to the factor."],
+  ["Part on order", "Part on order: [fill in], from [fill in]. Return visit once it arrives."],
+  ["Parking for return", "Parking or permit needed for the return visit."]
+];
+const GLA_HINTS = {
+  hwtank: "On site: note where the tank or cylinder is (cupboard, loft, press), how the old one gets out of the building, and who takes it away. Check what feeds it before capping off. Older lagging or boards may contain asbestos: ask before disturbing.",
+  bath: "On site: check the close, stair and bathroom door for the new bath. Look at the floor under the old one and where the waste meets a shared stack.",
+  showerTray: "On site: for a wet room or walk-in, note the floor type and falls to the drain. Tanking and floor work are separate from the tray: add them as a structural item or a note.",
+  toilet: "On site: in a tenement the soil pipe often goes to a shared stack. Check the pan outlet and where the stack sits before choosing the pan.",
+  radiator: "On site: check what system it is on and who needs telling before draining down (tenant, or neighbours on a shared system).",
+  otap: "On site: a back green or shared garden may be common. Check the shut-off and who it belongs to.",
+  sink: "On site: check the isolation valves under the sink work. Older flats may have none. If you find lead pipe, note it for the customer: it is not priced here.",
+  ktap: "On site: check the isolation valves under the sink work. Older flats may have none."
+};
+function addLine(cur, txt) { const c = String(cur || "").replace(/\s+$/, ""); return c ? c + "\n" + txt : txt; }
+function GlasgowChips({ items, value, onAdd, mode }) {
+  const cur = String(value || "");
+  return html`<div className="gchips">${items.map((it) => { const lbl = Array.isArray(it) ? it[0] : it; const txt = Array.isArray(it) ? it[1] : it; const key = txt.split("[fill in]")[0]; const has = mode === "set" ? cur === txt : cur.indexOf(key) >= 0;
+    return html`<button type="button" key=${lbl} aria-pressed=${has} className=${"gchip" + (has ? " on" : "")} onClick=${() => { if (!has) onAdd(txt); }}>${has ? "Added: " : "+ "}${lbl}</button>`; })}${cur.indexOf("[fill in]") >= 0 ? html`<p className="gchip-warn">Replace each [fill in] with the real detail before you copy or send.</p>` : null}</div>`;
+}
+
 function SiteSurveyView(p) {
   const pc = React.useContext(PriceCtx);
   const { room, supply, setSupply, supplier, setSupplier, supplyLabel, supplySource, setSupplySource, fixtures, structural, kit, tier, setTier, updateFixture, updateStructural, toggleKit, survey, calc, onViewQuote, isExample, onClear, hrs, setHr, prov, toggleProv,
-    customerName, setCustomerName, siteAddress, setSiteAddress, size, setSize, dims, setDims, extra } = p;
+    customerName, setCustomerName, siteAddress, setSiteAddress, size, setSize, dims, setDims, extra, officeNotes, setOfficeNotes } = p;
   const grouped = useMemo(() => {
     const g = {};
     survey.kitLines.forEach((k) => { (g[k.group] = g[k.group] || []).push(k); });
@@ -2716,6 +3115,13 @@ function SiteSurveyView(p) {
     <div className="title-row"><h1>${room.title}</h1></div>
     <p className="lead">Tick what needs doing, set the hours and enter prices. The estimate is at the bottom.</p>
     <${FirstTip} />
+    <${JobProgress} title="What is left" steps=${[
+      { id: "sv-cust", label: "Customer", next: "add the customer name", done: !!String(customerName || "").trim() },
+      { id: "sv-addr", label: "Address", next: "add the site address", done: !!String(siteAddress || "").trim() },
+      { id: "sv-fix", label: "Work chosen", next: "tap each item and say what it needs", done: survey.kitLines.length > 0 || calc.totalHours > 0 },
+      { id: "sv-miss", label: "Prices", next: miss.length ? "add the " + miss.length + " missing " + (miss.length === 1 ? "price" : "prices") : "check the prices", done: (survey.kitLines.length > 0 || calc.totalHours > 0) && miss.length === 0 && !(survey.tbc && survey.tbc.length) },
+    ]} onDone=${onViewQuote} doneLabel="All filled in: see estimate and order list" />
+    <${GlasgowTips} kind="survey" />
     ${isExample && html`<div className="example">
       <span>Example job loaded: bath and basin replaced, partial floor repair. Change anything, or clear it to start your own.</span>
       <${ConfirmBtn} label="Clear all" armedLabel="Tap again to clear all" onConfirm=${onClear} />
@@ -2724,28 +3130,31 @@ function SiteSurveyView(p) {
     <${Sec} n="1">The job<//>
     <div className="card">
       <div className="field"><label className="field-label" htmlFor="sv-cust">Customer name</label>
-        <input id="sv-cust" className="text-in" style=${{ margin: 0 }} type="text" autoComplete="name" placeholder="Customer name" value=${customerName} onChange=${(e) => setCustomerName(e.target.value)} /></div>
+        <input id="sv-cust" className="text-in" style=${{ margin: 0 }} type="text" autoComplete="name" placeholder="Customer name" value=${customerName} onChange=${(e) => setCustomerName(e.target.value)} onBlur=${() => pushRecent("cust", customerName)} />
+        <${RecentChips} kind="cust" value=${customerName} onPick=${setCustomerName} label="Recent customers" /></div>
       <div className="field"><label className="field-label" htmlFor="sv-addr">Site address (also names the saved job)</label>
-        <input id="sv-addr" className="text-in" style=${{ margin: 0 }} type="text" autoComplete="street-address" placeholder="Site address" value=${siteAddress} onChange=${(e) => setSiteAddress(e.target.value)} /></div>
+        <input id="sv-addr" className="text-in" style=${{ margin: 0 }} type="text" autoComplete="street-address" placeholder="Site address" value=${siteAddress} onChange=${(e) => setSiteAddress(e.target.value)} onBlur=${() => pushRecent("addr", siteAddress)} />
+        <${RecentChips} kind="addr" value=${siteAddress} onPick=${setSiteAddress} label="Recent addresses" /></div>
       ${setSize && setDims ? html`<${Field} label="Floor size (metres, shown on the estimate)">
-        <div className="link-row">
-          <input className="text-in grow" type="text" inputMode="decimal" aria-label="Floor length in metres" placeholder="Length m" value=${dims.fl} onFocus=${(e) => e.target.select()} onChange=${(e) => setDims({ fl: e.target.value })} />
-          <span style=${{ alignSelf: "center" }}>×</span>
-          <input className="text-in grow" type="text" inputMode="decimal" aria-label="Floor width in metres" placeholder="Width m" value=${dims.fw} onFocus=${(e) => e.target.select()} onChange=${(e) => setDims({ fw: e.target.value })} />
+        <div className="dim-grid">
+          <div className="dim-cell"><span className="dim-cap">Length</span><${NumStepper} mode="text" value=${dims.fl} onChange=${(v) => setDims({ fl: v })} step=${0.1} dp=${1} start=${2} max=${30} label="Floor length in metres" placeholder="m" unit="m" /></div>
+          <div className="dim-cell"><span className="dim-cap">Width</span><${NumStepper} mode="text" value=${dims.fw} onChange=${(v) => setDims({ fw: v })} step=${0.1} dp=${1} start=${1.8} max=${30} label="Floor width in metres" placeholder="m" unit="m" /></div>
         </div>
         <p className="note" style=${{ margin: "4px 0 0" }}>${floorArea(dims) > 0 ? (Math.round(floorArea(dims) * 10) / 10) + " m², so a " + SIZE_LABEL[size].split(" ")[0] + " room for the material quantities" : "Not entered: using a " + SIZE_LABEL[size].split(" ")[0] + " room " + SIZE_LABEL[size].replace(/^\w+ /, "")}</p>
       <//>
       <${Field} label="Ceiling size (height in metres, shown on the estimate)">
-        <input className="text-in" style=${{ margin: 0 }} type="text" inputMode="decimal" aria-label="Ceiling height in metres" placeholder="Ceiling height m, e.g. 2.4" value=${dims.ch} onFocus=${(e) => e.target.select()} onChange=${(e) => setDims({ ch: e.target.value })} />
+        <${NumStepper} mode="text" value=${dims.ch} onChange=${(v) => setDims({ ch: v })} step=${0.1} dp=${1} start=${2.4} max=${6} label="Ceiling height in metres" placeholder="e.g. 2.4" unit="m" />
+        <${QuickChips} items=${["2.2", "2.4", "2.5", "2.7", "3.0"]} value=${dims.ch} onPick=${(v) => setDims({ ch: v })} label="Common ceiling heights in metres" />
       <//>` : null}
       <${Field} label="Finish tier (new items)">
         <${Segmented} options=${[["budget", "Budget"], ["mid", "Mid-range"], ["premium", "Premium"]]} value=${tier} onChange=${setTier} />
       <//>
+      <${ScotTip} title="Before you price a flat" items=${["Tenement or flat: which pipes and drains are shared, and will the factor or neighbours need to agree?", "Pipe coming in: lead, copper or plastic? Note it if you can see it.", "Stairs, close door entry and parking: can a bath and the materials get in easily?", "Landlord or agent job: has the tenant been given proper written notice of entry?"]} />
     </div>
 
     <${Sec} n="2">${room.fixturesLabel}<//>
     ${room === BATHROOM && window.SUITE ? html`<${SuiteBar} fixtures=${fixtures} tier=${tier} onChange=${(patch) => updateFixture("_suite", patch)} />` : null}
-    <div className="group">
+    <div className="group" id="sv-fix">
       ${room.fixtures.map((item) => html`<${FixtureCard} room=${room} key=${item.key} def=${item} state=${fixtures[item.key]} fixtures=${fixtures} tier=${tier} kit=${kit} survey=${survey}
         onChange=${(patch) => updateFixture(item.key, patch)} onToggle=${toggleKit} hrs=${hrs} setHr=${setHr} prov=${prov} toggleProv=${toggleProv} />`)}
     </div>
@@ -2805,7 +3214,7 @@ function SiteSurveyView(p) {
             </div>`}
       <//>
     </div>
-    <div className="card sp">
+    <div className="card sp" id="sv-miss">
       ${miss.length === 0 ? html`<p className="note">Every priced kit line has a price.</p>`
         : html`<p className="note"><b>${miss.length} kit ${miss.length === 1 ? "line" : "lines"} still need a price:</b> ${missGroups.map(([g, n]) => g + " (" + n + ")").join(", ")}. Open the item to add them, or leave them blank to price later.</p>`}
       ${survey.tbc && survey.tbc.length ? html`<p className="note"><b>${survey.tbc.length} ${survey.tbc.length === 1 ? "price" : "prices"} still to confirm:</b> ${survey.tbc.map((x) => x.label).join(", ")}. They are not in the total yet. Open the item and type the price in when you know it.</p>` : null}
@@ -2862,7 +3271,7 @@ async function makeAndSharePdf(sections, filename) {
   if (!lib) throw new Error("The PDF tool did not load. Check your connection and try again.");
   const prettyPdf = (doc) => {
   const PW = 595, PH = 842, M = 48, W = PW - M * 2, BOTTOM = PH - 56;
-  const INK = [31, 41, 55], SOFT = [100, 110, 122], ACC = [30, 78, 140], TINT = [238, 243, 250], RULE = [205, 212, 222];
+  const INK = [22, 33, 42], SOFT = [90, 104, 112], ACC = [11, 107, 104], TINT = [234, 243, 241], RULE = [198, 207, 203];
   const fill = (c) => doc.setFillColor(c[0], c[1], c[2]);
   const ink = (c) => doc.setTextColor(c[0], c[1], c[2]);
   const stroke = (c) => doc.setDrawColor(c[0], c[1], c[2]);
@@ -2877,7 +3286,7 @@ async function makeAndSharePdf(sections, filename) {
   const header = (title, sub) => {
     fill(ACC); doc.rect(0, 0, PW, 84, "F");
     font("bold", 21, [255, 255, 255]); doc.text(wrap(title, W)[0], M, 40);
-    font("normal", 11, [220, 230, 245]); doc.text(sub, M, 62);
+    font("normal", 11, [214, 238, 235]); doc.text(sub, M, 62);
     y = 84 + 22;
   };
   const heading = (t) => {
@@ -3084,6 +3493,14 @@ function QuoteView(p) {
       </div>
     </div>
 
+    ${tab === "estimate" ? (() => {
+      const hasC = !!String(customerName || "").trim(), hasA = !!String(siteAddress || "").trim();
+      const ok = hasC && hasA;
+      return html`<${StatusCard} title=${ok ? (direct ? "Quote ready to send" : "Estimate ready to send") : "Check before you send"} tone=${ok ? "ok" : "warn"}
+        next=${ok ? (direct ? "Copy it or make the PDF. The customer signs the acceptance block at the bottom." : "Copy it or make the PDF for the office. Tick 'This is my own work' if it is a direct quote to the customer.") : "Add " + [hasC ? "" : "the customer name", hasA ? "" : "the site address"].filter(Boolean).join(" and ") + " in the box below so the PDF and the saved job are named properly."}
+        pills=${[[direct ? "Direct quote" : "Provisional estimate", direct ? "ok" : ""], [rateOn ? "Labour included in total" : (direct ? "No labour rate set" : "Hours only"), rateOn || !direct ? "" : "warn"], ...(ost.total > 0 ? [[ost.left === 0 ? "Order list done" : ost.left + " to order", ost.left === 0 ? "ok" : ""]] : [])]} />`;
+    })() : null}
+
     ${tab === "order"
       ? html`<div><${OrderList} survey=${survey} calc=${calc} ticks=${ticks} setTick=${setTick} customerName=${customerName} siteAddress=${siteAddress} todayStr=${todayStr} tier=${tier} mode=${orderBy} setMode=${setOrderBy} />
         <div className="next-step"><button type="button" className="btn" onClick=${() => setTab("estimate")}><${Icon} name="back" /> Back to estimate</button></div></div>`
@@ -3152,7 +3569,8 @@ function QuoteView(p) {
 
       ${direct ? null : html`<div><div className="mini-label" style=${{ marginTop: 20 }}>Notes for office</div>
       <textarea className="manual note-ta" style=${{ minHeight: 90, marginBottom: 14 }} aria-label="Notes for office" value=${officeNotes}
-        placeholder="Access, parking, tenant details, anything the office needs to know to quote" onChange=${(e) => setOfficeNotes(e.target.value)}></textarea></div>`}
+        placeholder="Access, stair and parking, tenant or agent contact, shut-off location, anything the office needs to know to quote" onChange=${(e) => setOfficeNotes(e.target.value)}></textarea>
+      <${GlasgowChips} items=${GLA_SURVEY} value=${officeNotes} onAdd=${(t) => setOfficeNotes(addLine(officeNotes, t))} /></div>`}
 
       <details className="terms-d">
         <summary>${direct ? "About this quote" : "About this estimate"}</summary>
@@ -3273,9 +3691,11 @@ function SavePanel({ kind, auth, defaultTitle, autoTitle, address, setAddress, g
   </div>`;
 }
 
+const whenText = (iso) => { const d = new Date(iso); if (isNaN(d)) return ""; const n = Math.floor((Date.now() - d.getTime()) / 864e5); return n <= 0 ? "today" : n === 1 ? "yesterday" : n < 14 ? n + " days ago" : d.toLocaleDateString("en-GB"); };
 function MyJobsView({ auth, onOpen }) {
   const [jobs, setJobs] = useState(null);
   const [err, setErr] = useState("");
+  const [kindF, setKindF] = useState("");
   const load = async () => {
     if (!sb || !auth.user) return;
     try {
@@ -3305,14 +3725,16 @@ function MyJobsView({ auth, onOpen }) {
     <${Sec}>Saved jobs<//>
     ${err && html`<p className="note" role="alert">${err}</p>`}
     ${jobs === null ? html`<p className="note">Loading your jobs…</p>`
-      : jobs.length === 0 ? html`<p className="note">No saved jobs yet. Use "Save job" on any survey.</p>`
-      : jobs.map((j) => html`<div key=${j.id} className="card job-row">
-          <div className="job-main"><strong>${j.title}</strong><div className="note" style=${{ margin: 0 }}>${KIND_LABEL[j.kind] || j.kind} · ${new Date(j.updated_at).toLocaleDateString("en-GB")}</div></div>
+      : jobs.length === 0 ? html`<${EmptyState} icon="folder" title="No saved jobs yet">Use "Save job" at the bottom of any survey or maintenance job. Jobs also save themselves when you send a PDF or copy the estimate.<//>`
+      : html`<div>
+        <div className="qpicks" role="group" aria-label="Filter by job type"><button type="button" className=${"qpick" + (!kindF ? " on" : "")} aria-pressed=${!kindF} onClick=${() => setKindF("")}>All (${jobs.length})</button>${Object.keys(KIND_LABEL).filter((kk) => jobs.some((j) => j.kind === kk)).map((kk) => html`<button type="button" key=${kk} className=${"qpick" + (kindF === kk ? " on" : "")} aria-pressed=${kindF === kk} onClick=${() => setKindF(kindF === kk ? "" : kk)}>${KIND_LABEL[kk]}</button>`)}</div>
+        ${jobs.filter((j) => !kindF || j.kind === kindF).map((j) => html`<div key=${j.id} className="card job-row">
+          <div className="job-main"><strong>${j.title}</strong><div className="note" style=${{ margin: 0 }}><span className="kind-tag">${KIND_LABEL[j.kind] || j.kind}</span>updated ${whenText(j.updated_at)}</div></div>
           <div className="link-row">
             <button type="button" className="btn" onClick=${() => open(j.id)}>Open</button>
             <${ConfirmBtn} label="Delete" armedLabel="Tap again to delete" onConfirm=${() => del(j.id)} />
           </div>
-        </div>`)}
+        </div>`)}</div>`}
     <${Sec}>Account<//>
     <div className="card link-row">
       <span className="note grow">Signed in as ${auth.user.email}</span>
@@ -3845,6 +4267,58 @@ function jobNoteText(j) {
   }
   return L.join("\n");
 }
+/* where a check stands: derived from the dates already on the job, nothing new is stored */
+function checkState(j, c) {
+  const done = j.done && j.done[c[0]], due = dueOf(j, c);
+  if (!done && !due) return { tone: "warn", label: "Not done yet", rank: 1 };
+  const d = daysFromToday(due);
+  if (!isNaN(d) && d < 0) return { tone: "bad", label: "Overdue since " + fmtDate(due), rank: 0 };
+  if (!isNaN(d) && d <= 60) return { tone: "warn", label: "Due " + fmtDate(due) + " (" + d + (d === 1 ? " day" : " days") + ")", rank: 2 };
+  if (!done) return { tone: "warn", label: "Not done yet", rank: 1 };
+  return { tone: "ok", label: "In date to " + fmtDate(due), rank: 3 };
+}
+/* the job's stage, worked out from what has been filled in (work status, resolved, orders, further work, trade) */
+function jobStatus(j) {
+  const T = (v) => !!(v || "").toString().trim();
+  const hasOrder = (j.orders || []).some((o) => T(o.from) || T(o.ref) || T(o.items));
+  const logged = T(j.jobType) || T(j.issue);
+  const worked = T(j.work) || (j.hours !== "" && j.hours != null && !isNaN(Number(j.hours)));
+  const open = j.resolved === "partly" || j.resolved === "no";
+  const follow = T(j.further) || !!j.tradeNeeded || open;
+  let title, tone, next;
+  if (j.complete && !follow) { title = "Complete"; tone = "ok"; next = "Copy the job notes and send them to the landlord or agent."; }
+  else if (j.complete) { title = "Complete, follow-up needed"; tone = "warn"; next = "Say what is still outstanding in Work status, then copy the job notes."; }
+  else if (j.tradeNeeded) { title = "Waiting on another trade"; tone = "warn"; next = "Note which trade and what they need to do, so the agent can book them."; }
+  else if (hasOrder) { title = "Waiting on parts"; tone = "warn"; next = "Come back once the order arrives. The order reference is in the job notes."; }
+  else if (T(j.further) || open) { title = "Return visit needed"; tone = "warn"; next = "Put what is left in 'Further work required' so the next visit starts quickly."; }
+  else if (logged || worked) { title = "In progress"; tone = "go"; next = "Tick 'Work is complete' in Work status when you leave."; }
+  else { title = "New job"; tone = ""; next = "Start with what the job is. Everything else can wait until you have done it."; }
+  const missing = [];
+  if (logged || worked) {
+    if (!j.resolved) missing.push("Has the issue been resolved? is not answered");
+    if (!worked) missing.push("No work or time recorded");
+    if (!T(j.where) && !j.noAddr) missing.push("No address (or tick 'No address needed')");
+  }
+  const flags = [!!logged, !!worked, j.resolved === "yes", !!j.complete];
+  return { title, tone, next, missing, steps: flowSteps(["Logged", "Work done", "Fixed", "Closed"], flags) };
+}
+const JOB_QUICK = ["Leaking tap", "Leak under sink", "No hot water", "Radiator fault", "Blocked toilet or drain", "Damp or mould report", "Landlord safety checks visit"];
+function JobStatus({ job }) {
+  const st = jobStatus(job);
+  const ticked = CHECKS.filter((c) => job.checks && job.checks[c[0]]);
+  const states = ticked.map((c) => [c, checkState(job, c)]);
+  const worst = states.length ? states.slice().sort((a, b) => a[1].rank - b[1].rank)[0][1] : null;
+  const pills = [];
+  if (job.resolved) pills.push(["Resolved: " + (job.resolved === "yes" ? "Yes" : job.resolved === "partly" ? "Partly" : "No"), job.resolved === "yes" ? "ok" : "warn"]);
+  if ((job.orders || []).length) pills.push([(job.orders || []).length + (job.orders.length === 1 ? " order placed" : " orders placed"), "warn"]);
+  if (job.tradeNeeded) pills.push(["Trade: " + ((job.trade || "").trim() || "to confirm"), "warn"]);
+  if (ticked.length) pills.push([ticked.length + (ticked.length === 1 ? " check" : " checks") + (worst && worst.rank <= 2 ? ": needs attention" : ": in date"), worst && worst.rank === 0 ? "bad" : worst && worst.rank <= 2 ? "warn" : "ok"]);
+  return html`<${StatusCard} title=${st.title} tone=${st.tone} next=${st.next} steps=${st.steps} pills=${pills}>
+    ${st.missing.length ? html`<ul className="status-l" aria-label="Before you close this job">${st.missing.map((m, i) => html`<li key=${i}>${m}</li>`)}</ul>` : null}
+    <${GlasgowTips} kind="job" />
+  <//>`;
+}
+
 function SmallJobView({ job, setJob, onClear, bizName }) {
   const [guideId, setGuideId] = useState(null);
   const [reportId, setReportId] = useState(null);
@@ -3853,8 +4327,10 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
   const setOrd = (id, patch) => setJob((p) => ({ ...p, orders: (p.orders || []).map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
   const text = jobNoteText(job);
   const nChecks = CHECKS.filter((c) => job.checks && job.checks[c[0]]).length;
+  const MJ_STARTERS = { issue: ["Dripping from spout", "Leak from joint", "Slow drain", "No hot water", "Low pressure"], issueWhere: ["Main bathroom", "Kitchen sink", "WC"] };
   const inp = (k, label, ph, id) => html`<div className="field"><label className="field-label" htmlFor=${id}>${label}</label>
-    <input id=${id} className="text-in" style=${{ margin: 0 }} type="text" placeholder=${ph} value=${job[k]} onChange=${set(k)} /></div>`;
+    <input id=${id} className="text-in" style=${{ margin: 0 }} type="text" placeholder=${ph} value=${job[k]} onChange=${set(k)} onBlur=${() => pushRecent(k === "where" ? "addr" : "mj-" + k, job[k])} />
+    <${RecentChips} kind=${k === "where" ? "addr" : "mj-" + k} value=${job[k]} starters=${MJ_STARTERS[k]} onPick=${(v) => setJob((p) => ({ ...p, [k]: v }))} label="Quick fill" /></div>`;
   const area = (k, ph, label, id) => html`<div className="field"><label className="field-label" htmlFor=${id}>${label}</label>
     <textarea id=${id} className="manual note-ta" placeholder=${ph} value=${job[k] || ""} onChange=${set(k)}></textarea></div>`;
   const bulkTotal = (job.bulk || []).reduce((a, x) => a + Math.max(0, Number(x.cost) || 0), 0);
@@ -3862,16 +4338,20 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
   const matTotal = bulkTotal + job.mats.reduce((a, x) => a + (Math.max(0, Number(x.cost) || 0)) * Math.max(1, Math.floor(Number(x.qty)) || 1), 0);
   return html`<div>
     <div className="title-row"><h1>Maintenance Jobs</h1></div>
-    <p className="lead">Fill in what you can, then copy the notes into your job system.</p>
+    <p className="lead">Fill in what you can, then copy the notes into your job system. Landlord and letting agent visits: say what you found, what you did, and what still needs doing.</p>
+    <${JobStatus} job=${job} />
 
     <${Sec} n="1">The job<//>
     <div className="card">
       ${inp("jobType", "What was the job?", "e.g. Leaking tap repair", "mj-type")}
+      ${!(job.jobType || "").trim() ? html`<div className="qpicks" role="group" aria-label="Quick job types">${JOB_QUICK.map((q) => html`<button type="button" key=${q} className="qpick" onClick=${() => setJob((p) => ({ ...p, jobType: q }))}>${q}</button>`)}</div>` : null}
       <div className="field"><label className="field-label" htmlFor="mj-date">Date</label>
         <div className="link-row"><input id="mj-date" className="text-in grow" type="date" value=${job.date} onChange=${set("date")} />
-          <button type="button" className="btn" onClick=${() => setJob((p) => ({ ...p, date: localYmd() }))}>Today</button></div></div>
+          <button type="button" className="btn" onClick=${() => setJob((p) => ({ ...p, date: localYmd() }))}>Today</button>
+          <button type="button" className="btn" onClick=${() => setJob((p) => { const d = new Date(); d.setDate(d.getDate() - 1); const y = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); return { ...p, date: y }; })}>Yesterday</button></div></div>
       <${Tick} checked=${!!job.noAddr} onChange=${() => setJob((p) => ({ ...p, noAddr: !p.noAddr }))} label="No address needed (it is held in another app)" />
-      ${job.noAddr ? null : inp("where", "Where was the job?", "Address / customer", "mj-where")}
+      ${job.noAddr ? null : inp("where", "Where was the job?", "e.g. 2/1, 14 Example Street, G11 (agent or landlord)", "mj-where")}
+      ${job.noAddr ? null : html`<p className="note" style=${{ marginTop: -8 }}>Tenement flat? Write it as floor/door, such as 2/1. Add anything the next visit needs: stair door code, tenant contact, parking.</p>`}
     </div>
 
     <${Sec} n="2">What happened<//>
@@ -3879,10 +4359,14 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       ${inp("issue", "What was the issue?", "e.g. Cartridge worn, dripping from spout", "mj-issue")}
       ${inp("issueWhere", "Where is it?", "e.g. Main bathroom basin", "mj-iw")}
       ${area("work", "e.g. Isolated water, replaced cartridge, tested", "What did you have to do?", "mj-work")}
+      <${Drop} bare=${true} title="Tenement and shared-area notes" sub="tap to add a line">
+        <p className="note">Tap a line to add it to what you did. Edit it to fit the job.</p>
+        <${GlasgowChips} items=${GLA_WORK} value=${job.work} onAdd=${(t) => setJob((p) => ({ ...p, work: addLine(p.work, t) }))} />
+      <//>
       <div className="field"><div className="field-label" id="mj-res-l">Has the issue been resolved?</div>
         <${Segmented} options=${[["yes", "Yes"], ["partly", "Partly"], ["no", "No"]]} value=${job.resolved || ""} onChange=${(v) => setJob((p) => ({ ...p, resolved: p.resolved === v ? "" : v }))} /></div>
       ${job.resolved === "partly" || job.resolved === "no" ? area("resolvedNote", "e.g. Still dripping, new part needed", "What is still wrong?", "mj-resnote") : null}
-      <${HoursInput} label="How long did it take?" value=${job.hours} onChange=${(v) => setJob((p) => ({ ...p, hours: v }))} />
+      <${HoursInput} quick=${true} label="How long did it take?" value=${job.hours} onChange=${(v) => setJob((p) => ({ ...p, hours: v }))} />
       <${RateBox} on=${!!job.rateOn} rate=${job.rate} onOn=${(v) => setJob((p) => ({ ...p, rateOn: v }))} onRate=${(v) => setJob((p) => ({ ...p, rate: v }))} hours=${job.hours !== "" && !isNaN(Number(job.hours)) ? Number(job.hours) : 0} />
     </div>
 
@@ -3901,7 +4385,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <p className="note">Quick way to add stock you already had or a bulk buy: just a short description and the amount, no need to list every item.</p>
       ${(job.bulk || []).map((x) => html`<${RepRow} key=${x.id} onRemove=${() => setJob((p) => ({ ...p, bulk: (p.bulk || []).filter((y) => y.id !== x.id) }))} removeLabel="Remove this bulk buy">
         <${Lbl} label="What" wide=${true}><input className="text-in" type="text" placeholder="e.g. Fittings from bulk buy, van stock" value=${x.what || ""} onChange=${(e) => setBulk(x.id, { what: e.target.value })} /><//>
-        <${Lbl} label="Supplier"><input className="text-in" type="text" placeholder="e.g. Screwfix (optional)" value=${x.where || ""} onChange=${(e) => setBulk(x.id, { where: e.target.value })} /><//>
+        <${Lbl} label="Supplier"><input className="text-in" type="text" placeholder="e.g. Screwfix (optional)" value=${x.where || ""} onChange=${(e) => setBulk(x.id, { where: e.target.value })} /><${QuickChips} items=${SUPPLIER_CHIPS} value=${x.where} label="Common suppliers" onPick=${(v) => setBulk(x.id, { where: v })} /><//>
         <${Lbl} label="Amount used (£)"><input className="text-in" type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value=${x.cost || ""} onChange=${(e) => setBulk(x.id, { cost: e.target.value })} /><//>
       <//>`)}
       <${AddBtn} onClick=${() => setJob((p) => ({ ...p, bulk: [...(p.bulk || []), { id: newId(), what: "", where: "", cost: "" }] }))}>Add bulk buy<//>
@@ -3913,19 +4397,21 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
     <div className="card">
       <${Tick} checked=${!!job.complete} onChange=${() => setJob((p) => ({ ...p, complete: !p.complete }))} label="Work is complete" />
       ${area("further", "e.g. Return to fit new valve once part arrives", "Further work required (if any)", "mj-further")}
+      <${GlasgowChips} items=${GLA_FURTHER} value=${job.further} onAdd=${(t) => setJob((p) => ({ ...p, further: addLine(p.further, t) }))} />
       <${Tick} checked=${!!job.tradeNeeded} onChange=${() => setJob((p) => ({ ...p, tradeNeeded: !p.tradeNeeded }))} label="Another trade is required to attend" />
       ${job.tradeNeeded ? html`<div className="mat-grid indent">
-        <${Lbl} label="Which trade"><input className="text-in" type="text" placeholder="e.g. Electrician, Plasterer" value=${job.trade || ""} onChange=${set("trade")} /><//>
+        <${Lbl} label="Which trade"><input className="text-in" type="text" placeholder="e.g. Electrician, Plasterer" value=${job.trade || ""} onChange=${set("trade")} /><${QuickChips} items=${["Electrician", "Plasterer", "Tiler", "Joiner", "Gas Safe engineer", "Builder"]} value=${job.trade} label="Common trades" onPick=${(v) => setJob((p) => ({ ...p, trade: v }))} /><//>
         <${Lbl} label="What they need to do" wide=${true}><input className="text-in" type="text" placeholder="e.g. Move socket before tiling" value=${job.tradeNote || ""} onChange=${set("tradeNote")} /><//>
       </div>` : null}
     </div>
 
     <${Sec} n="5">Orders, checks and notes<//>
+    <${ScotTip} title="Landlord and agent visit" items=${["Was the tenant given proper written notice of entry, and was anyone in?", "Take dated before and after photos and keep any certificate or report with the job.", "Under Checks below you can tick EICR, Legionella risk assessment, gas, smoke, CO and damp or mould, then open the guide or fill in the report.", "If the work is damp or mould, use the mould and damp guide: Awaab's Law in Scotland applies from 6 October 2026. Confirm against current guidance."]} />
     <div className="group">
       <${Drop} open=${(job.orders || []).length > 0} title="Orders placed" sub=${(job.orders || []).length ? (job.orders || []).length + " placed" : "supplier, reference, address"}>
       <p className="note">Anything ordered from a supplier for this job, with the order reference and where it is going.</p>
       ${(job.orders || []).map((o) => html`<${RepRow} key=${o.id} onRemove=${() => setJob((p) => ({ ...p, orders: (p.orders || []).filter((x) => x.id !== o.id) }))} removeLabel="Remove this order">
-        <${Lbl} label="Supplier"><input className="text-in" type="text" placeholder="e.g. Screwfix, City Plumbing" value=${o.from || ""} onChange=${(e) => setOrd(o.id, { from: e.target.value })} /><//>
+        <${Lbl} label="Supplier"><input className="text-in" type="text" placeholder="e.g. Screwfix, City Plumbing" value=${o.from || ""} onChange=${(e) => setOrd(o.id, { from: e.target.value })} /><${QuickChips} items=${SUPPLIER_CHIPS} value=${o.from} label="Common suppliers" onPick=${(v) => setOrd(o.id, { from: v })} /><//>
         <${Lbl} label="Order reference"><input className="text-in" type="text" placeholder="Order no. / ref" value=${o.ref || ""} onChange=${(e) => setOrd(o.id, { ref: e.target.value })} /><//>
         ${job.noAddr ? null : html`<${Lbl} label="Address / job it is for" wide=${true}><input className="text-in" type="text" placeholder="Where the material is for" value=${o.address || ""} onChange=${(e) => setOrd(o.id, { address: e.target.value })} /><//>`}
         <${Lbl} label="What was ordered" wide=${true}><input className="text-in" type="text" placeholder="e.g. 2 x 15mm ballofix, cartridge" value=${o.items || ""} onChange=${(e) => setOrd(o.id, { items: e.target.value })} /><//>
@@ -3936,6 +4422,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
         <p className="note">Tick the ones that apply, as a reminder for the customer or landlord.</p>
         ${CHECKS.map((c) => html`<div key=${c[0]}>
           <${Tick} checked=${!!job.checks[c[0]]} onChange=${() => setJob((pp) => ({ ...pp, checks: { ...pp.checks, [c[0]]: !pp.checks[c[0]] } }))} label=${c[1]} sub=${"(" + c[3] + ")"} />
+          ${job.checks[c[0]] ? html`<div className="chk-pill"><${Pill} tone=${checkState(job, c).tone}>${checkState(job, c).label}<//></div>` : null}
           ${job.checks[c[0]] && CHECK_GUIDE[c[0]] ? html`<div className="indent" style=${{ margin: "2px 0 6px" }}><div className="link-row"><button type="button" className="btn" onClick=${() => setGuideId(c[0])}>How to carry out this check</button>
             ${REPORT_FORMS[c[0]] ? html`<button type="button" className="btn btn-accent" onClick=${() => setReportId(c[0])}>${reportStarted(job, c[0]) ? "Open report" : "Fill in report"}</button>` : null}</div></div>` : null}
           ${job.checks[c[0]] ? html`<div className="mat-grid indent">
@@ -3943,7 +4430,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
             <${Lbl} label="Next due"><input className="text-in" type="date" value=${dueOf(job, c)} onChange=${(e) => { const v = e.target.value; setJob((pp) => ({ ...pp, due: { ...pp.due, [c[0]]: v } })); }} /><//>
           </div>` : null}
         </div>`)}
-        <p className="note">Next due is worked out from the date completed using the usual Scottish intervals (EICR 5 years, Legionella risk assessment 2 years, gas safety 12 months, mould and damp a yearly check). You can overtype it. Confirm against current regulations.</p>
+        <p className="note">Next due is worked out from the date completed using the usual Scottish intervals (EICR 5 years, Legionella risk assessment 2 years, gas safety 12 months, mould and damp a yearly check). You can overtype it. Confirm against current regulations. For a damp or mould report, write down the date the landlord was told: the guide counts 10 working days from then.</p>
       <//>
       ${guideId ? html`<${CheckGuideSheet} id=${guideId} onClose=${() => setGuideId(null)} />` : null}
       ${reportId ? html`<${ReportSheet} id=${reportId} job=${job} setJob=${setJob} biz=${bizName || ""} onClose=${() => setReportId(null)} />` : null}
@@ -3961,6 +4448,70 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <${CopyQuote} text=${text} label="Copy job notes" btnCls="btn btn-accent bar-go" />
     </div></div>
   </div>`;
+}
+
+/* ---------- Glasgow and Scotland notes: reminders only, nothing here changes a price or a saved job ---------- */
+const SCOT_NOTES = [
+  ["Tenement flats and shared parts", [
+    "Ask which pipes, drains and the roof are shared with the neighbours. Work on shared parts is normally a common repair, so the factor or the other owners may need to agree before you open up.",
+    "Old sandstone tenements: expect old lead and cast iron, thick walls and awkward falls. Say so on the quote if you have not been able to see behind the walls.",
+    "Look at the stopcock and the pipe coming in. If it is lead, tell the customer and note it on the job. Who owns which length of pipe is for the owner or Scottish Water to confirm.",
+  ]],
+  ["Access, parking and deliveries", [
+    "Ask about the close door or entry code, the number of stairs, and whether a bath or boiler has to be carried up.",
+    "Ask about parking at the address (permit or controlled zones) before the first visit. Check the local council rules rather than assuming.",
+    "Book deliveries for a time when someone is in, and say if it is a top-floor stair carry. Ask the merchant where the driver will leave it and whether the stair and bin areas stay clear.",
+  ]],
+  ["Landlord and agent jobs", [
+    "Ask the landlord or agent to confirm the tenant has been given proper notice of entry in writing, and that someone will be there. Check the current rules for the type of tenancy.",
+    "Repairing Standard checks (electrics, Legionella, gas, smoke and CO, damp and mould) are under Maintenance, Checks. Awaab's Law in Scotland covers damp and mould from 6 October 2026: use the guide and report there and confirm against current guidance.",
+    "Take dated before and after photos and keep the certificate or report with the job.",
+  ]],
+  ["Registration and certificates", [
+    "Gas work: Gas Safe registered engineer only. Electrical work: an electrician registered with SELECT, NICEIC or NAPIT, and ask for the certificate.",
+    "Water fittings in Scotland come under the Scottish Water byelaws, not the English regulations. Use approved fittings and confirm anything unusual with Scottish Water.",
+    "Wet rooms: check the floor can take a former and a fall to the waste before you quote, and say how it will be waterproofed.",
+  ]],
+];
+function GlasgowNotes({ onClose }) {
+  return html`<${Sheet} title="Glasgow and Scotland notes" onClose=${onClose}>
+    <div className="gl">
+      ${SCOT_NOTES.map(([h, items]) => html`<${React.Fragment} key=${h}><h3>${h}</h3><ul>${items.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul><//>`)}
+      <p>These are prompts for the visit, not legal advice. Rules change, so check the current guidance on gov.scot, Scottish Water and your trade body.</p>
+    </div>
+  <//>`;
+}
+/* a short folded reminder placed inside a tab */
+function ScotTip({ title, items }) {
+  return html`<${Drop} cls="scot" title=${title} sub="Glasgow reminders">
+    <ul>${items.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul>
+  <//>`;
+}
+function EmptyState({ icon, title, children }) {
+  return html`<div className="empty"><${Icon} name=${icon || "tag"} /><b>${title}</b><p>${children}</p></div>`;
+}
+function AppHeader({ businessName }) {
+  const [gl, setGl] = useState(false);
+  return html`<div className="apphead">
+    <span className="brand-mark" aria-hidden="true"><${Icon} name="wrench" /></span>
+    <div className="brand-txt"><div className="brand-name">${(businessName || "").trim() || "Job Pricer"}</div><div className="brand-sub">Surveys, estimates and job notes</div></div>
+    <button type="button" className="btn" onClick=${() => setGl(true)} aria-haspopup="dialog"><${Icon} name="pin" /> Glasgow notes</button>
+    ${gl ? html`<${GlasgowNotes} onClose=${() => setGl(false)} />` : null}
+  </div>`;
+}
+
+function HomeCard() {
+  /* remembers whether it was folded away (this phone only; the app never needs it) */
+  const [shut, setShut] = useState(() => { try { return window.localStorage.getItem("jp_home_shut") !== "0"; } catch (e) { return true; } });
+  const onToggle = (e) => { const o = e.currentTarget.open; setShut(!o); try { window.localStorage.setItem("jp_home_shut", o ? "0" : "1"); } catch (err) { /* ignore */ } };
+  return html`<details className="homecard" open=${!shut} onToggle=${onToggle}>
+    <summary>Start here</summary>
+    <ol className="homesteps">
+      <li><b>Pick the job.</b> Maintenance visit below, or use the Bathroom and Kitchen tabs to price a refit.</li>
+      <li><b>Fill in what you know.</b> Everything else can wait. Your work saves on this phone as you go.</li>
+      <li><b>Finish.</b> Copy the job notes, or open the estimate to send a PDF.</li>
+    </ol>
+  </details>`;
 }
 
 const TABS = [["small", "wrench", "Maintenance"], ["survey", "bath", "Bathroom"], ["kitchen", "kitchen", "Kitchen"], ["book", "tag", "Price Book"], ["jobs", "folder", "My Jobs"]];
@@ -4008,7 +4559,7 @@ function App() {
   const [kNotes, setKNotes] = useState("");
   const [kSupply, setKSupply] = useState("");
   const [kSource, setKSource] = useState("");
-  const [kSupplier, setKSupplier] = useState("Howdens");
+  const [kSupplier, setKSupplier] = useState(typeof prefs.kSupplier === "string" && prefs.kSupplier ? prefs.kSupplier : "Howdens");
   const kSupplierName = (kSupplier || "").trim() || "supplier";
   const bathSnap = () => ({ size, dims, tier, layoutChange, tiling, electrical, plastering, hrs, prov, prices, srcs, bulk, bulkOnly, fixtures, structural, kit, customerName, siteAddress, officeNotes });
   const kitchenSnap = () => ({ ...k.snap(), tier, kCustomer, kSite, kNotes, kSupply, kSource, kSupplier });
@@ -4063,6 +4614,14 @@ function App() {
     } catch (err) { /* ignore */ }
     if (isOld) setOldD(null); else setDraft(null);
   };
+  /* undo for "clear all" / "new job": keeps what was on screen for a short while */
+  const [undo, setUndo] = useState(null);
+  useEffect(() => { if (!undo) return undefined; const t = setTimeout(() => setUndo(null), 20000); return () => clearTimeout(t); }, [undo]);
+  const withUndo = (kind, fn) => () => {
+    setUndo({ kind, data: JSON.parse(snapJ(kind)), id: jobIds[kind] || null, mode });
+    fn();
+  };
+  const doUndo = () => { if (!undo) return; const back = undo.mode; openSaved({ kind: undo.kind, data: undo.data, id: undo.id }); if (back) setMode(back); setUndo(null); };
   /* after opening a saved job, treat what is now on screen as the clean baseline */
   useEffect(() => {
     if (rebase.current) { initJ.current[baseKey(rebase.current)] = snapJ(rebase.current); rebase.current = null; }
@@ -4080,7 +4639,7 @@ function App() {
     return () => clearTimeout(t);
   });
 
-  useEffect(() => { savePrefs({ tier, businessName }); }, [tier, businessName]);
+  useEffect(() => { savePrefs({ tier, businessName, kSupplier }); }, [tier, businessName, kSupplier]);
   /* every screen opens at the top */
   useEffect(() => { try { window.scrollTo(0, 0); } catch (e) { /* ignore */ } }, [mode, view, kview]);
   /* hide the bottom bars while a keyboard is up (phones only, see CSS) */
@@ -4164,7 +4723,12 @@ function App() {
 
   const surveyHours = survey.hours.plumbing + calc.joinerHours + calc.wetWallHours + calc.flooringHours;
 
+  /* which jobs have work on screen that differs from untouched or last saved (shown as a dot on the tab and a resume strip on the other tabs) */
+  const dirtyMap = { survey: snapJ("bathroom") !== initJ.current.bath, kitchen: snapJ("kitchen") !== initJ.current.kitchen, small: snapJ("small") !== initJ.current.small };
+  const resumeList = [["small", "Maintenance"], ["survey", "Bathroom"], ["kitchen", "Kitchen"]].filter(([id]) => dirtyMap[id] && !(id === "survey" ? (mode === "survey" || mode === "calculator") : mode === id));
+
   return html`<div className="wrap">
+    <${AppHeader} businessName=${businessName} />
     ${[[draft, false], [oldD, true]].map(([d, isOld]) => (d ? html`<div key=${isOld ? "old" : "cur"} className="tip" role="alert">
       <b>${isOld ? "Older draft found" : "Unsaved work found"}</b>
       <p className="note" style=${{ margin: "4px 0 10px" }}>A draft from ${new Date(d.ts).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })} was kept on this phone. Carry on with it, or start fresh.</p>
@@ -4173,16 +4737,19 @@ function App() {
         <${ConfirmBtn} label="Discard" armedLabel="Tap again to discard" onConfirm=${() => discardDraft(d, isOld)} />
       </div>
     </div>` : null))}
+    ${resumeList.length > 0 ? html`<div className="resume" role="status"><span>Jobs in progress:</span>
+      ${resumeList.map(([id, lbl]) => html`<button type="button" key=${id} className="rchip" onClick=${() => setMode(id)}>${lbl}: carry on</button>`)}</div>` : null}
     ${mode === "book" && html`<${PriceBookView} auth=${auth} />`}
     ${mode === "jobs" && html`<${MyJobsView} auth=${auth} onOpen=${openSavedGuarded} />`}
 
 
-    ${mode === "small" && html`<${SmallJobView} bizName=${businessName} job=${sjob} setJob=${setSjob} onClear=${() => { setSjob(emptyJob()); setJobId("small", null); }} />`}
+    ${mode === "small" && html`<${HomeCard} />`}
+    ${mode === "small" && html`<${SmallJobView} bizName=${businessName} job=${sjob} setJob=${setSjob} onClear=${withUndo("small", () => { setSjob(emptyJob()); setJobId("small", null); })} />`}
 
     ${mode === "survey" && html`<${PriceCtx.Provider} value=${bathCtx}><${SiteSurveyView} room=${BATHROOM} size=${size} setSize=${setSize} dims=${dims} setDims=${changeDims} fixtures=${fixtures} structural=${structural} kit=${kit} tier=${tier} setTier=${setTier}
       updateFixture=${updateFixture} updateStructural=${updateStructural} toggleKit=${toggleKit}
       customerName=${customerName} setCustomerName=${setCustomerName} siteAddress=${siteAddress} setSiteAddress=${setSiteAddress}
-      survey=${survey} calc=${calc} isExample=${isExample} onClear=${clearAll} hrs=${hrs} setHr=${setHr} prov=${prov} toggleProv=${toggleProv}
+      survey=${survey} calc=${calc} isExample=${isExample} onClear=${withUndo("bathroom", clearAll)} hrs=${hrs} setHr=${setHr} prov=${prov} toggleProv=${toggleProv}
       extra=${{ layoutChange, setLayoutChange, tiling, setTiling, electrical, setElectrical, plastering, setPlastering }}
       onViewQuote=${() => { setMode("calculator"); setView("quote"); }} /><//>`}
 
@@ -4194,7 +4761,7 @@ function App() {
     ${mode === "kitchen" && kview === "form" && html`<${PriceCtx.Provider} value=${k.ctx}><${SiteSurveyView} room=${KITCHEN} supplySource=${kSource} setSupplySource=${setKSource} supply=${kSupply} setSupply=${setKSupply} supplyLabel=${"Kitchen units (" + kSupplierName + ")"} supplier=${kSupplier} setSupplier=${setKSupplier} fixtures=${k.fixtures} structural=${k.structural} kit=${k.kit} tier=${tier} setTier=${setTier}
       updateFixture=${k.updateFixture} updateStructural=${k.updateStructural} toggleKit=${k.toggleKit}
       customerName=${kCustomer} setCustomerName=${setKCustomer} siteAddress=${kSite} setSiteAddress=${setKSite}
-      survey=${k.survey} calc=${kcalc} isExample=${false} onClear=${() => { k.clearAll(); setJobId("kitchen", null); }} hrs=${k.hrs} setHr=${k.setHr} prov=${k.prov} toggleProv=${k.toggleProv}
+      survey=${k.survey} calc=${kcalc} isExample=${false} onClear=${withUndo("kitchen", () => { k.clearAll(); setJobId("kitchen", null); })} hrs=${k.hrs} setHr=${k.setHr} prov=${k.prov} toggleProv=${k.toggleProv}
       onViewQuote=${() => setKview("quote")} /><//>`}
 
     ${mode === "kitchen" && kview === "quote" && html`<${QuoteView} calc=${kcalc} survey=${k.survey} markup=${markup} tier=${tier} scopeItems=${k.survey.scope} sizeLabel="Kitchen"
@@ -4209,11 +4776,14 @@ function App() {
     ${mode === "small" && html`<${SavePanel} bottom=${true} kind="small" auth=${auth} autoTitle=${true} defaultTitle=${(sjob.where || "").trim() || (sjob.jobType || "").trim()} getData=${() => sjob}
       currentId=${jobIds.small} onSaved=${(id) => saved("small", id)} onNeedLogin=${() => setMode("jobs")} />`}
 
+    ${undo ? html`<div className="undo" role="status"><span>${undo.kind === "small" ? "Job cleared." : "Cleared."}</span>
+      <button type="button" className="btn go" onClick=${doUndo}>Undo</button>
+      <button type="button" className="btn" aria-label="Dismiss" onClick=${() => setUndo(null)}>OK</button></div>` : null}
     <nav className="tabbar" aria-label="Main">
       ${TABS.map(([id, icon, lbl]) => {
         const on = id === "survey" ? (mode === "survey" || mode === "calculator") : mode === id;
-        return html`<button type="button" key=${id} aria-pressed=${on} aria-label=${lbl} className=${"tabbtn" + (on ? " on" : "")}
-          onClick=${() => { setMode(id); if (id === "kitchen") setKview("form"); }}><${Icon} name=${icon} /><span>${lbl}</span></button>`;
+        return html`<button type="button" key=${id} aria-pressed=${on} aria-label=${lbl + (dirtyMap[id] ? " (job in progress)" : "")} aria-current=${on ? "page" : undefined} className=${"tabbtn" + (on ? " on" : "")}
+          onClick=${() => { if (on && mode === id && !(id === "kitchen" && kview === "quote")) { try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { /* ignore */ } } else { setMode(id); if (id === "kitchen") setKview("form"); } }}><span className="tabico"><${Icon} name=${icon} />${dirtyMap[id] ? html`<i className="tabdot" aria-hidden="true" title="Job in progress"></i>` : null}</span><span>${lbl}</span></button>`;
       })}
     </nav>
   </div>`;
