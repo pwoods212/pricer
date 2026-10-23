@@ -1060,6 +1060,7 @@ const FIXTURE_ITEMS = [
   { key: "showerTray", label: "Shower Tray", remove: 0.5, fit: 0.75 },
   { key: "showerScreen", label: "Shower Screen", remove: 0.25, fit: 0.5 },
   { key: "shower", label: "Shower (valve / unit)", remove: 0.25, fit: 0.75 },
+  { key: "otap", label: "Outside Tap", remove: 0.25, fit: 0.75 },
   { key: "hwtank", label: "Electric Hot Water Tank", remove: 0.5, fit: 1 },
 ];
 
@@ -1140,6 +1141,26 @@ const FIXTURE_KITS = {
       ...PIPE_CHOICE,
     ],
     repair: [{ l: "Valve repair / replacement", p: 10, opt: true }, { l: "PTFE tape and washers", p: 3 }],
+  },
+  otap: {
+    removedOnly: [{ l: "Isolate and drain the outside tap supply", p: 0 }, { l: "Blanking cap or compression stop end", p: 4 }],
+    fitNew: [
+      { l: "Outside bib tap", p: { budget: 8, mid: 16, premium: 35 } },
+      { l: "Double check valve (stops water flowing back into the mains)", p: 12 },
+      { l: "Isolation valve with drain-off (inside, to stop frost damage)", p: 9 },
+      { l: "Wall plate elbow / back plate", p: 6 },
+      { l: "Silicone / sealant for the wall hole", p: 6 },
+      { l: "Frost cover for the tap", p: 5, opt: true },
+      { l: "PTFE tape", p: 2 },
+      ...PIPE_CHOICE,
+    ],
+    fitOld: [
+      { l: "Double check valve (if the old tap has none)", p: 12, opt: true },
+      { l: "Isolation valve with drain-off (if none inside)", p: 9, opt: true },
+      { l: "Tap washer / new seal", p: 3 }, { l: "PTFE tape", p: 2 },
+      ...PIPE_CHOICE,
+    ],
+    repair: [{ l: "Tap washer / cartridge", p: 3 }, { l: "Isolation valve repair / replacement", p: 9, opt: true }, { l: "PTFE tape", p: 2 }],
   },
   hwtank: {
     removedOnly: [{ l: "Cap off cold feed, hot outlet and vent / expansion pipes", p: 8 }, { l: "Drain down the old tank", p: 0 }],
@@ -1223,6 +1244,7 @@ const BATH_EXTRAS = [
 const KITCHEN_FIXTURE_ITEMS = [
   { key: "sink", label: "Kitchen Sink", remove: 0.25, fit: 0.5 },
   { key: "ktap", label: "Kitchen Tap", remove: 0.125, fit: 0.25 },
+  { key: "otap", label: "Outside Tap", remove: 0.25, fit: 0.75 },
   { key: "dishwasher", label: "Dishwasher", remove: 0.125, fit: 0.25 },
   { key: "washer", label: "Washing Machine", remove: 0.125, fit: 0.25 },
   { key: "hwtank", label: "Electric Hot Water Tank", remove: 0.5, fit: 1 },
@@ -1235,6 +1257,7 @@ const APPLIANCE_KIT = [
 ];
 const KITCHEN_FIXTURE_KITS = {
   get hwtank() { return FIXTURE_KITS.hwtank; },
+  get otap() { return FIXTURE_KITS.otap; },
   sink: {
     fitNew: [
       { l: "New sink + bowl", p: { budget: 45, mid: 130, premium: 320 } },
@@ -1308,6 +1331,7 @@ const REPAIR_PARTS = {
   shower: ["Valve cartridge", "Hose / head / rail", "Isolation valves", "Silicone / resealing"],
   sink: ["Sink waste / strainer", "Trap", "Tap tails / connectors", "Silicone / resealing"],
   ktap: ["Tap cartridge", "Tap washers", "Flexible tap connectors"],
+  otap: ["Tap washer / cartridge", "Double check valve", "Isolation valve with drain-off", "Wall plate / back plate", "Frost protection"],
   dishwasher: ["Inlet valve", "Waste hose / connector", "Trap / spigot"],
   washer: ["Inlet valve", "Waste hose / connector", "Trap / standpipe"],
 };
