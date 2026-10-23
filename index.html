@@ -1716,18 +1716,20 @@ function buildQuoteText(q) {
   const L = [];
   const c = q.calc;
   L.push(q.businessName || "[Your business name]");
-  L.push("PROVISIONAL ESTIMATE — FOR OFFICE TO PREPARE THE QUOTE (not a customer quote)");
+  const D = !!q.direct, LAB = D ? "Total labour" : "Total labour (estimated)";
+  L.push(D ? "QUOTATION — FIXED PRICE FOR THE WORK BELOW" : "PROVISIONAL ESTIMATE — FOR OFFICE TO PREPARE THE QUOTE (not a customer quote)");
   L.push("");
   L.push("Customer: " + (q.customerName || "[Customer name]"));
   L.push("Site: " + (q.siteAddress || "[Site address]"));
-  L.push("Surveyed: " + q.todayStr + " · " + q.sizeLabel + " · " + q.tier + " tier");
+  L.push((D ? "Date: " : "Surveyed: ") + q.todayStr + " · " + q.sizeLabel + " · " + q.tier + " tier");
+  if (D) L.push("Valid until: " + q.validUntil);
   L.push("");
   if (q.scopeItems.length) {
     L.push("SCOPE:");
     q.scopeItems.forEach((s) => L.push("- " + String(s).replace(/\n/g, "\n  ")));
     L.push("");
   }
-  L.push("Total labour (estimated): " + fmtHrs(c.totalHours) + " hours");
+  L.push(LAB + ": " + fmtHrs(c.totalHours) + " hours");
   L.push("Materials at cost: " + fmt(c.materialsBase) + (c.sundries > 0 ? " (includes sundries at " + SUNDRIES_PCT + "%: " + fmt(c.sundries) + ")" : ""));
   if (q.survey && q.survey.kitLines) {
     const mb = matBreakdown(q.survey, c);
@@ -1745,12 +1747,12 @@ function buildQuoteText(q) {
   if (c.supply > 0) L.push(c.supplyLabel + ": " + fmt(c.supply));
   const tr = q.trades || [];
   tr.forEach((x) => L.push(x.label + (x.tag ? " " + x.tag : "") + ": " + fmt(x.cost) + (x.ref ? " (" + x.ref + ")" : "")));
-  if (q.rate > 0 || tr.length) L.push(totalLabel(q.rate > 0, tr.length > 0) + ": " + fmt(c.materialsBase + (c.supply > 0 ? c.supply : 0) + (q.rate > 0 ? c.totalHours * q.rate : 0) + tr.reduce((a, x) => a + x.cost, 0)));
+  if (q.rate > 0 || tr.length) L.push((D ? "Total quote price" : totalLabel(q.rate > 0, tr.length > 0)) + ": " + fmt(c.materialsBase + (c.supply > 0 ? c.supply : 0) + (q.rate > 0 ? c.totalHours * q.rate : 0) + tr.reduce((a, x) => a + x.cost, 0)));
   if (c.provItems.length) {
     L.push("");
     L.push("PROVISIONAL TASKS (only if needed once work starts, priced in Option B below):");
     c.provItems.forEach((i) => L.push("- " + i.label + ": approx " + fmtHrs(i.hours) + " hours + materials " + fmt(i.materials)));
-    L.push("Please quote for these provisional items and have them accepted by the customer before any of this work starts.");
+    L.push(D ? "These tasks are only charged if they are needed once the work starts, and will be agreed with you before they are done." : "Please quote for these provisional items and have them accepted by the customer before any of this work starts.");
     /* both options side by side: as surveyed, and with every "if needed" item */
     const extraSup = (c.supply > 0 ? c.supply : 0) + tr.reduce((x, t) => x + t.cost, 0);
     const sundB = c.sundriesNeeded ? Math.round(c.provMaterials * SUNDRIES_PCT) / 100 : 0;
@@ -1758,7 +1760,7 @@ function buildQuoteText(q) {
     const optLines = (title, hrs, mat, note) => {
       L.push("");
       L.push(title);
-      L.push("Total labour (estimated): " + fmtHrs(hrs) + " hours");
+      L.push(LAB + ": " + fmtHrs(hrs) + " hours");
       L.push("Materials at cost: " + fmt(mat) + (note || ""));
       if (extraSup > 0) L.push("Trades and supplied items: " + fmt(extraSup));
       const tot = mat + extraSup + (q.rate > 0 ? hrs * q.rate : 0);
@@ -1772,20 +1774,28 @@ function buildQuoteText(q) {
     L.push("");
     L.push("Extra for the provisional tasks (+" + fmtHrs(c.provHours) + " hours): " + fmt(totB - totA));
   }
-  if (q.officeNotes && q.officeNotes.trim()) {
+  if (!D && q.officeNotes && q.officeNotes.trim()) {
     L.push("");
     L.push("NOTES FOR OFFICE:");
     L.push(q.officeNotes.trim());
   }
   L.push("");
-  L.push(q.rate > 0 ? "Hours are estimates. The total includes labour. Materials are priced from the amounts entered on the survey." : "Hours are estimates and no labour price is included. Materials are priced from the amounts entered on the survey.");
+  if (D) L.push("Prices are fixed for the work in the scope above and are valid until " + q.validUntil + ".");
+  else L.push(q.rate > 0 ? "Hours are estimates. The total includes labour. Materials are priced from the amounts entered on the survey." : "Hours are estimates and no labour price is included. Materials are priced from the amounts entered on the survey.");
   if (q.disclaimer) {
     L.push("");
     L.push("DISCLAIMER:");
     L.push(q.disclaimer);
   }
-  L.push("");
-  L.push("Please quote for this provisional survey before work starts.");
+  if (D) {
+    L.push("");
+    L.push("ACCEPTANCE:");
+    L.push("I accept this quote and the price and work described above.");
+    L.push("Customer signature: ______________________   Date: ____________");
+  } else {
+    L.push("");
+    L.push("Please quote for this provisional survey before work starts.");
+  }
   return L.join("\n");
 }
 
@@ -1876,7 +1886,9 @@ function ConfirmBtn({ label, armedLabel, onConfirm, cls }) {
 }
 
 const DISCLAIMER_DEFAULT = "This is a provisional estimate based on what could be seen and the information available at the time of the survey. It is not a fixed-price quote, a contract or a guarantee of cost or time. Hidden problems (for example rot, damp, concealed pipework, asbestos or unsuitable structure) may only be found once work starts and could change the price and the time needed. Material prices are as entered on the date shown and may change. Provisional tasks are priced separately as Option B and are only charged if they turn out to be needed once the work is opened up. A written quote must be agreed and accepted by the customer before any work starts, and the final price may be different from this estimate.";
-const disclaimerOf = (ticks) => (ticks && ticks["disc:off"] ? "" : (ticks && typeof ticks["disc:text"] === "string" && ticks["disc:text"].trim() ? ticks["disc:text"].trim() : DISCLAIMER_DEFAULT));
+const DISCLAIMER_DIRECT = "This quote is for the work described in the scope above, based on what could be seen at the survey. If hidden problems are found once the work is opened up (for example rot, damp, concealed pipework or an unsuitable structure), I will tell you and agree any extra cost with you before doing the extra work. Provisional tasks are priced as Option B and are only charged if they turn out to be needed. The price is fixed for the work listed and the date it is valid until is shown above.";
+const isDirect = (ticks) => !!(ticks && ticks["direct:on"]);
+const disclaimerOf = (ticks) => (ticks && ticks["disc:off"] ? "" : (ticks && typeof ticks["disc:text"] === "string" && ticks["disc:text"].trim() ? ticks["disc:text"].trim() : isDirect(ticks) ? DISCLAIMER_DIRECT : DISCLAIMER_DEFAULT));
 function DisclaimerEdit({ ticks, setTick }) {
   const [edit, setEdit] = useState(false);
   const off = !!(ticks && ticks["disc:off"]);
@@ -1885,7 +1897,7 @@ function DisclaimerEdit({ ticks, setTick }) {
     ${off ? null : edit
       ? html`<textarea className="manual" style=${{ minHeight: 120, margin: "4px 0" }} aria-label="Disclaimer wording" value=${disclaimerOf(ticks)} onChange=${(e) => setTick("disc:text", e.target.value)}></textarea>`
       : html`<p>${disclaimerOf(ticks)}</p>`}
-    <label className="kit-row"><input type="checkbox" checked=${!off} onChange=${() => setTick("disc:off", !off)} /><span className="name">Include on the estimate</span></label>
+    <label className="kit-row"><input type="checkbox" checked=${!off} onChange=${() => setTick("disc:off", !off)} /><span className="name">Include on the ${isDirect(ticks) ? "quote" : "estimate"}</span></label>
     ${off ? null : html`<div className="disc-act"><button type="button" className="linkbtn" onClick=${() => setEdit(!edit)}>${edit ? "Done editing" : "Edit wording"}</button>
       ${ticks && typeof ticks["disc:text"] === "string" && ticks["disc:text"].trim() ? html` · <button type="button" className="linkbtn" onClick=${() => setTick("disc:text", "")}>Standard wording</button>` : null}</div>`}
   </div>`;
@@ -2828,15 +2840,16 @@ async function makeAndSharePdf(sections, filename) {
       gap(4);
     } else {
       bizName = lines[0] || ""; k = 1;
-      header(bizName || "Estimate", "Provisional estimate");
-      if (lines[1]) { para("For the office to prepare the quote. This is not a customer quote.", { size: 9.5, color: SOFT, style: "italic" }); k = 2; gap(6); }
+      if (/^QUOTATION/.test(lines[1] || "")) { header(bizName || "Quotation", "Quotation"); para("Fixed price for the work described below.", { size: 9.5, color: SOFT, style: "italic" }); k = 2; gap(6); }
+      else { header(bizName || "Estimate", "Provisional estimate");
+      if (lines[1]) { para("For the office to prepare the quote. This is not a customer quote.", { size: 9.5, color: SOFT, style: "italic" }); k = 2; gap(6); } }
     }
     for (; k < lines.length; k++) {
       const ln = lines[k], t = ln.trim();
       let m;
       if (!t) { flushInfo(); gap(5); continue; }
-      if ((m = /^(Customer|Site|Surveyed): (.*)$/.exec(ln))) {
-        if (m[1] === "Surveyed") dateStr = m[2].split(" · ")[0];
+      if ((m = /^(Customer|Site|Surveyed|Date|Valid until): (.*)$/.exec(ln))) {
+        if (m[1] === "Surveyed" || m[1] === "Date") dateStr = m[2].split(" · ")[0];
         inInfo.push([m[1] === "Surveyed" ? "Survey" : m[1], m[2]]); continue;
       }
       flushInfo();
@@ -2853,7 +2866,7 @@ async function makeAndSharePdf(sections, filename) {
         else bullet(m[2], lvl);
         continue;
       }
-      if ((m = /^(Total labour \(estimated\)): (.*)$/.exec(ln))) { gap(6); money(m[1], m[2], { style: "bold" }); continue; }
+      if ((m = /^(Total labour(?: \(estimated\))?): (.*)$/.exec(ln))) { gap(6); money(m[1], m[2], { style: "bold" }); continue; }
       if ((m = /^(Materials at cost): (£[\d,]+(?:\.\d+)?)(?: \((.*)\))?$/.exec(ln))) { money(m[1], m[2], { style: "bold" }); if (m[3]) para(m[3].replace(/^includes/, "Includes"), { size: 9, color: SOFT, indent: 0 }); continue; }
       if ((m = MONEY.exec(t))) {
         const isTotal = /^(total|quote total|estimated total|grand total)\b/i.test(m[1]) && !/materials at cost/i.test(m[1]);
@@ -2869,7 +2882,7 @@ async function makeAndSharePdf(sections, filename) {
       }
       if (/^DISCLAIMER:/.test(ln)) { heading(ln); continue; }
       if (/^\s{2,}\S/.test(ln)) { para(t, { indent: 12, size: 10, color: SOFT }); continue; }
-      const small = /^(Hours are estimates|Please quote for this|Please quote for these)/.test(t);
+      const small = /^(Hours are estimates|Please quote for this|Please quote for these|Prices are fixed|These tasks are only)/.test(t);
       para(t, small ? { size: 9.5, color: SOFT } : {});
     }
     flushInfo();
@@ -2938,9 +2951,11 @@ function QuoteView(p) {
     siteAddress, setSiteAddress, officeNotes, setOfficeNotes, todayStr, onBack, ticks, setTick } = p;
   const rateOn = !!(ticks && ticks["rate:on"]), rateVal = Math.min(100, Math.max(0, Number(ticks && ticks["rate:val"]) || 0));
   const labourCost = rateOn ? calc.totalHours * rateVal : 0;
+  const direct = isDirect(ticks);
+  const validUntil = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })();
   const trades = tradeList(ticks), tradeTotal = trades.reduce((a, x) => a + x.cost, 0);
   const scopeItems = scopeBase.concat(trades.map((x) => x.scope + (x.ref ? " (" + x.ref + ")" : "")));
-  const text = buildQuoteText({ businessName, customerName, siteAddress, todayStr, scopeItems, sizeLabel, calc, tier, survey, markup, officeNotes, rate: rateOn ? rateVal : 0, trades, disclaimer: disclaimerOf(ticks) });
+  const text = buildQuoteText({ businessName, customerName, siteAddress, todayStr, scopeItems, sizeLabel, calc, tier, survey, markup, officeNotes, rate: rateOn ? rateVal : 0, trades, disclaimer: disclaimerOf(ticks), direct: direct, validUntil: validUntil });
   const [orderBy, setOrderByRaw] = useState(loadOrderBy);
   const setOrderBy = (v) => { setOrderByRaw(v); saveOrderBy(v); };
   const orderText = buildOrderText({ customerName, siteAddress, todayStr, calc, tier, survey, ticks, groupBy: orderBy });
@@ -2949,7 +2964,7 @@ function QuoteView(p) {
   const [tab, setTab] = useState(() => (ost.done > 0 && ost.left > 0 ? "order" : "estimate"));
   /* open the estimate at the top, not wherever the survey was scrolled to */
   useEffect(() => { try { window.scrollTo(0, 0); } catch (e) { /* ignore */ } }, [tab]);
-  const pdfName = "Provisional-estimate" + ((customerName || siteAddress) ? "-" + (customerName || siteAddress).replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") : "") + ".pdf";
+  const pdfName = (direct ? "Quote" : "Provisional-estimate") + ((customerName || siteAddress) ? "-" + (customerName || siteAddress).replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") : "") + ".pdf";
   return html`<div>
     <div className="qtop">
       <button type="button" className="btn" onClick=${onBack}><${Icon} name="back" /> Survey</button>
@@ -2965,7 +2980,9 @@ function QuoteView(p) {
       : html`<div className="sheet">
       <input className="biz-input" id="biz-name" aria-label="Business name" value=${businessName}
         placeholder="[Your business name]" onChange=${(e) => setBusinessName(e.target.value)} />
-      <div className="sheet-sub">Provisional estimate for the office · not a customer quote</div>
+      <div className="sheet-sub">${direct ? "Quotation · fixed price for the customer" : "Provisional estimate for the office · not a customer quote"}</div>
+      ${setTick ? html`<div className="rate-box"><label className="kit-row"><input type="checkbox" checked=${direct} onChange=${() => setTick("direct:on", !direct)} /><span className="name">This is my own work: make this a direct quote for the customer</span></label>
+        <p className="note" style=${{ margin: "4px 0 0" }}>${direct ? "The PDF and copied text become a fixed-price quotation with a valid-until date, a customer signature block and no notes for the office." + (rateOn ? "" : " Turn on the hourly rate below, or the total will leave out your labour.") : "Tick this when the job is yours, not one for the office to price."}</p></div>` : null}
 
       <div className="sheet-top">
         <div style=${{ flex: 1, minWidth: 200 }}>
@@ -2974,23 +2991,23 @@ function QuoteView(p) {
           <input className="text-in" id="site-addr" aria-label="Site address" autoComplete="street-address" value=${siteAddress} placeholder="Site address" onChange=${(e) => setSiteAddress(e.target.value)} />
         </div>
         <div style=${{ minWidth: 170 }}>
-          <div className="meta-row"><span>Surveyed</span><span style=${{ fontFamily: "var(--font-mono)" }}>${todayStr}</span></div>
-          <div className="meta-row"><span>Status</span><span style=${{ fontFamily: "var(--font-mono)" }}>PROVISIONAL</span></div>
+          <div className="meta-row"><span>${direct ? "Quote date" : "Surveyed"}</span><span style=${{ fontFamily: "var(--font-mono)" }}>${todayStr}</span></div>
+          <div className="meta-row"><span>${direct ? "Valid until" : "Status"}</span><span style=${{ fontFamily: "var(--font-mono)" }}>${direct ? validUntil : "PROVISIONAL"}</span></div>
         </div>
       </div>
 
       <div className="divider"></div>
 
       <table className="q-table">
-        <thead><tr><th>Estimate</th><th>Total</th></tr></thead>
+        <thead><tr><th>${direct ? "Quote" : "Estimate"}</th><th>Total</th></tr></thead>
         <tbody>
-          <tr><td>Labour (estimated)</td><td>${fmtHrs(calc.totalHours)} hrs</td></tr>
+          <tr><td>${direct ? "Labour" : "Labour (estimated)"}</td><td>${fmtHrs(calc.totalHours)} hrs</td></tr>
           ${calc.sundries > 0 && html`<tr><td>Materials (listed)</td><td>${fmt(calc.materialsBase - calc.sundries)}</td></tr>`}
           ${calc.sundries > 0 && html`<tr><td>Sundries (${SUNDRIES_PCT}% of materials)</td><td>${fmt(calc.sundries)}</td></tr>`}
           <tr className="total"><td>Materials at cost</td><td>${fmt(calc.materialsBase)}</td></tr>
           ${calc.supply > 0 && html`<tr><td>${calc.supplyLabel}</td><td>${fmt(calc.supply)}</td></tr>`}
           ${trades.map((x) => html`<tr key=${x.key}><td>${x.label}${x.tag ? " " + x.tag : ""}</td><td>${fmt(x.cost)}</td></tr>`)}
-          ${(rateOn || trades.length > 0) && html`<tr className="total"><td>${totalLabel(rateOn, trades.length > 0)}</td><td>${fmt(calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + tradeTotal)}</td></tr>`}
+          ${(rateOn || trades.length > 0) && html`<tr className="total"><td>${direct ? "Total quote price" : totalLabel(rateOn, trades.length > 0)}</td><td>${fmt(calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + tradeTotal)}</td></tr>`}
         </tbody>
       </table>
       ${setTick ? html`<div className="rate-box"><label className="kit-row"><input type="checkbox" checked=${!(ticks && ticks["sund:off"])} onChange=${() => setTick("sund:off", !(ticks && ticks["sund:off"]))} /><span className="name">Add sundries at ${SUNDRIES_PCT}% of the materials</span></label></div>` : null}
@@ -3018,31 +3035,32 @@ function QuoteView(p) {
           <thead><tr><th>Item</th><th>Est. hours</th><th>Materials</th></tr></thead>
           <tbody>${calc.provItems.map((i, k) => html`<tr key=${k}><td>${i.label}</td><td>${fmtHrs(i.hours)}</td><td>${fmt(i.materials)}</td></tr>`)}</tbody>
         </table>
-        <p style=${{ fontSize: 13.5, fontWeight: 700, margin: "8px 0 0" }}>Please quote for these provisional items and have them accepted before any of this work starts.</p>
+        <p style=${{ fontSize: 13.5, fontWeight: 700, margin: "8px 0 0" }}>${direct ? "These are only charged if needed once the work starts, and will be agreed with the customer first." : "Please quote for these provisional items and have them accepted before any of this work starts."}</p>
       </div>`}
 
       ${setTick ? html`<${DisclaimerEdit} ticks=${ticks} setTick=${setTick} />` : (disclaimerOf(ticks) ? html`<div className="disclaimer"><div className="mini-label">Disclaimer</div><p>${disclaimerOf(ticks)}</p></div>` : null)}
 
-      <div className="mini-label" style=${{ marginTop: 20 }}>Notes for office</div>
+      ${direct ? null : html`<div><div className="mini-label" style=${{ marginTop: 20 }}>Notes for office</div>
       <textarea className="manual note-ta" style=${{ minHeight: 90, marginBottom: 14 }} aria-label="Notes for office" value=${officeNotes}
-        placeholder="Access, parking, tenant details, anything the office needs to know to quote" onChange=${(e) => setOfficeNotes(e.target.value)}></textarea>
+        placeholder="Access, parking, tenant details, anything the office needs to know to quote" onChange=${(e) => setOfficeNotes(e.target.value)}></textarea></div>`}
 
       <details className="terms-d">
-        <summary>About this estimate</summary>
-        <ul className="terms">
+        <summary>${direct ? "About this quote" : "About this estimate"}</summary>
+        ${direct ? html`<ul className="terms"><li>This is a fixed-price quote for the work in the scope. It includes your labour when the hourly rate is on.</li><li>It is valid for 30 days from the quote date.</li><li>Provisional items are only charged if needed, and agreed with the customer first.</li><li>The PDF ends with a line for the customer to sign and date to accept.</li></ul>` : null}
+        <ul className="terms" style=${{ display: direct ? "none" : "" }}>
           <li>This is a provisional estimate for the office to turn into the customer quote. No labour price is included.</li>
           <li>Hours are estimates from the survey and can be changed on each item.</li>
           <li>Materials are priced from the amounts entered on the survey.</li>
           <li>Provisional items are only charged if needed once the work is opened up.</li>
         </ul>
       </details>
-      <p style=${{ fontSize: 14.5, fontWeight: 700, margin: "8px 0 4px" }}>Please quote for this provisional survey before work starts.</p>
+      ${direct ? null : html`<p style=${{ fontSize: 14.5, fontWeight: 700, margin: "8px 0 4px" }}>Please quote for this provisional survey before work starts.</p>`}
       <div className="next-step"><button type="button" className="btn btn-accent" onClick=${() => setTab("order")}>Next: materials to order <${Icon} name="arrow" /></button></div>
     </div>`}
 
     <div className="actionbar"><div className="bar-in">
-      <${CopyQuote} cls="grow" btnCls="btn btn-dark" text=${tab === "order" ? orderText : text} label=${tab === "order" ? "Copy order list" : "Copy estimate"} />
-      <${SharePdf} cls="grow" sections=${[text, orderText]} filename=${pdfName} label="Send PDF" />
+      <${CopyQuote} cls="grow" btnCls="btn btn-dark" text=${tab === "order" ? orderText : text} label=${tab === "order" ? "Copy order list" : direct ? "Copy quote" : "Copy estimate"} />
+      <${SharePdf} cls="grow" sections=${direct ? [text] : [text, orderText]} filename=${pdfName} label="Send PDF" />
     </div></div>
   </div>`;
 }
