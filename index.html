@@ -743,6 +743,12 @@ body.kb .undo { bottom: 12px; }
 
 .kind-tag.st-done { background: var(--accent); color: var(--accent-ink); }
 .kind-tag.st-paid { background: var(--ok); color: #1A1B1D; }
+
+.usual-list { margin: 8px 0; }
+.usual-h { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.usual-btn { display: block; width: 100%; text-align: left; background: var(--panel2); color: var(--ink); border: 1px dashed var(--line2); border-radius: 10px; padding: 9px 12px; margin: 6px 0; font: inherit; font-size: 14px; cursor: pointer; min-height: 44px; }
+.usual-btn b { font-weight: 600; }
+.usual-go { float: right; color: var(--accent); font-weight: 700; }
 /* ---- flatter, calmer layout: fewer boxes, sections divided by space and thin rules ---- */
 body { background: var(--panel); }
 .card, .group, .form-card, .ord-card { background: transparent; border: 0; box-shadow: none; border-radius: 0; }
@@ -2607,6 +2613,20 @@ function useBook() {
   useEffect(() => { const f = () => setN((n) => n + 1); bookSubs.add(f); return () => { bookSubs.delete(f); }; }, []);
   return bookData;
 }
+
+/* "your usual": learns which product you pick for each kit line (for example the bath, waste and taps on a bath refit)
+   and which extra materials you add to each item, so they can be picked again in one tap. Kept on this phone. */
+const USUAL_KEY = "pricer-usual-v1";
+const usualAll = () => { try { const v = JSON.parse(localStorage.getItem(USUAL_KEY)); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } };
+function usualAdd(ctx, name, price, sup, code) {
+  const nm = String(name || "").trim(); if (!ctx || !nm) return;
+  const all = usualAll(), c = all[ctx] || {}, cur = c[nm] || { n: 0 };
+  const pr = Number(price);
+  c[nm] = { n: (cur.n || 0) + 1, price: pr > 0 ? pr : cur.price || 0, sup: String(sup || "").trim() || cur.sup || "", code: String(code || "").trim() || cur.code || "", last: Date.now() };
+  all[ctx] = c;
+  try { localStorage.setItem(USUAL_KEY, JSON.stringify(all)); } catch (e) { /* storage unavailable */ }
+}
+const usualTop = (ctx, k) => Object.entries(usualAll()[ctx] || {}).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.n - a.n || b.last - a.last).slice(0, k || 5);
 function bookAdd(item, price, supplier, product, code) {
   const pr = Number(price);
   if (!item || !(pr > 0)) return;
@@ -2805,7 +2825,7 @@ function Picker({ label, onPick }) {
         ${mine.length === 0 ? html`<p className="note">${bookData.length === 0 ? "Your Price Book is empty. Prices you enter are saved here, or add them in the Price Book tab." : "No match in your Price Book."}</p>` : null}
       </div>` : html`<div>
         <input className="text-in" type="text" enterKeyHint="search" value=${qc} placeholder="Search products, e.g. 40mm bath trap" aria-label="Search products" onChange=${(e) => setQc(e.target.value)} />
-        ${hits.map((c, i) => row("c" + i, c[0], c[1], SUP_NAME[c[2]], () => { onPick(c[1], SUP_NAME[c[2]], c[0], c[3]); setOpen(false); }))}
+        ${hits.map((c, i) => row("c" + i, c[0], c[1], SUP_NAME[c[2]], () => { bookAdd(c[0], c[1], SUP_NAME[c[2]], c[0], codeFromUrl(c[3])); onPick(c[1], SUP_NAME[c[2]], c[0], c[3]); setOpen(false); }))}
         ${hits.length === 0 ? html`<p className="note">No match. Try fewer words.</p>` : null}
         <p className="note">Catalogue prices seen ${CATALOG_DATE}. Check the price when you buy.</p>
       </div>`}
@@ -3110,12 +3130,13 @@ function KitList({ list, prefix, tier, kit, onToggle, hrs, setHr }) {
         unk=${!!pc.prices["unk:" + id]} onUnk=${(v) => pc.setPrice("unk:" + id, v)}
         code=${code} onCode=${(v) => pc.setPrice("code:" + id, v)} where=${src} onWhere=${(v) => pc.setSrc(id, v)}
         locked=${cov} tag=${cov ? "in bulk buy" : ""} pickLabel=${shown}
-        onCommit=${(f, v) => (f === "price" ? bookAdd(shown, v, src, "", code) : f === "where" ? bookAdd(shown, pc.prices[id], v, "", code) : bookAdd(shown, pc.prices[id], src, "", v))}
-        onPick=${(pr, sup, name, url, mycode) => { pc.setPrice(id, String(pr)); pc.setSrc(id, [sup, name].filter(Boolean).join(" — ")); const cd = mycode || codeFromUrl(url); if (cd) pc.setPrice("code:" + id, cd); }}>
+        onCommit=${(f, v) => { if (f === "price") { bookAdd(shown, v, src, "", code); if (Number(v) > 0) usualAdd("kit:" + id, shown, v, src, code); } else if (f === "where") bookAdd(shown, pc.prices[id], v, "", code); else bookAdd(shown, pc.prices[id], src, "", v); }}
+        onPick=${(pr, sup, name, url, mycode) => { pc.setPrice(id, String(pr)); pc.setSrc(id, [sup, name].filter(Boolean).join(" — ")); const cd = mycode || codeFromUrl(url); if (cd) pc.setPrice("code:" + id, cd); if (name) pc.setPrice("name:" + id, name); usualAdd("kit:" + id, name || shown, pr, sup, cd); }}>
         <${Lbl} label="Your own name for this material (optional)" wide=${true}>
           <input className="text-in" type="text" placeholder=${it.l} value=${pc.prices["name:" + id] || ""} onChange=${(e) => pc.setPrice("name:" + id, e.target.value)} /><//>
         ${pc.bulk.length > 0 || cov ? html`<${Tick} checked=${cov} onChange=${() => pc.setPrice("cov:" + id, !cov)} label="Already bought in a bulk buy (don't add this price)" />` : null}
       <//>
+      ${on && !cov && !(id in pc.prices) && !pc.prices["name:" + id] ? (() => { const u = usualTop("kit:" + id, 1)[0]; return u ? html`<button type="button" className="usual-btn" onClick=${() => { pc.setPrice(id, String(u.price || "")); if (u.name !== it.l) pc.setPrice("name:" + id, u.name); if (u.sup) pc.setSrc(id, u.sup); if (u.code) pc.setPrice("code:" + id, u.code); usualAdd("kit:" + id, u.name, u.price, u.sup, u.code); }}>Your usual: <b>${u.name}</b>${u.price ? " · " + fmtKit(u.price) : ""}${u.sup ? " · " + u.sup.split(" — ")[0] : ""} <span className="usual-go">Use it</span></button>` : null; })() : null}
       ${on && it.d ? html`<${HoursInput} label=${"Extra time: " + shown} value=${hrRaw(hrs, "kit-" + id, DEF_H)} onChange=${(v) => setHr("kit-" + id, v)} />` : null}
     </div>`;
   })}`;
@@ -3536,8 +3557,8 @@ function ExtraRow({ x, pc }) {
   return html`<${MatEditor} item=${it} onItem=${(v) => pc.updateExtra(x.id, { item: v })} startOpen=${!it && !pr}
     price=${pr} onPrice=${(v) => pc.updateExtra(x.id, { price: v })} unk=${!!x.unk} onUnk=${(v) => pc.updateExtra(x.id, { unk: v })} qty=${x.qty || ""} onQty=${(v) => pc.updateExtra(x.id, { qty: v })}
     code=${cd} onCode=${(v) => pc.updateExtra(x.id, { code: v })} where=${wh} onWhere=${(v) => pc.updateExtra(x.id, { where: v })}
-    onCommit=${(f, v) => (f === "item" ? bookAdd(v.trim(), pr, wh, "", cd) : f === "price" ? bookAdd(it.trim(), v, wh, "", cd) : f === "where" ? bookAdd(it.trim(), pr, v, "", cd) : bookAdd(it.trim(), pr, wh, "", v))}
-    pickLabel=${it} onPick=${(price, sup, name, url, mycode, itemName) => pc.updateExtra(x.id, { item: itemName || name, price: String(price), where: sup || "", code: mycode || codeFromUrl(url) || x.code || "" })}
+    onCommit=${(f, v) => { if (f === "item") bookAdd(v.trim(), pr, wh, "", cd); else if (f === "price") { bookAdd(it.trim(), v, wh, "", cd); if (Number(v) > 0) usualAdd("grp:" + (x.group || "").replace(O2_SFX, ""), it, v, wh, cd); } else if (f === "where") bookAdd(it.trim(), pr, v, "", cd); else bookAdd(it.trim(), pr, wh, "", v); }}
+    pickLabel=${it} onPick=${(price, sup, name, url, mycode, itemName) => { const nm = itemName || name, c2 = mycode || codeFromUrl(url) || x.code || ""; pc.updateExtra(x.id, { item: nm, price: String(price), where: sup || "", code: c2 }); usualAdd("grp:" + (x.group || "").replace(O2_SFX, ""), nm, price, sup, c2); }}
     onRemove=${() => pc.removeExtra(x.id)} removeLabel="Remove this material" />`;
 }
 
@@ -3547,6 +3568,8 @@ function ExtraBlock({ group, hint, title }) {
   return html`<div style=${{ marginTop: 8 }}>
     ${group ? html`<div className="kit-head">${title || "Extra materials for this " + (hint || "item")}</div>` : null}
     ${mine.map((x) => html`<${ExtraRow} key=${x.id} x=${x} pc=${pc} />`)}
+    ${(() => { const have = new Set(mine.map((x) => (x.item || "").trim())); const us = usualTop("grp:" + String(group || "").replace(O2_SFX, ""), 6).filter((u) => !have.has(u.name)); return us.length ? html`<div className="usual-list"><div className="usual-h">Your usual for this ${hint || "item"}</div>
+      ${us.map((u) => html`<button type="button" key=${u.name} className="usual-btn" onClick=${() => { pc.addExtra({ item: u.name, price: u.price ? String(u.price) : "", where: u.sup || "", code: u.code || "", group }); usualAdd("grp:" + String(group || "").replace(O2_SFX, ""), u.name, u.price, u.sup, u.code); }}>+ <b>${u.name}</b>${u.price ? " · " + fmtKit(u.price) : ""}${u.sup ? " · " + u.sup : ""}</button>`)}</div>` : null; })()}
     <${AddBtn} onClick=${() => pc.addExtra({ item: "", group })}>Add new material<//>
   </div>`;
 }
@@ -5077,12 +5100,15 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
     <div className="card">
       ${job.mats.map((m) => html`<${MatEditor} key=${m.id} item=${m.item} onItem=${(v) => setMat(m.id, { item: v })} itemPh="What (e.g. cartridge, washers)" startOpen=${!m.item && !m.cost}
         price=${m.cost} onPrice=${(v) => setMat(m.id, { cost: v })} qty=${m.qty || ""} onQty=${(v) => setMat(m.id, { qty: v })} unk=${!!m.unk} onUnk=${(v) => setMat(m.id, { unk: v })} code=${m.code || ""} onCode=${(v) => setMat(m.id, { code: v })} where=${m.where} onWhere=${(v) => setMat(m.id, { where: v })}
-        onCommit=${(f, v) => (f === "item" ? bookAdd(v.trim(), m.cost, m.where, "", m.code) : f === "price" ? bookAdd((m.item || "").trim(), v, m.where, "", m.code) : f === "where" ? bookAdd((m.item || "").trim(), m.cost, v, "", m.code) : bookAdd((m.item || "").trim(), m.cost, m.where, "", v))}
+        onCommit=${(f, v) => { if (f === "item") bookAdd(v.trim(), m.cost, m.where, "", m.code); else if (f === "price") { bookAdd((m.item || "").trim(), v, m.where, "", m.code); if (Number(v) > 0) usualAdd("grp:Maintenance", m.item, v, m.where, m.code); } else if (f === "where") bookAdd((m.item || "").trim(), m.cost, v, "", m.code); else bookAdd((m.item || "").trim(), m.cost, m.where, "", v); }}
         pickLabel=${m.item || ""} onPick=${(pr, sup, name, url, mycode, itemName) => {
           const cd = mycode || codeFromUrl(url);
+          usualAdd("grp:Maintenance", itemName || name || m.item, pr, sup, cd);
           setMat(m.id, { item: itemName || name || m.item, where: sup || m.where, cost: String(pr), code: cd || m.code || "" });
         }}
         onRemove=${() => setJob((p) => ({ ...p, mats: p.mats.filter((x) => x.id !== m.id) }))} removeLabel="Remove this material" />`)}
+      ${(() => { const have = new Set(job.mats.map((x) => (x.item || "").trim())); const us = usualTop("grp:Maintenance", 6).filter((u) => !have.has(u.name)); return us.length ? html`<div className="usual-list"><div className="usual-h">Your usual materials</div>
+        ${us.map((u) => html`<button type="button" key=${u.name} className="usual-btn" onClick=${() => { setJob((p) => ({ ...p, mats: [...p.mats, { id: newId(), item: u.name, where: u.sup || "", cost: u.price ? String(u.price) : "", code: u.code || "" }] })); usualAdd("grp:Maintenance", u.name, u.price, u.sup, u.code); }}>+ <b>${u.name}</b>${u.price ? " · " + fmtKit(u.price) : ""}${u.sup ? " · " + u.sup : ""}</button>`)}</div>` : null; })()}
       <${AddBtn} onClick=${() => setJob((p) => ({ ...p, mats: [...p.mats, { id: newId(), item: "", where: "", cost: "" }] }))}>Add new material<//>
       <${Drop} bare=${true} open=${(job.bulk || []).length > 0} title="Materials already bought / bulk buy" sub=${(job.bulk || []).length ? (job.bulk || []).length + " · " + fmtKit(bulkTotal) : "stock or a lump sum"}>
       <p className="note">Quick way to add stock you already had or a bulk buy: just a short description and the amount, no need to list every item.</p>
