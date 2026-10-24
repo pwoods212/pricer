@@ -17,76 +17,77 @@ img { max-width: 100%; }
 <style>
 /* Layout: tabbed tool. Site Survey (tick boxes + live total strip) and Job Pricer (rates + estimate ticket) share one state; the quote is a paper sheet built from both. */
 :root {
-  --bg: #F2F4F1;
+  --bg: #1C1D20;
   --dot: rgba(0, 0, 0, 0);
-  --panel: #FFFFFF;
-  --panel2: #EFF3F1;
-  --line: #E1E6E3;
-  --line2: #C6CFCB;
-  --ink: #16212A;
-  --ink2: #364550;
-  --muted: #5A6870;
-  --accent: #0B6B68;
-  --accent-ink: #FFFFFF;
-  --field: #FFFFFF;
-  --active-bg: #16212A;
-  --active-fg: #F4F7F6;
-  --ticket: #12222B;
-  --ticket-ink: #F1F6F5;
-  --ticket-muted: #A9B9BD;
-  --ticket-line: rgba(241, 246, 245, 0.22);
-  --paper: #FFFFFF;
-  --paper-ink: #16212A;
+  --panel: #25272B;
+  --panel2: #2D3034;
+  --line: #3A3D42;
+  --line2: #4B4F55;
+  --ink: #F3F2EF;
+  --ink2: #D2D2D0;
+  --muted: #A7A9AD;
+  --accent: #F28C28;
+  --accent-ink: #1A1B1D;
+  --field: #18191B;
+  --active-bg: #F3F2EF;
+  --active-fg: #1C1D20;
+  --ticket: #141518;
+  --ticket-ink: #F3F2EF;
+  --ticket-muted: #A7A9AD;
+  --ticket-line: rgba(243, 242, 239, 0.18);
+  --paper: #2A2C30;
+  --paper-ink: #F3F2EF;
+  color-scheme: dark;
   --font-display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0D1316;
+    --bg: #1C1D20;
     --dot: rgba(0, 0, 0, 0);
-    --panel: #152026;
-    --panel2: #1C2A31;
-    --line: #26353D;
-    --line2: #384A54;
-    --ink: #EAF0EF;
-    --ink2: #C3CFCE;
-    --muted: #93A4A7;
-    --accent: #4DC4B4;
-    --accent-ink: #04201C;
-    --field: #0E171B;
-    --active-bg: #EAF0EF;
-    --active-fg: #0D1316;
-    --ticket: #091014;
-    --ticket-ink: #EAF0EF;
-    --ticket-muted: #93A4A7;
-    --ticket-line: rgba(234, 240, 239, 0.2);
-    --paper: #1A272D;
-    --paper-ink: #EAF0EF;
+    --panel: #25272B;
+    --panel2: #2D3034;
+    --line: #3A3D42;
+    --line2: #4B4F55;
+    --ink: #F3F2EF;
+    --ink2: #D2D2D0;
+    --muted: #A7A9AD;
+    --accent: #F28C28;
+    --accent-ink: #1A1B1D;
+    --field: #18191B;
+    --active-bg: #F3F2EF;
+    --active-fg: #1C1D20;
+    --ticket: #141518;
+    --ticket-ink: #F3F2EF;
+    --ticket-muted: #A7A9AD;
+    --ticket-line: rgba(243, 242, 239, 0.18);
+    --paper: #2A2C30;
+    --paper-ink: #F3F2EF;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0D1316;
+  --bg: #1C1D20;
   --dot: rgba(0, 0, 0, 0);
-  --panel: #152026;
-  --panel2: #1C2A31;
-  --line: #26353D;
-  --line2: #384A54;
-  --ink: #EAF0EF;
-  --ink2: #C3CFCE;
-  --muted: #93A4A7;
-  --accent: #4DC4B4;
-  --accent-ink: #04201C;
-  --field: #0E171B;
-  --active-bg: #EAF0EF;
-  --active-fg: #0D1316;
-  --ticket: #091014;
-  --ticket-ink: #EAF0EF;
-  --ticket-muted: #93A4A7;
-  --ticket-line: rgba(234, 240, 239, 0.2);
-  --paper: #1A272D;
-  --paper-ink: #EAF0EF;
+  --panel: #25272B;
+  --panel2: #2D3034;
+  --line: #3A3D42;
+  --line2: #4B4F55;
+  --ink: #F3F2EF;
+  --ink2: #D2D2D0;
+  --muted: #A7A9AD;
+  --accent: #F28C28;
+  --accent-ink: #1A1B1D;
+  --field: #18191B;
+  --active-bg: #F3F2EF;
+  --active-fg: #1C1D20;
+  --ticket: #141518;
+  --ticket-ink: #F3F2EF;
+  --ticket-muted: #A7A9AD;
+  --ticket-line: rgba(243, 242, 239, 0.18);
+  --paper: #2A2C30;
+  --paper-ink: #F3F2EF;
   color-scheme: dark;
 }
 
@@ -524,9 +525,9 @@ button, .seg-btn, .qchip, .step-btn, .tabbtn { touch-action: manipulation; }
 .tabbtn { font-size: 11px; }
 @media (max-width: 380px) { .tabbtn { font-size: 10px; } .seg-btn { padding-inline: 12px; } .step-btn { width: 44px; } .nstep .num-in { width: 70px; } }
 /* ===== round 2 design layer: one calm, modern look on every tab ===== */
-:root { --r: 16px; --r-s: 12px; --shadow: 0 1px 2px rgba(16, 28, 36, 0.06), 0 6px 20px rgba(16, 28, 36, 0.05); --tint: rgba(11, 107, 104, 0.09); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3); --tint: rgba(77, 196, 180, 0.13); } }
-:root[data-theme="dark"] { --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3); --tint: rgba(77, 196, 180, 0.13); }
+:root { --r: 16px; --r-s: 12px; --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3); --tint: rgba(242, 140, 40, 0.12); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3); --tint: rgba(242, 140, 40, 0.12); } }
+:root[data-theme="dark"] { --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3); --tint: rgba(242, 140, 40, 0.12); }
 body { background-image: none; line-height: 1.45; -webkit-font-smoothing: antialiased; }
 h1 { font-family: var(--font-body); font-weight: 800; font-size: clamp(25px, 7vw, 32px); letter-spacing: -0.02em; text-transform: none; line-height: 1.1; }
 .lead { font-size: 15px; color: var(--ink2); margin: 6px 0 16px; line-height: 1.5; }
@@ -559,7 +560,7 @@ h1 { font-family: var(--font-body); font-weight: 800; font-size: clamp(25px, 7vw
 .mat-sum { color: var(--ink2); }
 /* controls */
 .btn { border-radius: var(--r-s); border-width: 1.5px; font-weight: 600; font-size: 15px; background: var(--panel); }
-.btn-accent { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; font-size: 15px; box-shadow: 0 2px 8px rgba(11, 107, 104, 0.25); }
+.btn-accent { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; font-size: 15px; box-shadow: 0 2px 8px rgba(242, 140, 40, 0.25); }
 .btn-dark { box-shadow: none; }
 .btn-add { box-shadow: none; background: transparent; border-color: var(--line2); }
 .seg-btn { border-radius: var(--r-s); background: var(--panel); }
@@ -572,14 +573,14 @@ h1 { font-family: var(--font-body); font-weight: 800; font-size: clamp(25px, 7vw
 .badge { border-radius: 999px; }
 /* header */
 .apphead { display: flex; align-items: center; gap: 10px; padding: 4px 0 14px; }
-.brand-mark { width: 38px; height: 38px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(11, 107, 104, 0.3); }
+.brand-mark { width: 38px; height: 38px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(242, 140, 40, 0.3); }
 .brand-mark .ico { width: 22px; height: 22px; stroke-width: 2.2; }
 .brand-txt { flex: 1; min-width: 0; line-height: 1.15; }
 .brand-name { font-weight: 800; font-size: 17px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .brand-sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .apphead .btn { min-height: 44px; padding: 8px 14px; font-size: 14px; flex-shrink: 0; }
 /* tab bar and action bar */
-.tabbar { background: var(--panel); border-top: 1px solid var(--line); box-shadow: 0 -4px 20px rgba(16, 28, 36, 0.08); }
+.tabbar { background: var(--panel); border-top: 1px solid var(--line); box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35); }
 .tabbtn { color: var(--muted); font-weight: 600; }
 .tabbtn.on { color: var(--accent); }
 .tabbtn.on::before { height: 3px; left: 28%; right: 28%; }
@@ -631,7 +632,7 @@ h1 { font-family: var(--font-body); font-weight: 800; font-size: clamp(25px, 7vw
 .scot .drop-body { padding-bottom: 10px; }
 @media (max-width: 380px) { .brand-sub { display: none; } .apphead .btn { padding-inline: 10px; } }
 /* ===== round 3 merge: status language (status card, flow steps, pills, quick picks, stats) in the teal/slate look ===== */
-:root { --ok: #1F7A4D; --warn: #A85F00; --bad: #B3261E; }
+:root { --ok: #5BBF86; --warn: #E0A23F; --bad: #F2766E; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ok: #5BBF86; --warn: #E0A23F; --bad: #F2766E; } }
 :root[data-theme="dark"] { --ok: #5BBF86; --warn: #E0A23F; --bad: #F2766E; }
 .status { background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--st, var(--line2)); border-radius: 14px; padding: 10px 12px 6px; margin: 0 0 10px; box-shadow: 0 1px 2px rgba(15,35,40,.05); }
@@ -737,6 +738,7 @@ body.kb .undo { bottom: 12px; }
 .van-pound { color: var(--muted); margin-left: 6px; }
 .van-re { display: flex; align-items: center; gap: 6px; font-size: 14px; margin-right: auto; }
 .mute { color: var(--muted); font-weight: 400; }
+.actionbar .btn-dark { background: var(--panel2); color: var(--ink); border-color: var(--line2); }
 /* ---- flatter, calmer layout: fewer boxes, sections divided by space and thin rules ---- */
 body { background: var(--panel); }
 .card, .group, .form-card, .ord-card { background: transparent; border: 0; box-shadow: none; border-radius: 0; }
@@ -3197,10 +3199,10 @@ function TickSection({ on, onToggle, title, hint, children }) {
   </div>`;
 }
 /* insurance, landlord and letting agent work: who pays and the references they need on paperwork */
-const CL_TYPES = [["ins", "Insurance"], ["land", "Landlord"], ["agent", "Letting agent"], ["sub", "Another plumber"], ["other", "Other"]];
-const CL_WHO = { ins: "Insurer", land: "Landlord", agent: "Letting agent", sub: "Working for", other: "Paid by" };
-const CL_NAME = { ins: "Policy holder", land: "Tenant", agent: "Landlord", sub: "Contact", other: "Contact" };
-const CL_REF = { ins: "Claim reference", land: "Reference", agent: "Job / works order number", sub: "Their job reference", other: "Reference" };
+const CL_TYPES = [["ins", "Insurance"], ["owner", "Owner"], ["land", "Landlord"], ["agent", "Letting agent"], ["sub", "Another plumber"], ["other", "Other"]];
+const CL_WHO = { ins: "Insurer", owner: "Owner", land: "Landlord", agent: "Letting agent", sub: "Working for", other: "Paid by" };
+const CL_NAME = { ins: "Policy holder", owner: "Contact", land: "Tenant", agent: "Landlord", sub: "Contact", other: "Contact" };
+const CL_REF = { ins: "Claim reference", owner: "Reference", land: "Reference", agent: "Job / works order number", sub: "Their job reference", other: "Reference" };
 function clientLines(get) {
   if (!get("cl:on")) return [];
   const t = get("cl:type") || "ins", v = (k) => String(get(k) || "").trim();
@@ -3216,10 +3218,10 @@ const clExcess = (get) => (get("cl:on") && (get("cl:type") || "ins") === "ins" ?
 function ClientBlock({ get, set }) {
   const t = get("cl:type") || "ins";
   const inp = (k, label, ph, wide, num) => html`<${Lbl} label=${label} wide=${!!wide}><input className="text-in" type=${num ? "number" : "text"} inputMode=${num ? "decimal" : undefined} placeholder=${ph} value=${get(k) || ""} onChange=${(e) => set(k, e.target.value)} /><//>`;
-  return html`<${TickSection} on=${!!get("cl:on")} onToggle=${(v) => set("cl:on", v)} title="Insurance, landlord, agent or another plumber" hint="Adds who is paying and their reference numbers">
+  return html`<${TickSection} on=${!!get("cl:on")} onToggle=${(v) => set("cl:on", v)} title="Who is paying: insurer, owner, landlord, agent or plumber" hint="Adds who is paying and their reference numbers">
     <${Segmented} options=${CL_TYPES} value=${t} onChange=${(v) => set("cl:type", v)} />
     <div className="mat-grid" style=${{ marginTop: 8 }}>
-      ${inp("cl:co", t === "ins" ? "Insurance company" : t === "agent" ? "Letting agent" : t === "land" ? "Landlord name" : t === "sub" ? "Plumber or company you are working for" : "Who is paying", t === "ins" ? "e.g. Aviva, Direct Line" : "Name or company", true)}
+      ${inp("cl:co", t === "ins" ? "Insurance company" : t === "agent" ? "Letting agent" : t === "land" ? "Landlord name" : t === "owner" ? "Owner's name" : t === "sub" ? "Plumber or company you are working for" : "Who is paying", t === "ins" ? "e.g. Aviva, Direct Line" : "Name or company", true)}
       ${inp("cl:ref", CL_REF[t], "As they gave it to you")}
       ${inp("cl:po", "Order / PO number", "If they issued one")}
       ${inp("cl:name", CL_NAME[t], t === "ins" ? "Name on the policy" : "Name")}
@@ -3735,7 +3737,7 @@ async function makeAndSharePdf(sections, filename) {
   if (!lib) throw new Error("The PDF tool did not load. Check your connection and try again.");
   const prettyPdf = (doc) => {
   const PW = 595, PH = 842, M = 48, W = PW - M * 2, BOTTOM = PH - 56;
-  const INK = [22, 33, 42], SOFT = [90, 104, 112], ACC = [11, 107, 104], TINT = [234, 243, 241], RULE = [198, 207, 203];
+  const INK = [33, 35, 39], SOFT = [100, 103, 108], ACC = [205, 100, 18], TINT = [252, 239, 226], RULE = [208, 210, 213];
   const fill = (c) => doc.setFillColor(c[0], c[1], c[2]);
   const ink = (c) => doc.setTextColor(c[0], c[1], c[2]);
   const stroke = (c) => doc.setDrawColor(c[0], c[1], c[2]);
@@ -3832,7 +3834,7 @@ async function makeAndSharePdf(sections, filename) {
       const ln = lines[k], t = ln.trim();
       let m;
       if (!t) { flushInfo(); gap(5); continue; }
-      if ((m = /^(Customer|Site|Surveyed|Date|Valid until|Invoice number|Invoice date|Payment due|Insurer|Landlord|Letting agent|Working for|Their job reference|Paid by|Claim reference|Reference|Job \/ works order number|Order \/ PO number|Policy holder|Tenant|Contact|Invoice to): (.*)$/.exec(ln))) {
+      if ((m = /^(Customer|Site|Surveyed|Date|Valid until|Invoice number|Invoice date|Payment due|Insurer|Owner|Landlord|Letting agent|Working for|Their job reference|Paid by|Claim reference|Reference|Job \/ works order number|Order \/ PO number|Policy holder|Tenant|Contact|Invoice to): (.*)$/.exec(ln))) {
         if (m[1] === "Surveyed" || m[1] === "Date" || m[1] === "Invoice date") dateStr = m[2].split(" · ")[0];
         inInfo.push([m[1] === "Surveyed" ? "Survey" : m[1], m[2]]); continue;
       }
@@ -4546,7 +4548,7 @@ async function makeReportPdf(id, job, biz) {
   const def = REPORT_FORMS[id], v = reportVals(job, id, biz);
   const doc = new lib({ unit: "pt", format: "a4" });
   const PW = 595, PH = 842, M = 48, W = PW - M * 2, BOTTOM = PH - 56;
-  const INK = [31, 41, 55], SOFT = [100, 110, 122], ACC = [30, 78, 140], TINT = [238, 243, 250], RULE = [205, 212, 222], RED = [170, 40, 40];
+  const INK = [33, 35, 39], SOFT = [100, 103, 108], ACC = [205, 100, 18], TINT = [252, 239, 226], RULE = [208, 210, 213], RED = [170, 40, 40];
   const fill = (c) => doc.setFillColor(c[0], c[1], c[2]), stroke = (c) => doc.setDrawColor(c[0], c[1], c[2]), ink = (c) => doc.setTextColor(c[0], c[1], c[2]);
   const font = (st, sz, c) => { doc.setFont("helvetica", st); doc.setFontSize(sz); ink(c || INK); };
   const wrap = (t, w) => doc.splitTextToSize(String(t), Math.max(30, w));
