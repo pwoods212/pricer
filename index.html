@@ -713,6 +713,30 @@ body.kb .undo { bottom: 12px; }
 .gchip:active { transform: scale(.98); }
 .gchip-warn { flex-basis: 100%; margin: 0; font-size: 12.5px; color: var(--warn); font-weight: 600; }
 .gla-hint { margin: 0 0 10px; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--panel2); border-radius: 8px; font-size: 13px; line-height: 1.45; color: var(--ink2); }
+
+
+.tsec { border-top: 1px solid var(--line); padding: 10px 0 8px; }
+.tsec-head { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; min-height: 44px; }
+.tsec-head input { width: 22px; height: 22px; margin: 2px 0 0; flex: none; accent-color: var(--accent); }
+.tsec-t { font-weight: 600; font-size: 15px; color: var(--ink); display: block; }
+.tsec-hint { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.tsec-body { padding: 8px 0 4px; }
+@media (max-width: 400px) { .tabbtn { font-size: 10.5px; letter-spacing: -0.1px; } }
+.sheet-top .tsec { margin-top: 10px; }
+/* ---- flatter, calmer layout: fewer boxes, sections divided by space and thin rules ---- */
+body { background: var(--panel); }
+.card, .group, .form-card, .ord-card { background: transparent; border: 0; box-shadow: none; border-radius: 0; }
+.card { padding: 4px 0 8px; margin-bottom: 4px; }
+.card.sp, .card.link-row { margin-top: 6px; }
+.group { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.sec { margin: 30px 0 8px; }
+.price-as { margin: 10px 0 6px; }
+.pa-label { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+.pa-note { font-size: 13px; color: var(--muted); margin: 6px 0 0; line-height: 1.4; }
+.opt-names { display: grid; gap: 8px; margin: 4px 0 6px; }
+.price-as .seg { display: flex; flex-wrap: nowrap; gap: 6px; }
+.price-as .seg-btn { flex: 1 1 0; min-width: 0; padding: 10px 4px; font-size: 14px; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 
 </head>
@@ -1561,6 +1585,71 @@ const BATHROOM = { title: "Bathroom Survey", fixturesLabel: "Sanitaryware & Fitt
   structural: STRUCTURAL_ITEMS, structuralKits: STRUCTURAL_KITS, extras: { bath: BATH_EXTRAS } };
 const KITCHEN = { title: "Kitchen Survey", fixturesLabel: "Plumbing & Appliances", fixtures: KITCHEN_FIXTURE_ITEMS, fixtureKits: KITCHEN_FIXTURE_KITS,
   structural: KITCHEN_STRUCTURAL_ITEMS, structuralKits: KITCHEN_STRUCTURAL_KITS, extras: { sink: KITCHEN_EXTRAS } };
+/* ---------- Heating (wet central heating; boilers and other gas work stay in the gas section) ---------- */
+const HEAT_FIXTURE_ITEMS = [
+  { key: "hrad", label: "Radiator" },
+  { key: "htowel", label: "Heated Towel Rail" },
+  { key: "hvalve", label: "Radiator Valves / TRVs" },
+  { key: "hcyl", label: "Hot Water Cylinder (vented)" },
+  { key: "huv", label: "Unvented Cylinder (G3)" },
+  { key: "hctl", label: "Controls (programmer / thermostat)" },
+  { key: "hpump", label: "Pump / Motorised Valve" },
+  { key: "hfilt", label: "Magnetic System Filter" },
+  { key: "hexp", label: "Expansion Vessel / Filling Loop" },
+];
+const hRep = (arr) => arr.map((l) => ({ l, p: 10, opt: true }));
+const H_JOINT = { l: "Olives, PTFE and fittings", p: 6 };
+const H_INHIB = { l: "Inhibitor top-up", p: 15, opt: true };
+const H_CAPS = [{ l: "Caps / push-fit stops", p: 6 }, H_INHIB];
+const HEAT_FIXTURE_KITS = {
+  hrad: { fitNew: [{ l: "Radiator (double panel)", p: { budget: 60, mid: 95, premium: 180 } }, { l: "TRV and lockshield valve (pair)", p: 18 }, { l: "Brackets and fixings", p: 6 }, H_INHIB, ...PIPE_CHOICE],
+    fitOld: [H_JOINT, { l: "TRV and lockshield valve (pair)", p: 18, opt: true }, H_INHIB], removedOnly: H_CAPS,
+    repair: hRep(["TRV head or valve body", "Lockshield valve", "Bleed valve / air vent", "Radiator tails and olives", "Inhibitor top-up"]) },
+  htowel: { fitNew: [{ l: "Heated towel rail", p: { budget: 45, mid: 90, premium: 220 } }, { l: "Angled valves (pair)", p: 16 }, { l: "Fixings", p: 5 }, ...PIPE_CHOICE],
+    fitOld: [H_JOINT, { l: "Angled valves (pair)", p: 16, opt: true }], removedOnly: H_CAPS,
+    repair: hRep(["Valves", "Bleed valve", "Electric element (dual fuel)"]) },
+  hvalve: { fitNew: [{ l: "TRV and lockshield valve (pair)", p: { budget: 12, mid: 22, premium: 45 } }, H_JOINT], fitOld: [H_JOINT], removedOnly: H_CAPS,
+    repair: hRep(["TRV head", "Valve pin freed or replaced"]) },
+  hcyl: { fitNew: [{ l: "Vented cylinder (indirect)", p: { budget: 220, mid: 300, premium: 450 } }, { l: "Immersion heater", p: 25 }, { l: "Gate / isolation valves", p: 18 }, { l: "Cylinder thermostat", p: 30 }, { l: "Pipe insulation", p: 10 }, ...PIPE_CHOICE],
+    fitOld: [H_JOINT, { l: "Gate / isolation valves", p: 18, opt: true }], removedOnly: H_CAPS,
+    repair: hRep(["Immersion heater", "Immersion thermostat", "Cylinder thermostat", "Gate valve", "Airlock cleared"]) },
+  huv: { fitNew: [{ l: "Unvented cylinder", p: { budget: 550, mid: 800, premium: 1200 } }, { l: "Tundish and D2 discharge pipe", p: 40 }, { l: "Expansion vessel (if not supplied)", p: 45, opt: true }, { l: "Isolation valves", p: 18 }, ...PIPE_CHOICE],
+    fitOld: [H_JOINT], removedOnly: H_CAPS,
+    repair: hRep(["Expansion vessel recharged or replaced", "Pressure reducing valve", "Temperature and pressure relief valve", "Expansion relief valve", "Tundish / discharge pipe"]) },
+  hctl: { fitNew: [{ l: "Programmer or smart thermostat", p: { budget: 40, mid: 120, premium: 220 } }, { l: "Wiring centre / connectors", p: 15, opt: true }, { l: "Cable and clips", p: 8 }],
+    fitOld: [{ l: "Connectors", p: 5 }], removedOnly: [],
+    repair: hRep(["Thermostat batteries / reset", "Programmer fault found", "Wiring check"]) },
+  hpump: { fitNew: [{ l: "Circulating pump", p: { budget: 70, mid: 110, premium: 180 } }, { l: "Motorised valve (2 or 3 port)", p: 60, opt: true }, { l: "Pump isolation valves", p: 18 }],
+    fitOld: [H_JOINT], removedOnly: H_CAPS,
+    repair: hRep(["Motorised valve head (actuator)", "Pump freed or replaced", "Pump isolation valves"]) },
+  hfilt: { fitNew: [{ l: "Magnetic system filter", p: { budget: 45, mid: 80, premium: 120 } }, { l: "Fittings", p: 8 }], fitOld: [H_JOINT], removedOnly: H_CAPS,
+    repair: hRep(["Filter cleaned out", "O-rings / seals"]) },
+  hexp: { fitNew: [{ l: "Expansion vessel", p: 45 }, { l: "Filling loop", p: 15 }, { l: "Bracket and fittings", p: 8 }], fitOld: [H_JOINT], removedOnly: H_CAPS,
+    repair: hRep(["Expansion vessel recharged", "Filling loop washers", "Pressure gauge"]) },
+};
+const HEAT_STRUCTURAL_ITEMS = [
+  { key: "hflush", label: "System Clean", verb: "Heating system clean", group: "plumbing",
+    options: [["none", "None"], ["chem", "Chemical cleanse and inhibitor"], ["power", "Power flush"]], days: { chem: 0.5, power: 1 } },
+  { key: "hpipe", label: "Pipework", verb: "Heating pipework", group: "plumbing",
+    options: [["none", "None"], ["alter", "Alter / extend runs"], ["new", "New pipe runs"]], days: { alter: 0.5, new: 1.5 } },
+  { key: "hbal", label: "Balance and Bleed", verb: "Balance and bleed the system", group: "plumbing",
+    options: [["none", "None"], ["yes", "Balance and bleed"]], days: { yes: 0.25 } },
+  { key: "hboards", label: "Floorboards", verb: "Lift and relay floorboards for pipe runs", group: "joinery",
+    options: [["none", "None"], ["some", "A few boards"], ["many", "Most of a room"]], days: { some: 0.25, many: 1 } },
+];
+const HEAT_STRUCTURAL_KITS = {
+  hflush: { chem: [{ l: "System cleaner", p: 20 }, { l: "Inhibitor", p: 15 }], power: [{ l: "System cleaner", p: 20 }, { l: "Inhibitor", p: 15 }, { l: "Power flush machine (own or hire)", p: 0, opt: true }] },
+  hpipe: { alter: [{ l: "Pipe and fittings", p: 30 }, { l: "Clips", p: 5 }, { l: "Pipe insulation", p: 8, opt: true }], new: [{ l: "Copper or plastic pipe", p: 60 }, { l: "Fittings", p: 30 }, { l: "Clips", p: 8 }, { l: "Pipe insulation", p: 15, opt: true }] },
+  hbal: { yes: [] },
+  hboards: { some: [{ l: "Floor screws", p: 6 }], many: [{ l: "Floor screws", p: 10 }, { l: "Replacement boards (if split)", p: 25, opt: true }] },
+};
+const HEAT_EXTRAS = {
+  hrad: [{ key: "hradSeize", label: "Old valves may not shut off once drained", verb: "Replace seized radiator valves (if they will not shut off)", hours: 1, kit: [{ l: "Radiator valves (pair)", p: 18 }] }],
+  hcyl: [{ key: "hcylSludge", label: "Sludge in the system may need a clean", verb: "Chemical cleanse if sludge is found", hours: 2, kit: [{ l: "System cleaner", p: 20 }, { l: "Inhibitor", p: 15 }] }],
+};
+const HEATING = { title: "Heating Survey", fixturesLabel: "Radiators, Cylinders & Controls", structLabel: "System and pipework", fixtures: HEAT_FIXTURE_ITEMS, fixtureKits: HEAT_FIXTURE_KITS,
+  structural: HEAT_STRUCTURAL_ITEMS, structuralKits: HEAT_STRUCTURAL_KITS, extras: HEAT_EXTRAS };
+
 
 /* =====================================================================
    HELPERS
@@ -1701,27 +1790,30 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
   const kitLines = [];
   const scope = [];
   const pv = { hours: 0, materials: 0, items: [] };
+  const o2 = { hours: 0, materials: 0, items: [] };
 
   room.fixtures.forEach((f) => {
     const st = fixtures[f.key];
     if (!st.remove && !st.fit && !st.repair) return;
-    hours.plumbing += hrOf(hrs, "fx-" + f.key, fxDefH(st));
-    scope.push(fixtureScope(f.label, st) + noteOf(prices, "fx-" + f.key));
+    const tag = fxTag(prov, f.key);
+    const grp = f.label + tagSfx(tag);
+    const tf = tag === "in" ? {} : { prov: true, o2: tag === "o2" };
+    let fh = hrOf(hrs, "fx-" + f.key, fxDefH(st)), fm = 0;
     const lname = fixtureListName(st);
     if (suiteOn(room, fixtures)) suiteItems(fixtures, tier, f.key).forEach((it) => {
       const cov = !!(prices && prices["cov:" + it.id]);
       const cost = cov ? 0 : suiteCost(prices, it);
-      materials += cost;
-      kitLines.push({ group: f.label, label: nameOf(prices, it.id, it.label), cost, id: it.id, qty: 1, code: (prices && prices["code:" + it.id]) || "", source: srcs[it.id] || it.source || "", covered: cov });
+      fm += cost;
+      kitLines.push({ ...tf, group: grp, label: nameOf(prices, it.id, it.label), cost, id: it.id, qty: 1, code: (prices && prices["code:" + it.id]) || "", source: srcs[it.id] || it.source || "", covered: cov });
     });
     (suiteOn(room, fixtures) ? [] : (room.fixtureKits[f.key][lname] || [])).forEach((it, i) => {
       const id = f.key + "-" + lname + "-" + i;
       if (!kitOn(kit, id, it)) return;
       const cov = !!(prices && prices["cov:" + id]);
       const cost = cov ? 0 : costOf(prices, id, it, tier) * qtyOf(prices, id, it, size);
-      materials += cost;
-      if (it.d) hours.plumbing += hrOf(hrs, "kit-" + id, DEF_H);
-      kitLines.push({ group: f.label, label: nameOf(prices, id, it.l), cost, id, qty: qtyOf(prices, id, it, size), code: (prices && prices["code:" + id]) || "", source: srcs[id] || catSrc(it), covered: cov });
+      fm += cost;
+      if (it.d) fh += hrOf(hrs, "kit-" + id, DEF_H);
+      kitLines.push({ ...tf, group: grp, label: nameOf(prices, id, it.l), cost, id, qty: qtyOf(prices, id, it, size), code: (prices && prices["code:" + id]) || "", source: srcs[id] || catSrc(it), covered: cov });
     });
     (st.repair ? [] : room.extras[f.key] || []).forEach((e) => {
       if (!prov["bx-" + e.key]) return;
@@ -1737,6 +1829,9 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
       const h = hrOf(hrs, "bx-" + e.key, DEF_H);
       pv.hours += h; pv.materials += mat; pv.items.push({ label: e.verb, hours: h, materials: mat });
     });
+    const fl = fixtureScope(f.label, st) + noteOf(prices, "fx-" + f.key);
+    if (tag === "in") { hours.plumbing += fh; materials += fm; scope.push(fl); }
+    else { const b = tag === "o2" ? o2 : pv; b.hours += fh; b.materials += fm; b.items.push({ label: fl, hours: fh, materials: fm }); }
   });
 
   if (suiteOn(room, fixtures)) suiteItems(fixtures, tier, "room").forEach((it) => {
@@ -1748,21 +1843,24 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
     const val = structural[s.key];
     if (val === "none") return;
     const isProv = !!prov["st-" + s.key];
+    const isO2 = !isProv && !!prov["o2-st-" + s.key];
+    const sg = s.label + (isProv ? " — provisional" : isO2 ? O2_SFX : "");
     const h = hrOf(hrs, "st-" + s.key + "-" + val, stDefH(s.key, val));
     const optLabel = s.options.find((o) => o[0] === val)[1].toLowerCase();
     let mat = 0;
     const lump = Math.max(0, Number(prices && prices["stlump:" + s.key]) || 0);
-    if (lump > 0) { mat += lump; kitLines.push({ group: s.label + (isProv ? " — provisional" : ""), label: "Materials (your own total)", cost: lump, prov: isProv, id: "stlump:" + s.key, qty: 1, code: "", source: srcs["stlump:" + s.key] || "", covered: false }); }
+    if (lump > 0) { mat += lump; kitLines.push({ group: sg, label: "Materials (your own total)", cost: lump, prov: isProv || isO2, o2: isO2, id: "stlump:" + s.key, qty: 1, code: "", source: srcs["stlump:" + s.key] || "", covered: false }); }
     (lump > 0 ? [] : room.structuralKits[s.key][val]).forEach((it, i) => {
       const id = s.key + "-" + val + "-" + i;
       if (!kitOn(kit, id, it)) return;
       const cov = !!(prices && prices["cov:" + id]);
       const cost = cov ? 0 : costOf(prices, id, it, tier) * qtyOf(prices, id, it, size);
       mat += cost;
-      kitLines.push({ group: s.label + (isProv ? " — provisional" : ""), label: nameOf(prices, id, it.l), cost, prov: isProv, id, qty: qtyOf(prices, id, it, size), code: (prices && prices["code:" + id]) || "", source: srcs[id] || catSrc(it), covered: cov });
+      kitLines.push({ group: sg, label: nameOf(prices, id, it.l), cost, prov: isProv || isO2, o2: isO2, id, qty: qtyOf(prices, id, it, size), code: (prices && prices["code:" + id]) || "", source: srcs[id] || catSrc(it), covered: cov });
     });
-    if (isProv) {
-      pv.hours += h; pv.materials += mat; pv.items.push({ label: s.verb + " — " + optLabel, hours: h, materials: mat });
+    if (isProv || isO2) {
+      const b = isO2 ? o2 : pv;
+      b.hours += h; b.materials += mat; b.items.push({ label: s.verb + " — " + optLabel, hours: h, materials: mat });
     } else {
       hours[s.group] += h; materials += mat;
       scope.push(s.verb + " — " + optLabel + noteOf(prices, "st-" + s.key));
@@ -1784,8 +1882,24 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
   kitLines.forEach((k) => { if (!(k.cost > 0) && !k.covered && ((prices && prices["unk:" + k.id]) || k.unkFlag)) k.tbc = true; });
   const tbc = bulkOnly ? [] : kitLines.filter((k) => k.tbc).map((k) => ({ group: k.group, label: k.label }));
   const lines = bulkOnly ? kitLines.map((k) => (k.prov || k.group === "Bulk orders" ? k : { ...k, cost: 0, covered: true })) : kitLines;
-  return { hours, materials: (bulkOnly ? 0 : materials) + bulkTotal, kitLines: lines, scope, prov: pv, bulkTotal, tbc };
+  return { hours, materials: (bulkOnly ? 0 : materials) + bulkTotal, kitLines: lines, scope, prov: pv, o2, bulkTotal, tbc };
 }
+/* how an item is priced: "in" the main price, "pv" only if needed (provisional), "o2" only in option 2 (e.g. full renovation) */
+const O2_SFX = " — option 2";
+const tagSfx = (t) => (t === "pv" ? " — provisional" : t === "o2" ? O2_SFX : "");
+const fxTag = (prov, key) => (prov && prov["pv-fx-" + key] ? "pv" : prov && prov["o2-fx-" + key] ? "o2" : "in");
+const stTag = (prov, key) => (prov && prov["st-" + key] ? "pv" : prov && prov["o2-st-" + key] ? "o2" : "in");
+const xTag = (prov, key) => (prov && prov["o2-x-" + key] ? "o2" : "in");
+/* flips the stored keys so exactly one tag is on (toggleProv flips one key at a time) */
+function setTag(toggleProv, cur, next, pvKey, o2Key) {
+  if (cur === next) return;
+  if (cur === "pv" && pvKey) toggleProv(pvKey);
+  if (cur === "o2") toggleProv(o2Key);
+  if (next === "pv" && pvKey) toggleProv(pvKey);
+  if (next === "o2") toggleProv(o2Key);
+}
+const heldMaterials = (survey) => survey.prov.materials + (survey.o2 ? survey.o2.materials : 0);
+const optNames = (ticks) => [String((ticks && ticks["opt:n1"]) || "").trim() || "Option 1 — repairs needed", String((ticks && ticks["opt:n2"]) || "").trim() || "Option 2 — full renovation"];
 
 const blankFixtures = (room = BATHROOM) => Object.fromEntries(room.fixtures.map((f) => [f.key, { remove: false, fit: false, repair: false, condition: "new" }]));
 const blankStructural = (room = BATHROOM) => Object.fromEntries(room.structural.map((s) => [s.key, "none"]));
@@ -1922,9 +2036,9 @@ function buildOrderText(q) {
   const pr = orderGroups(q.survey, c, true, mode);
   if (pr.length) {
     L.push("");
-    L.push("PROVISIONAL TASKS (only if needed, do not order until confirmed):");
+    L.push("PROVISIONAL TASKS (only if needed or if option 2 is chosen, do not order until confirmed):");
     dump(pr);
-    L.push("Provisional total at cost: " + fmt(q.survey.prov.materials));
+    L.push("Provisional total at cost: " + fmt(heldMaterials(q.survey)));
   }
   return L.join("\n");
 }
@@ -1938,17 +2052,21 @@ function buildQuoteText(q) {
   L.push("");
   L.push("Customer: " + (q.customerName || "[Customer name]"));
   L.push("Site: " + (q.siteAddress || "[Site address]"));
+  (q.clientLines || []).forEach((x) => L.push(x));
   L.push((D ? "Date: " : "Surveyed: ") + q.todayStr + " · " + q.sizeLabel + " · " + q.tier + " tier");
   if (D) L.push("Valid until: " + q.validUntil);
   L.push("");
+  const o2i = c.o2Items || [];
+  const ON = q.optNames || optNames(null);
   if (q.scopeItems.length) {
-    L.push("SCOPE:");
+    L.push(o2i.length ? "SCOPE — " + ON[0].toUpperCase() + ":" : "SCOPE:");
     q.scopeItems.forEach((s) => L.push("- " + String(s).replace(/\n/g, "\n  ")));
     L.push("");
   }
-  if (!D) L.push(LAB + ": " + fmtHrs(c.totalHours) + " hours");
+  if (o2i.length) { /* each option gets its own labour, materials and total further down */ }
+  else if (!D) L.push(LAB + ": " + fmtHrs(c.totalHours) + " hours");
   else if (q.rate > 0) L.push("Labour: " + fmt(c.totalHours * q.rate));
-  L.push("Materials at cost: " + fmt(c.materialsBase) + (c.sundries > 0 ? " (includes sundries at " + SUNDRIES_PCT + "%: " + fmt(c.sundries) + ")" : ""));
+  if (!o2i.length) L.push("Materials at cost: " + fmt(c.materialsBase) + (c.sundries > 0 ? " (includes sundries at " + SUNDRIES_PCT + "%: " + fmt(c.sundries) + ")" : ""));
   if (q.survey && q.survey.kitLines) {
     const mb = matBreakdown(q.survey, c);
     if (mb.length) {
@@ -1965,10 +2083,36 @@ function buildQuoteText(q) {
   if (c.supply > 0) L.push(c.supplyLabel + ": " + fmt(c.supply));
   const tr = q.trades || [];
   tr.forEach((x) => L.push(x.label + (x.tag ? " " + x.tag : "") + ": " + fmt(x.cost) + (x.ref ? " (" + x.ref + ")" : "")));
-  if (q.rate > 0 || tr.length) L.push((D ? "Total quote price" : totalLabel(q.rate > 0, tr.length > 0)) + ": " + fmt(c.materialsBase + (c.supply > 0 ? c.supply : 0) + (q.rate > 0 ? c.totalHours * q.rate : 0) + tr.reduce((a, x) => a + x.cost, 0)));
+  if (!o2i.length && (q.rate > 0 || tr.length)) L.push((o2i.length ? "Total for " + ON[0] : D ? "Total quote price" : totalLabel(q.rate > 0, tr.length > 0)) + ": " + fmt(c.materialsBase + (c.supply > 0 ? c.supply : 0) + (q.rate > 0 ? c.totalHours * q.rate : 0) + tr.reduce((a, x) => a + x.cost, 0)));
+  const extraSup0 = (c.supply > 0 ? c.supply : 0) + tr.reduce((x, t) => x + t.cost, 0);
+  const optBlock = (title, short, hrs, mat, note) => {
+    L.push("");
+    L.push(title);
+    if (!D) L.push(LAB + ": " + fmtHrs(hrs) + " hours");
+    else if (q.rate > 0) L.push("Labour: " + fmt(hrs * q.rate));
+    L.push("Materials at cost: " + fmt(mat) + (note || ""));
+    if (extraSup0 > 0) L.push("Trades and supplied items: " + fmt(extraSup0));
+    const tot = mat + extraSup0 + (q.rate > 0 ? hrs * q.rate : 0);
+    L.push("Total for " + short + (q.rate > 0 ? "" : " (no labour price)") + ": " + fmt(tot));
+    return tot;
+  };
+  if (o2i.length) {
+    L.push("");
+    L.push(ON[1].toUpperCase() + " — EXTRA WORK ON TOP OF " + ON[0].split(" — ")[0].toUpperCase() + ":");
+    o2i.forEach((i) => L.push(D ? "- " + i.label + ": " + fmt(i.materials + (q.rate > 0 ? i.hours * q.rate : 0)) : "- " + i.label + ": approx " + fmtHrs(i.hours) + " hours + materials " + fmt(i.materials)));
+    const sund2 = c.sundriesNeeded ? Math.round(c.o2Materials * SUNDRIES_PCT) / 100 : 0;
+    const sn = (v) => (v > 0 ? " (includes sundries at " + SUNDRIES_PCT + "%: " + fmt(v) + ")" : "");
+    L.push("");
+    L.push("PRICE FOR EACH OPTION:");
+    const t1 = optBlock(ON[0].toUpperCase() + ":", ON[0], c.totalHours, c.materialsBase, sn(c.sundries));
+    const t2 = optBlock(ON[1].toUpperCase() + ":", ON[1], c.totalHours + c.o2Hours, c.materialsBase + c.o2Materials + sund2, sn(c.sundries + sund2));
+    L.push("");
+    L.push("Difference between the options" + (D ? "" : " (+" + fmtHrs(c.o2Hours) + " hours)") + ": " + fmt(t2 - t1));
+    L.push(D ? "Choose one option when you accept this quote." : "Please quote both options so the customer can choose.");
+  }
   if (c.provItems.length) {
     L.push("");
-    L.push("PROVISIONAL TASKS (only if needed once work starts, priced in Option B below):");
+    L.push(o2i.length ? "PROVISIONAL TASKS (only if needed once work starts, extra to either option):" : "PROVISIONAL TASKS (only if needed once work starts, priced in Option B below):");
     c.provItems.forEach((i) => L.push(D ? "- " + i.label + ": " + fmt(i.materials + (q.rate > 0 ? i.hours * q.rate : 0)) : "- " + i.label + ": approx " + fmtHrs(i.hours) + " hours + materials " + fmt(i.materials)));
     L.push(D ? "These tasks are only charged if they are needed once the work starts, and will be agreed with you before they are done." : "Please quote for these provisional items and have them accepted by the customer before any of this work starts.");
     /* both options side by side: as surveyed, and with every "if needed" item */
@@ -1986,12 +2130,17 @@ function buildQuoteText(q) {
       L.push("Total for " + title.split(" — ")[0].replace(/^OPTION /, "Option ") + (q.rate > 0 ? "" : " (no labour price)") + ": " + fmt(tot));
       return tot;
     };
+    if (o2i.length) {
+      L.push("");
+      L.push("Extra if the provisional tasks are needed (either option)" + (D ? "" : " (+" + fmtHrs(c.provHours) + " hours)") + ": " + fmt(c.provMaterials + sundB + (q.rate > 0 ? c.provHours * q.rate : 0)));
+    } else {
     L.push("");
     L.push("COST AND TIME FOR BOTH OPTIONS:");
     const totA = optLines("OPTION A — AS SURVEYED (without the provisional tasks):", c.totalHours, c.materialsBase, c.sundries > 0 ? " (includes sundries at " + SUNDRIES_PCT + "%: " + fmt(c.sundries) + ")" : "");
     const totB = optLines("OPTION B — INCLUDING THE PROVISIONAL TASKS:", hB, matB, c.sundriesNeeded ? " (includes sundries at " + SUNDRIES_PCT + "%: " + fmt(c.sundries + sundB) + ")" : "");
     L.push("");
     L.push("Extra for the provisional tasks" + (D ? "" : " (+" + fmtHrs(c.provHours) + " hours)") + ": " + fmt(totB - totA));
+    }
   }
   if (!D && q.officeNotes && q.officeNotes.trim()) {
     L.push("");
@@ -2032,6 +2181,7 @@ const ICONS = {
   search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   bath: '<path d="M4 12h16v3a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><path d="M6 12V6a2 2 0 0 1 4 0M7 19l-1 2M17 19l1 2"/>',
+  heat: '<rect x="4" y="6" width="16" height="12" rx="2"/><path d="M8 6v12M12 6v12M16 6v12M6 18v2M18 18v2"/>',
   kitchen: '<path d="M4 10h14v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z"/><path d="M18 12h3M8 6c0-1 1-1 1-2M12 6c0-1 1-1 1-2"/>',
   wrench: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>',
   tag: '<path d="M20 13 13 20a2 2 0 0 1-2.8 0L3 12.8V4h8.8L20 12.2a1 1 0 0 1 0 .8z"/><path d="M7.5 8h.01"/>',
@@ -2156,7 +2306,7 @@ function ConfirmBtn({ label, armedLabel, onConfirm, cls }) {
 }
 
 const DISCLAIMER_DEFAULT = "This is a provisional estimate based on what could be seen and the information available at the time of the survey. It is not a fixed-price quote, a contract or a guarantee of cost or time. Hidden problems (for example rot, damp, concealed pipework, asbestos or unsuitable structure) may only be found once work starts and could change the price and the time needed. Material prices are as entered on the date shown and may change. Provisional tasks are priced separately as Option B and are only charged if they turn out to be needed once the work is opened up. A written quote must be agreed and accepted by the customer before any work starts, and the final price may be different from this estimate.";
-const DISCLAIMER_DIRECT = "This quote is for the work described in the scope above, based on what could be seen at the survey. If hidden problems are found once the work is opened up (for example rot, damp, concealed pipework or an unsuitable structure), I will tell you and agree any extra cost with you before doing the extra work. Provisional tasks are priced as Option B and are only charged if they turn out to be needed. The price is fixed for the work listed and the date it is valid until is shown above.";
+const DISCLAIMER_DIRECT = "This quote is for the work described in the scope above, based on what could be seen at the survey. If hidden problems are found once the work is opened up (for example rot, damp, concealed pipework or an unsuitable structure), I will tell you and agree any extra cost with you before doing the extra work. Provisional tasks are listed separately and are only charged if they turn out to be needed. The price is fixed for the work listed and the date it is valid until is shown above.";
 const isDirect = (ticks) => !!(ticks && ticks["direct:on"]);
 const disclaimerOf = (ticks) => (ticks && ticks["disc:off"] ? "" : (ticks && typeof ticks["disc:text"] === "string" && ticks["disc:text"].trim() ? ticks["disc:text"].trim() : isDirect(ticks) ? DISCLAIMER_DIRECT : DISCLAIMER_DEFAULT));
 function DisclaimerEdit({ ticks, setTick }) {
@@ -2542,9 +2692,9 @@ function OrderList({ survey, calc, ticks, setTick, customerName, siteAddress, to
     <div className="ord-total"><span>Total at cost</span><b>${fmt(calc.materialsBase)}</b></div>
     ${calc.supply > 0 && html`<div className="ord-total ord-total2"><span>${calc.supplyLabel} (ordered separately)</span><b>${fmt(calc.supply)}</b></div>`}
     ${prov.length > 0 && html`<div style=${{ marginTop: 16 }}>
-      <div className="mini-label">Provisional tasks — only if needed, don't order until confirmed</div>
+      <div className="mini-label">Only if needed or if option 2 is chosen — don't order until confirmed</div>
       ${renderGroups(prov, true)}
-      <div className="ord-total"><span>Provisional total at cost</span><b>${fmt(survey.prov.materials)}</b></div>
+      <div className="ord-total"><span>Held back total at cost</span><b>${fmt(heldMaterials(survey))}</b></div>
     </div>`}
     <div className="ord-actions">
       <${CopyQuote} text=${allText} label="Copy full order list" />
@@ -2860,6 +3010,130 @@ function SuiteBar({ fixtures, tier, onChange }) {
   </div>`;
 }
 
+const PRICE_AS = [["in", "In the price"], ["pv", "Only if needed"], ["o2", "Option 2"]];
+function PriceAs({ value, onPick, noPv }) {
+  return html`<div className="price-as">
+    <div className="pa-label">How to price it</div>
+    <${Segmented} options=${noPv ? PRICE_AS.filter((o) => o[0] !== "pv") : PRICE_AS} value=${value} onChange=${onPick} />
+    ${value === "pv" ? html`<p className="pa-note">Listed separately. Only charged if it turns out to be needed.</p>`
+      : value === "o2" ? html`<p className="pa-note">Only in the second option (for example a full renovation). The quote then shows both options with a price for each.</p>` : null}
+  </div>`;
+}
+
+/* ---------- tick-to-open sections: one line when off, the questions only appear when ticked ---------- */
+function TickSection({ on, onToggle, title, hint, children }) {
+  return html`<div className=${"tsec" + (on ? " on" : "")}>
+    <label className="tsec-head"><input type="checkbox" checked=${!!on} onChange=${() => onToggle(!on)} />
+      <span><span className="tsec-t">${title}</span>${hint && !on ? html`<span className="tsec-hint">${hint}</span>` : null}</span></label>
+    ${on ? html`<div className="tsec-body">${children}</div>` : null}
+  </div>`;
+}
+/* insurance, landlord and letting agent work: who pays and the references they need on paperwork */
+const CL_TYPES = [["ins", "Insurance"], ["land", "Landlord"], ["agent", "Letting agent"], ["other", "Other"]];
+const CL_WHO = { ins: "Insurer", land: "Landlord", agent: "Letting agent", other: "Paid by" };
+const CL_NAME = { ins: "Policy holder", land: "Tenant", agent: "Landlord", other: "Contact" };
+const CL_REF = { ins: "Claim reference", land: "Reference", agent: "Job / works order number", other: "Reference" };
+function clientLines(get) {
+  if (!get("cl:on")) return [];
+  const t = get("cl:type") || "ins", v = (k) => String(get(k) || "").trim();
+  const L = [];
+  if (v("cl:co")) L.push(CL_WHO[t] + ": " + v("cl:co"));
+  if (v("cl:ref")) L.push(CL_REF[t] + ": " + v("cl:ref"));
+  if (v("cl:po")) L.push("Order / PO number: " + v("cl:po"));
+  if (v("cl:name")) L.push(CL_NAME[t] + ": " + v("cl:name"));
+  if (v("cl:inv")) L.push("Invoice to: " + v("cl:inv"));
+  return L;
+}
+const clExcess = (get) => (get("cl:on") && (get("cl:type") || "ins") === "ins" ? Math.max(0, Number(get("cl:excess")) || 0) : 0);
+function ClientBlock({ get, set }) {
+  const t = get("cl:type") || "ins";
+  const inp = (k, label, ph, wide, num) => html`<${Lbl} label=${label} wide=${!!wide}><input className="text-in" type=${num ? "number" : "text"} inputMode=${num ? "decimal" : undefined} placeholder=${ph} value=${get(k) || ""} onChange=${(e) => set(k, e.target.value)} /><//>`;
+  return html`<${TickSection} on=${!!get("cl:on")} onToggle=${(v) => set("cl:on", v)} title="Insurance, landlord or letting agent job" hint="Adds who is paying and their reference numbers">
+    <${Segmented} options=${CL_TYPES} value=${t} onChange=${(v) => set("cl:type", v)} />
+    <div className="mat-grid" style=${{ marginTop: 8 }}>
+      ${inp("cl:co", t === "ins" ? "Insurance company" : t === "agent" ? "Letting agent" : t === "land" ? "Landlord name" : "Who is paying", t === "ins" ? "e.g. Aviva, Direct Line" : "Name or company", true)}
+      ${inp("cl:ref", CL_REF[t], "As they gave it to you")}
+      ${inp("cl:po", "Order / PO number", "If they issued one")}
+      ${inp("cl:name", CL_NAME[t], t === "ins" ? "Name on the policy" : "Name")}
+      ${t === "ins" ? inp("cl:excess", "Excess the customer pays (£)", "0", false, true) : null}
+      ${inp("cl:inv", "Send the invoice to", "Email or postal address", true)}
+    </div>
+    <p className="note">These show at the top of the quote, the job notes and the invoice.</p>
+  <//>`;
+}
+/* callout and minimum charge for small jobs */
+const chargeOf = (get) => ({ call: get("chg:on") ? Math.max(0, Number(get("chg:call")) || 0) : 0, min: get("chg:on") ? Math.max(0, Number(get("chg:min")) || 0) : 0 });
+function ChargeBlock({ get, set }) {
+  return html`<${TickSection} on=${!!get("chg:on")} onToggle=${(v) => set("chg:on", v)} title="Callout or minimum charge" hint="For small jobs">
+    <div className="mat-grid">
+      <${Lbl} label="Callout charge (£)"><input className="text-in" type="number" inputMode="decimal" min="0" placeholder="e.g. 45" value=${get("chg:call") || ""} onChange=${(e) => set("chg:call", e.target.value)} /><//>
+      <${Lbl} label="Minimum charge (£)"><input className="text-in" type="number" inputMode="decimal" min="0" placeholder="e.g. 80" value=${get("chg:min") || ""} onChange=${(e) => set("chg:min", e.target.value)} /><//>
+    </div>
+    <p className="note">The callout is added as its own line. If the total comes in under the minimum charge, a top-up line brings it up to the minimum.</p>
+  <//>`;
+}
+/* invoices */
+const PAY_KEY = "pricer-pay-v1";
+const loadPay = () => { try { return localStorage.getItem(PAY_KEY) || ""; } catch (e) { return ""; } };
+function usePay() {
+  const [pay, setPayRaw] = useState(loadPay);
+  return [pay, (v) => { setPayRaw(v); try { localStorage.setItem(PAY_KEY, v); } catch (e) { /* storage unavailable */ } }];
+}
+const ymdGB = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || "")); return m ? m[3] + "/" + m[2] + "/" + m[1] : String(s || ""); };
+const addDaysYmd = (s, n) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || "")); const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const defInvNo = () => "INV-" + localYmd().replace(/-/g, "").slice(2);
+const invMeta = (get) => { const date = get("inv:date") || localYmd(); const days = Math.max(0, Math.floor(Number(get("inv:days"))) || 14); return { no: String(get("inv:no") || "").trim() || defInvNo(), date, due: addDaysYmd(date, days) }; };
+function buildInvoiceText({ businessName, customerName, siteAddress, get, work, charges, minCharge, pay }) {
+  const L = [], mt = invMeta(get);
+  L.push(businessName || "[Your business name]");
+  L.push("INVOICE");
+  L.push("");
+  L.push("Invoice number: " + mt.no);
+  L.push("Invoice date: " + ymdGB(mt.date));
+  L.push("Payment due: " + ymdGB(mt.due));
+  L.push("Customer: " + (customerName || "[Customer name]"));
+  L.push("Site: " + (siteAddress || "[Site address]"));
+  clientLines(get).forEach((x) => L.push(x));
+  L.push("");
+  L.push("WORK CARRIED OUT:");
+  work.filter((w) => String(w || "").trim()).forEach((w) => L.push("- " + String(w).trim().replace(/\n/g, "\n  ")));
+  L.push("");
+  L.push("CHARGES:");
+  const rows = charges.filter((c) => c[1] > 0);
+  let tot = rows.reduce((a, c) => a + c[1], 0);
+  rows.forEach((c) => L.push(c[0] + ": " + fmtKit(c[1])));
+  if (minCharge > 0 && tot < minCharge) { L.push("Minimum charge top-up (minimum charge " + fmtKit(minCharge) + "): " + fmtKit(minCharge - tot)); tot = minCharge; }
+  const ex = clExcess(get);
+  if (ex > 0) {
+    L.push("Total for the work: " + fmtKit(tot));
+    L.push("Less excess paid by the customer: " + fmtKit(Math.min(ex, tot)));
+  }
+  L.push("Total due: " + fmtKit(Math.max(0, tot - ex)));
+  const note = String(get("inv:note") || "").trim();
+  if (note) { L.push(""); L.push(note); }
+  if (String(pay || "").trim()) { L.push(""); L.push("PAYMENT DETAILS:"); String(pay).trim().split("\n").forEach((x) => L.push(x)); }
+  L.push("");
+  L.push("Please pay by " + ymdGB(mt.due) + " and quote invoice number " + mt.no + ".");
+  L.push("Thank you for your business.");
+  return L.join("\n");
+}
+function InvoiceBlock({ get, set, text, filename, pay, setPay, children }) {
+  const mt = invMeta(get);
+  return html`<${TickSection} on=${!!get("inv:on")} onToggle=${(v) => set("inv:on", v)} title="Job done: make an invoice" hint="Turns this into an invoice for the customer">
+    <div className="mat-grid">
+      <${Lbl} label="Invoice number"><input className="text-in" type="text" placeholder=${defInvNo()} value=${get("inv:no") || ""} onChange=${(e) => set("inv:no", e.target.value)} /><//>
+      <${Lbl} label="Invoice date"><input className="text-in" type="date" value=${mt.date} onChange=${(e) => set("inv:date", e.target.value)} /><//>
+      <${Lbl} label="Pay within (days)"><input className="text-in" type="number" inputMode="numeric" min="0" placeholder="14" value=${get("inv:days") || ""} onChange=${(e) => set("inv:days", e.target.value)} /><//>
+    </div>
+    ${children}
+    <${Lbl} label="Your payment details (saved on this phone)" wide=${true}><textarea className="manual note-ta" placeholder=${"e.g. Bank transfer to: Business name\nSort code and account number"} value=${pay} onChange=${(e) => setPay(e.target.value)}></textarea><//>
+    <${Lbl} label="Note on the invoice (optional)" wide=${true}><input className="text-in" type="text" placeholder="e.g. Parts guaranteed for 12 months" value=${get("inv:note") || ""} onChange=${(e) => set("inv:note", e.target.value)} /><//>
+    <div className="link-row" style=${{ marginTop: 8 }}>
+      <${CopyQuote} text=${text} label="Copy invoice" btnCls="btn" />
+      <${SharePdf} sections=${[text]} filename=${filename} label="Send invoice PDF" />
+    </div>
+  <//>`;
+}
 function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, setHr, prov, toggleProv, survey, fixtures }) {
   const su = suiteOn(room, fixtures);
   const pc = React.useContext(PriceCtx);
@@ -2872,8 +3146,9 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
   const hk = "fx-" + def.key;
   const extras = active && !state.repair ? room.extras[def.key] || [] : [];
   const nProv = extras.filter((e) => prov["bx-" + e.key]).length;
-  const cost = sumGroups(survey, [def.label]);
-  const sub = active ? [fmtHrs(hrOf(hrs, hk, fxDefH(state))) + " hrs", cost > 0 ? fmtKit(cost) : pc.bulkOnly ? "in bulk buy" : "no prices yet", nProv ? nProv + " provisional" : ""].filter(Boolean).join(" · ") : "";
+  const tag = fxTag(prov, def.key);
+  const cost = sumGroups(survey, [def.label + tagSfx(tag)]);
+  const sub = active ? [fmtHrs(hrOf(hrs, hk, fxDefH(state))) + " hrs", cost > 0 ? fmtKit(cost) : pc.bulkOnly ? "in bulk buy" : "no prices yet", tag === "pv" ? "only if needed" : tag === "o2" ? "option 2" : "", nProv ? nProv + " provisional" : ""].filter(Boolean).join(" · ") : "";
   const modeName = (FIX_MODES.find((m) => m[0] === mode) || FIX_MODES[0])[1];
   const pick = (v) => (v === "none" ? onChange({ remove: false, fit: false, repair: false })
     : v === "repair" ? onChange({ remove: false, fit: false, repair: true })
@@ -2883,6 +3158,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
   return html`<${ItemCard} title=${def.label} valueLabel=${modeName} active=${active} sub=${sub} options=${FIX_MODES} value=${mode} onPick=${pick}>
     ${false ? html`<p className="gla-hint">${GLA_HINTS[def.key]}</p>` : null}
     <${HoursInput} label=${hrsLabel} value=${hrRaw(hrs, hk, fxDefH(state))} onChange=${(v) => setHr(hk, v)} />
+    ${active ? html`<${PriceAs} value=${tag} onPick=${(v) => setTag(toggleProv, tag, v, "pv-fx-" + def.key, "o2-fx-" + def.key)} />` : null}
     ${su && active ? html`<${SuitePanel} def=${def} state=${state} onChange=${onChange} fixtures=${fixtures} tier=${tier} />` : null}
     ${!su && list.length > 0 ? html`<div>
       <div className="kit-head">${kitLabel}</div>
@@ -2904,14 +3180,14 @@ function StructuralCard({ room, def, value, onChange, tier, kit, onToggle, hrs, 
   const active = value !== "none";
   const list = active ? room.structuralKits[def.key][value] : [];
   const pk = "st-" + def.key;
-  const isProv = active && !!prov[pk];
-  const cost = sumGroups(survey, [def.label + (isProv ? " — provisional" : "")]);
-  const sub = active ? [fmtHrs(hrOf(hrs, "st-" + def.key + "-" + value, stDefH(def.key, value))) + " hrs", cost > 0 ? fmtKit(cost) : pc.bulkOnly ? "in bulk buy" : "no prices yet", isProv ? "provisional" : ""].filter(Boolean).join(" · ") : "";
+  const tag = stTag(prov, def.key);
+  const cost = sumGroups(survey, [def.label + tagSfx(active ? tag : "in")]);
+  const sub = active ? [fmtHrs(hrOf(hrs, "st-" + def.key + "-" + value, stDefH(def.key, value))) + " hrs", cost > 0 ? fmtKit(cost) : pc.bulkOnly ? "in bulk buy" : "no prices yet", tag === "pv" ? "only if needed" : tag === "o2" ? "option 2" : ""].filter(Boolean).join(" · ") : "";
   const valueName = (def.options.find((o) => o[0] === value) || def.options[0])[1];
   const lumpOn = Number(pc.prices["stlump:" + def.key]) > 0;
   return html`<${ItemCard} title=${def.label} valueLabel=${valueName} active=${active} sub=${sub} options=${def.options} value=${value} onPick=${onChange}>
     <${HoursInput} label="Time to do" value=${hrRaw(hrs, "st-" + def.key + "-" + value, stDefH(def.key, value))} onChange=${(v) => setHr("st-" + def.key + "-" + value, v)} />
-    <${Tick} checked=${!!prov[pk]} onChange=${() => toggleProv(pk)} label="Provisional (only if needed once opened up)" />
+    <${PriceAs} value=${tag} onPick=${(v) => setTag(toggleProv, tag, v, pk, "o2-" + pk)} />
     ${list.length > 0 ? html`<div>
       <div className="kit-head">${valueName} — materials normally needed</div>
       ${list.some((x) => x.q !== undefined) ? html`<div className="suite-meta">Quantities are a starting point for a ${pc.size || "medium"} room (floor about ${pc.area > 0 ? Math.round(pc.area * 10) / 10 : ({ small: "3", medium: "4.5", large: "6.5" })[pc.size] || "4.5"} m²). Change any quantity, and type a price where there is none.</div>` : null}
@@ -2979,20 +3255,25 @@ function FirstTip() {
 
 /* layout change, tiling, electrics and plastering: only for jobs that include them, so they sit behind one fold */
 function OtherWork({ x, size, hrs, setHr }) {
+  const pa = (key) => (x.toggleProv ? html`<${PriceAs} noPv=${true} value=${xTag(x.prov, key)} onPick=${(v) => setTag(x.toggleProv, xTag(x.prov, key), v, null, "o2-x-" + key)} />` : null);
   const n = [x.layoutChange, x.tiling !== "none", x.electrical !== "none", x.plastering].filter(Boolean).length;
   return html`<${Drop} open=${n > 0} title="Layout, tiling, electrics, plastering" sub=${n ? n + " added" : "only if the job includes them"}>
     <${Tick} checked=${!!x.layoutChange} onChange=${() => x.setLayoutChange(!x.layoutChange)} label="Layout change (soil pipe reroute for a moved WC)" />
     ${x.layoutChange ? html`<${HoursInput} label="Time for the layout change" value=${hrRaw(hrs, "x-layout", DEF_H)} onChange=${(v) => setHr("x-layout", v)} />` : null}
+    ${x.layoutChange ? pa("layout") : null}
     <${Field} label="Tiling">
       <${Segmented} options=${[["none", "None"], ["half", "Part"], ["full", "Full retile"]]} value=${x.tiling} onChange=${x.setTiling} />
     <//>
     ${x.tiling !== "none" ? html`<${HoursInput} label="Time for tiling" value=${hrRaw(hrs, "x-tile-" + x.tiling + "-" + size, DEF_H)} onChange=${(v) => setHr("x-tile-" + x.tiling + "-" + size, v)} />` : null}
+    ${x.tiling !== "none" ? pa("tile") : null}
     <${Field} label="Electrics">
       <${Segmented} options=${[["none", "None"], ["light", "Lighting"], ["shower", "Shower circuit"]]} value=${x.electrical} onChange=${x.setElectrical} />
     <//>
     ${x.electrical !== "none" ? html`<${HoursInput} label="Time for electrics" value=${hrRaw(hrs, "x-elec-" + x.electrical, DEF_H)} onChange=${(v) => setHr("x-elec-" + x.electrical, v)} />` : null}
+    ${x.electrical !== "none" ? pa("elec") : null}
     <${Tick} checked=${!!x.plastering} onChange=${() => x.setPlastering(!x.plastering)} label="Plastering / making good" />
     ${x.plastering ? html`<${HoursInput} label="Time for plastering" value=${hrRaw(hrs, "x-plaster-" + x.tiling + "-" + size, DEF_H)} onChange=${(v) => setHr("x-plaster-" + x.tiling + "-" + size, v)} />` : null}
+    ${x.plastering ? pa("plaster") : null}
   <//>`;
 }
 
@@ -3097,6 +3378,7 @@ function GlasgowChips({ items, value, onAdd, mode }) { return null; /* declutter
 
 function SiteSurveyView(p) {
   const pc = React.useContext(PriceCtx);
+  const [measOn, setMeasOn] = useState(() => !!(p.dims && (p.dims.fl || p.dims.fw || p.dims.ch)));
   const { room, supply, setSupply, supplier, setSupplier, supplyLabel, supplySource, setSupplySource, fixtures, structural, kit, tier, setTier, updateFixture, updateStructural, toggleKit, survey, calc, onViewQuote, isExample, onClear, hrs, setHr, prov, toggleProv,
     customerName, setCustomerName, siteAddress, setSiteAddress, size, setSize, dims, setDims, extra, officeNotes, setOfficeNotes } = p;
   const grouped = useMemo(() => {
@@ -3109,7 +3391,7 @@ function SiteSurveyView(p) {
   const supplyNum = Math.max(0, Number(supply) || 0);
   const miss = missingPrices(room, fixtures, structural, kit, tier, prov, pc.prices, pc.bulkOnly);
   const missGroups = Object.entries(miss.reduce((a, m) => { a[m.group] = (a[m.group] || 0) + 1; return a; }, {}));
-  const barSub = ["materials at cost", calc.supply > 0 ? "+ " + String(calc.supplyLabel).split(" — ")[0] + " " + fmt(calc.supply) : "", calc.provHours > 0 ? "if needed: +" + fmtHrs(calc.provHours) + " hrs, " + fmt(calc.provMaterials) : ""].filter(Boolean).join(" · ");
+  const barSub = ["materials at cost", calc.supply > 0 ? "+ " + String(calc.supplyLabel).split(" — ")[0] + " " + fmt(calc.supply) : "", calc.provHours > 0 ? "if needed: +" + fmtHrs(calc.provHours) + " hrs, " + fmt(calc.provMaterials) : "", calc.o2Hours > 0 || calc.o2Materials > 0 ? "option 2: +" + fmtHrs(calc.o2Hours || 0) + " hrs, " + fmt(calc.o2Materials || 0) : ""].filter(Boolean).join(" · ");
 
   return html`<div>
     <div className="title-row"><h1>${room.title}</h1></div>
@@ -3135,7 +3417,8 @@ function SiteSurveyView(p) {
       <div className="field"><label className="field-label" htmlFor="sv-addr">Site address (also names the saved job)</label>
         <input id="sv-addr" className="text-in" style=${{ margin: 0 }} type="text" autoComplete="street-address" placeholder="Site address" value=${siteAddress} onChange=${(e) => setSiteAddress(e.target.value)} onBlur=${() => pushRecent("addr", siteAddress)} />
         <${RecentChips} kind="addr" value=${siteAddress} onPick=${setSiteAddress} label="Recent addresses" /></div>
-      ${setSize && setDims ? html`<${Field} label="Floor size (metres, shown on the estimate)">
+      ${setSize && setDims ? html`<${TickSection} on=${measOn} onToggle=${setMeasOn} title="Room measurements" hint=${"Not measured: quantities use a " + SIZE_LABEL[size].split(" ")[0] + " room"}>
+      <${Field} label="Floor size (metres, shown on the estimate)">
         <div className="dim-grid">
           <div className="dim-cell"><span className="dim-cap">Length</span><${NumStepper} mode="text" value=${dims.fl} onChange=${(v) => setDims({ fl: v })} step=${0.1} dp=${1} start=${2} max=${30} label="Floor length in metres" placeholder="m" unit="m" /></div>
           <div className="dim-cell"><span className="dim-cap">Width</span><${NumStepper} mode="text" value=${dims.fw} onChange=${(v) => setDims({ fw: v })} step=${0.1} dp=${1} start=${1.8} max=${30} label="Floor width in metres" placeholder="m" unit="m" /></div>
@@ -3145,7 +3428,7 @@ function SiteSurveyView(p) {
       <${Field} label="Ceiling size (height in metres, shown on the estimate)">
         <${NumStepper} mode="text" value=${dims.ch} onChange=${(v) => setDims({ ch: v })} step=${0.1} dp=${1} start=${2.4} max=${6} label="Ceiling height in metres" placeholder="e.g. 2.4" unit="m" />
         <${QuickChips} items=${["2.2", "2.4", "2.5", "2.7", "3.0"]} value=${dims.ch} onPick=${(v) => setDims({ ch: v })} label="Common ceiling heights in metres" />
-      <//>` : null}
+      <//><//>` : null}
       <${Field} label="Finish tier (new items)">
         <${Segmented} options=${[["budget", "Budget"], ["mid", "Mid-range"], ["premium", "Premium"]]} value=${tier} onChange=${setTier} />
       <//>
@@ -3159,7 +3442,7 @@ function SiteSurveyView(p) {
         onChange=${(patch) => updateFixture(item.key, patch)} onToggle=${toggleKit} hrs=${hrs} setHr=${setHr} prov=${prov} toggleProv=${toggleProv} />`)}
     </div>
 
-    <${Sec} n="3">${extra ? "Floor, walls and other work" : "Structural & Flooring"}<//>
+    <${Sec} n="3">${extra ? "Floor, walls and other work" : room.structLabel || "Structural & Flooring"}<//>
     <div className="group">
       ${room.structural.map((item) => html`<${StructuralCard} room=${room} key=${item.key} def=${item} value=${structural[item.key]} tier=${tier} kit=${kit} survey=${survey}
         onChange=${(v) => updateStructural(item.key, v)} onToggle=${toggleKit} hrs=${hrs} setHr=${setHr} prov=${prov} toggleProv=${toggleProv} />`)}
@@ -3210,7 +3493,7 @@ function SiteSurveyView(p) {
                 ${lines.map((l, i) => html`<div key=${i} className="order-line"><span>${lineLabel(l)}</span><span className="price">${l.cost > 0 ? fmtKit(l.cost) : "—"}</span></div>`)}
               </div>`)}
               <div className="order-total"><span>Kit total (at cost)</span><span style=${{ fontFamily: "var(--font-mono)" }}>${fmtKit(survey.materials)}</span></div>
-              ${survey.prov.materials > 0 ? html`<div className="order-total"><span>Provisional kit (only if needed)</span><span style=${{ fontFamily: "var(--font-mono)" }}>${fmtKit(survey.prov.materials)}</span></div>` : null}
+              ${heldMaterials(survey) > 0 ? html`<div className="order-total"><span>Held back (if needed or option 2)</span><span style=${{ fontFamily: "var(--font-mono)" }}>${fmtKit(heldMaterials(survey))}</span></div>` : null}
             </div>`}
       <//>
     </div>
@@ -3359,7 +3642,8 @@ async function makeAndSharePdf(sections, filename) {
       gap(4);
     } else {
       bizName = lines[0] || ""; k = 1;
-      if (/^QUOTATION/.test(lines[1] || "")) { header(bizName || "Quotation", "Quotation"); para("Fixed price for the work described below.", { size: 9.5, color: SOFT, style: "italic" }); k = 2; gap(6); }
+      if (/^INVOICE/.test(lines[1] || "")) { header(bizName || "Invoice", "Invoice"); k = 2; gap(6); }
+      else if (/^QUOTATION/.test(lines[1] || "")) { header(bizName || "Quotation", "Quotation"); para("Fixed price for the work described below.", { size: 9.5, color: SOFT, style: "italic" }); k = 2; gap(6); }
       else { header(bizName || "Estimate", "Provisional estimate");
       if (lines[1]) { para("For the office to prepare the quote. This is not a customer quote.", { size: 9.5, color: SOFT, style: "italic" }); k = 2; gap(6); } }
     }
@@ -3367,8 +3651,8 @@ async function makeAndSharePdf(sections, filename) {
       const ln = lines[k], t = ln.trim();
       let m;
       if (!t) { flushInfo(); gap(5); continue; }
-      if ((m = /^(Customer|Site|Surveyed|Date|Valid until): (.*)$/.exec(ln))) {
-        if (m[1] === "Surveyed" || m[1] === "Date") dateStr = m[2].split(" · ")[0];
+      if ((m = /^(Customer|Site|Surveyed|Date|Valid until|Invoice number|Invoice date|Payment due|Insurer|Landlord|Letting agent|Paid by|Claim reference|Reference|Job \/ works order number|Order \/ PO number|Policy holder|Tenant|Contact|Invoice to): (.*)$/.exec(ln))) {
+        if (m[1] === "Surveyed" || m[1] === "Date" || m[1] === "Invoice date") dateStr = m[2].split(" · ")[0];
         inInfo.push([m[1] === "Surveyed" ? "Survey" : m[1], m[2]]); continue;
       }
       flushInfo();
@@ -3396,12 +3680,12 @@ async function makeAndSharePdf(sections, filename) {
         continue;
       }
       if (isOrder && /:$/.test(t) && !/^\s/.test(ln)) {
-        if (/^(ONLY IF NEEDED|PROVISIONAL TASKS)/.test(t)) { heading(t); continue; }
+        if (/^(ONLY IF NEEDED|PROVISIONAL TASKS|OPTION)/.test(t)) { heading(t); continue; }
         need(64); gap(6); font("bold", 11, INK); doc.text(t.replace(/:$/, ""), M, y); y += 16; continue;
       }
       if (/^DISCLAIMER:/.test(ln)) { heading(ln); continue; }
       if (/^\s{2,}\S/.test(ln)) { para(t, { indent: 12, size: 10, color: SOFT }); continue; }
-      const small = /^(Hours are estimates|Please quote for this|Please quote for these|Prices are fixed|These tasks are only)/.test(t);
+      const small = /^(Please pay by|Thank you for your business|Hours are estimates|Please quote for this|Please quote for these|Please quote both|Choose one option|Prices are fixed|These tasks are only)/.test(t);
       para(t, small ? { size: 9.5, color: SOFT } : {});
     }
     flushInfo();
@@ -3472,9 +3756,29 @@ function QuoteView(p) {
   const labourCost = rateOn ? calc.totalHours * rateVal : 0;
   const direct = isDirect(ticks);
   const validUntil = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }); })();
-  const trades = tradeList(ticks), tradeTotal = trades.reduce((a, x) => a + x.cost, 0);
-  const scopeItems = scopeBase.concat(trades.map((x) => x.scope + (x.ref ? " (" + x.ref + ")" : "")));
-  const text = buildQuoteText({ businessName, customerName, siteAddress, todayStr, scopeItems, sizeLabel, calc, tier, survey, markup, officeNotes, rate: rateOn ? rateVal : 0, trades, disclaimer: disclaimerOf(ticks), direct: direct, validUntil: validUntil });
+  const g = (k) => ticks && ticks[k];
+  const sv = (k, v) => { if (setTick) setTick(k, v); };
+  const chg = chargeOf(g);
+  const trades0 = tradeList(ticks).concat(chg.call > 0 ? [{ key: "callout", tag: "", label: "Callout charge", scope: "", cost: chg.call, ref: "" }] : []);
+  const base0 = calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + trades0.reduce((a, x) => a + x.cost, 0);
+  const topUp = chg.min > 0 && !(calc.o2Items || []).length && base0 < chg.min ? chg.min - base0 : 0;
+  const trades = trades0.concat(topUp > 0 ? [{ key: "min", tag: "", label: "Minimum charge top-up (minimum charge " + fmt(chg.min) + ")", scope: "", cost: topUp, ref: "" }] : []), tradeTotal = trades.reduce((a, x) => a + x.cost, 0);
+  const scopeItems = scopeBase.concat(trades.filter((x) => x.scope).map((x) => x.scope + (x.ref ? " (" + x.ref + ")" : "")));
+  /* invoice: the option chosen, plus any provisional items that turned out to be needed */
+  const [pay, setPay] = usePay();
+  const hasO2 = (calc.o2Items || []).length > 0, ONq = optNames(ticks);
+  const invOpt = hasO2 && g("inv:opt") === "2" ? 2 : 1;
+  const pvUsed = calc.provItems.filter((i, ix) => g("inv:pv:" + ix));
+  const pvMat = pvUsed.reduce((a, i) => a + i.materials, 0), pvHrs = pvUsed.reduce((a, i) => a + i.hours, 0);
+  const sundX = calc.sundriesNeeded ? Math.round(((invOpt === 2 ? calc.o2Materials : 0) + pvMat) * SUNDRIES_PCT) / 100 : 0;
+  const invHours = calc.totalHours + (invOpt === 2 ? calc.o2Hours : 0) + pvHrs;
+  const invCharges = [].concat(rateOn ? [["Labour", invHours * rateVal]] : [],
+    [["Materials" + (calc.sundries > 0 || sundX > 0 ? " (including sundries)" : ""), calc.materialsBase + (invOpt === 2 ? calc.o2Materials : 0) + pvMat + sundX]],
+    calc.supply > 0 ? [[calc.supplyLabel, calc.supply]] : [], trades0.map((x) => [x.label + (x.tag ? " " + x.tag : ""), x.cost]));
+  const invWork = scopeItems.concat(invOpt === 2 ? calc.o2Items.map((i) => i.label) : [], pvUsed.map((i) => i.label + " (found to be needed)"));
+  const invText = buildInvoiceText({ businessName, customerName, siteAddress, get: g, work: invWork, charges: invCharges, minCharge: chg.min, pay });
+  const invName = "Invoice-" + invMeta(g).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf";
+  const text = buildQuoteText({ businessName, customerName, siteAddress, todayStr, scopeItems, sizeLabel, calc, tier, survey, markup, officeNotes, rate: rateOn ? rateVal : 0, trades, disclaimer: disclaimerOf(ticks), direct: direct, validUntil: validUntil, optNames: optNames(ticks), clientLines: clientLines(g).concat(clExcess(g) > 0 ? ["Policy excess (paid by the customer): " + fmt(clExcess(g))] : []) });
   const [orderBy, setOrderByRaw] = useState(loadOrderBy);
   const setOrderBy = (v) => { setOrderByRaw(v); saveOrderBy(v); };
   const orderText = buildOrderText({ customerName, siteAddress, todayStr, calc, tier, survey, ticks, groupBy: orderBy });
@@ -3516,6 +3820,7 @@ function QuoteView(p) {
           <div className="mini-label">Customer and site</div>
           <input className="text-in" id="cust-name" aria-label="Customer name" autoComplete="name" value=${customerName} placeholder="Customer name" onChange=${(e) => setCustomerName(e.target.value)} />
           <input className="text-in" id="site-addr" aria-label="Site address" autoComplete="street-address" value=${siteAddress} placeholder="Site address" onChange=${(e) => setSiteAddress(e.target.value)} />
+          ${setTick ? html`<${ClientBlock} get=${g} set=${sv} />` : null}
         </div>
         <div style=${{ minWidth: 170 }}>
           <div className="meta-row"><span>${direct ? "Quote date" : "Surveyed"}</span><span style=${{ fontFamily: "var(--font-mono)" }}>${todayStr}</span></div>
@@ -3539,6 +3844,8 @@ function QuoteView(p) {
       </table>
       ${setTick ? html`<div className="rate-box"><label className="kit-row"><input type="checkbox" checked=${!(ticks && ticks["sund:off"])} onChange=${() => setTick("sund:off", !(ticks && ticks["sund:off"]))} /><span className="name">Add sundries at ${SUNDRIES_PCT}% of the materials</span></label></div>` : null}
       ${setTick ? html`<${RateBox} on=${rateOn} rate=${rateVal} onOn=${(v) => setTick("rate:on", v)} onRate=${(v) => setTick("rate:val", v)} />` : null}
+      ${setTick ? html`<${ChargeBlock} get=${g} set=${sv} />` : null}
+      ${topUp > 0 ? html`<p className="note">The total is under your minimum charge, so a top-up of ${fmt(topUp)} is added.</p>` : chg.min > 0 && hasO2 ? html`<p className="note">The minimum charge is not applied when the quote has two options.</p>` : null}
 
       ${(() => { const mb = matBreakdown(survey, calc); return mb.length ? html`<div>
         <div className="mini-label" style=${{ marginTop: 18 }}>Materials quoted for (amounts)</div>
@@ -3556,6 +3863,29 @@ function QuoteView(p) {
             <ul className="scope-list">${scopeItems.map((s, i) => html`<li key=${i}>${s}</li>`)}</ul>
           </div>`}
 
+      ${(calc.o2Items || []).length > 0 && (() => {
+        const ON = optNames(ticks);
+        const sund2 = calc.sundriesNeeded ? Math.round(calc.o2Materials * SUNDRIES_PCT) / 100 : 0;
+        const extraSup = (calc.supply > 0 ? calc.supply : 0) + tradeTotal;
+        const t1 = calc.materialsBase + extraSup + labourCost;
+        const t2 = t1 + calc.o2Materials + sund2 + (rateOn ? calc.o2Hours * rateVal : 0);
+        return html`<div className="opt-block">
+        <div className="mini-label" style=${{ marginTop: 16 }}>Two options for the customer</div>
+        ${setTick ? html`<div className="opt-names">
+          <${Lbl} label="Name of option 1" wide=${true}><input className="text-in" type="text" value=${ticks["opt:n1"] || ""} placeholder=${ON[0]} onChange=${(e) => setTick("opt:n1", e.target.value)} /><//>
+          <${Lbl} label="Name of option 2" wide=${true}><input className="text-in" type="text" value=${ticks["opt:n2"] || ""} placeholder=${ON[1]} onChange=${(e) => setTick("opt:n2", e.target.value)} /><//>
+        </div>` : null}
+        <p className="note" style=${{ margin: "4px 0 8px" }}>${ON[1]} adds this work on top of ${ON[0].split(" — ")[0]}:</p>
+        <table className="q-table">
+          <thead><tr><th>Extra work</th>${direct ? null : html`<th>Est. hours</th>`}<th>${direct ? "Price" : "Materials"}</th></tr></thead>
+          <tbody>${calc.o2Items.map((i, k) => html`<tr key=${k}><td>${i.label}</td>${direct ? null : html`<td>${fmtHrs(i.hours)}</td>`}<td>${fmt(direct ? i.materials + (rateOn ? i.hours * rateVal : 0) : i.materials)}</td></tr>`)}</tbody>
+        </table>
+        <table className="q-table" style=${{ marginTop: 10 }}><tbody>
+          <tr className="total"><td>${ON[0]}${direct || rateOn ? "" : " (" + fmtHrs(calc.totalHours) + " hrs, no labour price)"}</td><td>${fmt(t1)}</td></tr>
+          <tr className="total"><td>${ON[1]}${direct || rateOn ? "" : " (" + fmtHrs(calc.totalHours + calc.o2Hours) + " hrs, no labour price)"}</td><td>${fmt(t2)}</td></tr>
+        </tbody></table>
+      </div>`; })()}
+
       ${calc.provItems.length > 0 && html`<div>
         <div className="mini-label" style=${{ marginTop: 16 }}>Provisional items — only if needed once work starts (extra to the totals above)</div>
         <table className="q-table">
@@ -3571,6 +3901,13 @@ function QuoteView(p) {
       <textarea className="manual note-ta" style=${{ minHeight: 90, marginBottom: 14 }} aria-label="Notes for office" value=${officeNotes}
         placeholder="Access, stair and parking, tenant or agent contact, shut-off location, anything the office needs to know to quote" onChange=${(e) => setOfficeNotes(e.target.value)}></textarea>
       <${GlasgowChips} items=${GLA_SURVEY} value=${officeNotes} onAdd=${(t) => setOfficeNotes(addLine(officeNotes, t))} /></div>`}
+
+      ${direct && setTick ? html`<${InvoiceBlock} get=${g} set=${sv} text=${invText} filename=${invName} pay=${pay} setPay=${setPay}>
+        ${hasO2 ? html`<div className="field"><div className="field-label">Which option did the customer choose?</div>
+          <${Segmented} options=${[["1", ONq[0]], ["2", ONq[1]]]} value=${invOpt === 2 ? "2" : "1"} onChange=${(v) => sv("inv:opt", v)} /></div>` : null}
+        ${calc.provItems.length ? html`<div className="field"><div className="field-label">Provisional items that were needed</div>
+          ${calc.provItems.map((i, ix) => html`<${Tick} key=${ix} checked=${!!g("inv:pv:" + ix)} onChange=${() => sv("inv:pv:" + ix, !g("inv:pv:" + ix))} label=${i.label} />`)}</div>` : null}
+      <//>` : null}
 
       <details className="terms-d">
         <summary>${direct ? "About this quote" : "About this estimate"}</summary>
@@ -3621,7 +3958,7 @@ function useAuth() {
   return { user, ready };
 }
 
-const KIND_LABEL = { bathroom: "Bathroom", kitchen: "Kitchen", small: "Maintenance job" };
+const KIND_LABEL = { bathroom: "Bathroom", kitchen: "Kitchen", heating: "Heating", small: "Maintenance job" };
 
 function AuthForm() {
   const [email, setEmail] = useState("");
@@ -3887,12 +4224,12 @@ CHECK_GUIDE.mould.blocks.push(["Satisfactory or unsatisfactory?", [
   "Unsatisfactory: active damp or large areas of mould, a leak or building fault letting water in, or a vulnerable person affected. Make the home safe, start repairs promptly and give the tenant a written summary."]]);
 
 const OUTCOME_HELP = {
-  eicr: ["Satisfactory: no C1, C2 or FI items on the EICR (C3 items are allowed).", "Unsatisfactory: any C1, C2 or FI item, so repairs and written confirmation are needed.", "Needs more work: waiting on repairs or investigation."],
-  gsc: ["Satisfactory: every appliance and flue is safe, no ID or AR warnings, CP12 issued.", "Unsatisfactory: any appliance marked ID or AR, or a failed tightness test.", "Needs more work: waiting on a repair or retest."],
-  smoke: ["Satisfactory: all required alarms present, linked, on the ceiling, in date and sounding.", "Unsatisfactory: any alarm missing, not linked, out of date or not sounding.", "Needs more work: an alarm or electrician has been arranged."],
-  co: ["Satisfactory: a working, in-date CO alarm in every room with a fuel-burning appliance.", "Unsatisfactory: an alarm is missing, fails the test, is out of date or is blocked.", "Needs more work: waiting for a replacement alarm."],
-  lra: ["Satisfactory: low risk and the control measures are in place.", "Unsatisfactory: medium or high risk, or control measures missing.", "Needs more work: flushing, cleaning or repair still to do."],
-  mould: ["Satisfactory: no mould or damp, no leaks, ventilation working.", "Unsatisfactory: active damp or large mould, a building fault or leak, or a vulnerable person affected.", "Needs more work: minor problem with a repair planned."]
+  eicr: ["All OK: no C1, C2 or FI items on the EICR (C3 items are allowed).", "Action needed: any C1, C2 or FI item, so repairs and written confirmation are needed.", "Follow-up needed: waiting on repairs or investigation."],
+  gsc: ["All OK: every appliance and flue is safe, no ID or AR warnings, CP12 issued.", "Action needed: any appliance marked ID or AR, or a failed tightness test.", "Follow-up needed: waiting on a repair or retest."],
+  smoke: ["All OK: all required alarms present, linked, on the ceiling, in date and sounding.", "Action needed: any alarm missing, not linked, out of date or not sounding.", "Follow-up needed: an alarm or electrician has been arranged."],
+  co: ["All OK: a working, in-date CO alarm in every room with a fuel-burning appliance.", "Action needed: an alarm is missing, fails the test, is out of date or is blocked.", "Follow-up needed: waiting for a replacement alarm."],
+  lra: ["All OK: low risk and the control measures are in place.", "Action needed: medium or high risk, or control measures missing.", "Follow-up needed: flushing, cleaning or repair still to do."],
+  mould: ["All OK: no mould or damp, no leaks, ventilation working.", "Action needed: active damp or large mould, a building fault or leak, or a vulnerable person affected.", "Follow-up needed: minor problem with a repair planned."]
 };
 
 function CheckGuideSheet({ id, onClose }) {
@@ -3920,57 +4257,52 @@ const RS = (k, l, o) => ({ t: "sg", k, l, o });
 const RB = (k, l, cols) => ({ t: "tb", k, l, cols });
 const TRI_OPTS = [["pass", "Yes"], ["fail", "No"], ["na", "N/A"]];
 const YN_OPTS = [["yes", "Yes"], ["no", "No"], ["na", "N/A"]];
-const OUTCOME_OPTS = [["satisfactory", "Satisfactory"], ["unsatisfactory", "Unsatisfactory"], ["further", "Needs more work"]];
+const OUTCOME_OPTS = [["satisfactory", "All OK"], ["unsatisfactory", "Action needed"], ["further", "Follow-up needed"]];
 const optsFor = (f) => (f.t === "yn" ? YN_OPTS : f.t === "sg" ? f.o : TRI_OPTS);
 const optLabel = (f, v) => { const o = optsFor(f).find((x) => x[0] === v); return o ? o[1] : ""; };
 
+const RQ = (k, l, bad) => ({ t: "yn", k, l, bad });
 const REPORT_FORMS = {
-  eicr: { title: "Electrical safety (EICR) compliance record", reg: "Electrician's scheme and registration no.",
-    intro: "Records the periodic electrical inspection (EICR) the Repairing Standard requires: at least every 5 years, by a skilled person (electrically) registered with SELECT, NICEIC or NAPIT or equally competent. This record does not replace the EICR, which must be kept with it.",
-    sections: [
-      ["Report details", [RD("eicrDate", "Date of inspection"), RX("ref", "Reference number on the EICR report"), RX("elec", "Name of the electrician or their company"), RD("prevDate", "Date of the last EICR before this one")]],
-      ["Competence and scope", [RT("c1", "Is the electrician registered with SELECT, NICEIC or NAPIT, and have you seen proof?"), RT("c2", "Did the EICR cover the whole electrical system (fuse board, wiring, sockets, switches and lights)?"), RT("c3", "Did it include fixed heating, the electric shower, water heater and boiler?"), RT("c4", "Did it include any hard-wired smoke, heat and CO alarms?"), RT("c5", "Is there an RCD (trip switch) of 30 mA or less on the fuse board?"), RT("c6", "Are the gas and water pipes bonded to earth (earth clamps and cable fitted)?")]],
-      ["Result of the EICR", [RT("r1", "Is the overall result on the EICR 'Satisfactory'?"), RX("n1", "How many C1 faults (danger present) were found?"), RX("n2", "How many C2 faults (potentially dangerous) were found?"), RX("n3", "How many C3 (improvement advised) and FI (needs further investigation) items were found?"), RT("r2", "Have all the C1 and C2 faults been fixed?"), RT("r3", "Did you receive a certificate for the repair work (Minor Works or Electrical Installation Certificate)?"), RT("r4", "Have the FI (further investigation) items been looked into?")]],
-      ["Observations", [RB("obs", "Faults and notes listed on the EICR", [["code", "Code (C1, C2, C3 or FI)", "tx", 1], ["loc", "Where is it? (room)", "tx", 1.3], ["desc", "What was found", "tx", 2.2], ["act", "What was done, and when", "tx", 1.6]])]],
-      ["Portable appliances (PAT)", [RT("p1", "Have the electrical appliances the landlord supplies been PAT tested? (new ones under 1 year old can be left out)"), RD("patDate", "Date the appliances were tested"), RX("patNext", "How often the tester says they need testing again")]],
-      ["Paperwork", [RT("d1", "Has the tenant been given a copy of the EICR? (a new tenant must get it before they move in)"), RT("d2", "Will the landlord keep a copy for 6 years?")]]
-    ] },
-  gsc: { title: "Gas safety check record (landlord)", reg: "Gas Safe registration no.",
-    intro: "Records the annual landlord gas safety check required by the Gas Safety (Installation and Use) Regulations 1998, which apply in Scotland. The landlord's gas safety record (CP12) must be issued by a Gas Safe registered engineer for the appliance types checked. This record does not replace the CP12.",
-    sections: [
-      ["Engineer and record", [RX("cp12", "Number on the gas safety certificate (CP12)"), RX("eng", "Name of the Gas Safe engineer"), RT("idseen", "Did you see the engineer's Gas Safe ID card, and does it cover these types of appliance?"), RD("checkDate", "Date the check was done"), RD("prev", "Date of the last gas safety check")]],
-      ["Appliances and flues", [RB("apps", "Gas appliances checked", [["app", "Appliance (boiler, hob, fire)", "tx", 1.3], ["loc", "Where is it? (room)", "tx", 1.1], ["mm", "Make and model", "tx", 1.5], ["safe", "Is it safe to use?", "tri", 1], ["flue", "Is the flue OK?", "tri", 1]])]],
-      ["Checks carried out", [RT("g1", "Was the gas tightness (leak) test passed?"), RT("g2", "Was the working pressure or heat input correct?"), RT("g3", "Is the flue clear, with no fumes leaking out?"), RT("g4", "Is there enough ventilation (air supply) for the appliances?"), RT("g5", "Do the safety devices work?"), RT("g6", "Is the gas pipework in good condition?")]],
-      ["Defects", [RT("u1", "If an appliance was unsafe, was it made safe or disconnected?"), RT("u2", "If something was unsafe, was a warning notice given to the tenant and landlord?"), RX("defects", "Faults found, and what was done about them"), RT("co1", "Is there a working CO alarm in every room with a gas, oil or solid fuel appliance? (tested)")]],
-      ["Paperwork", [RT("d1", "Has the tenant got a copy of the certificate? (within 28 days of the check, or before a new tenant moves in)"), RD("given", "Date the tenant was given the copy"), RT("d2", "Will the landlord keep the certificate for at least 2 years?")]]
-    ] },
-  smoke: { title: "Smoke and heat alarm check", reg: "Registration or qualification (if any)",
-    intro: "Records a check of fire alarms against the Scottish Government standard: every home must have interlinked alarms, and the owner is responsible. One smoke alarm in the living room, one in every hallway and landing, one heat alarm in the kitchen.",
-    sections: [
-      ["Alarms", [RB("alarms", "Alarms checked (one row per alarm)", [["loc", "Where is it? (room)", "tx", 1.4], ["type", "Smoke or heat alarm?", "tx", 1], ["ceil", "Fixed to the ceiling?", "tri", 1], ["test", "Did it sound when tested?", "tri", 1], ["rep", "Replace by (date on the alarm)", "tx", 1]])]],
-      ["Standard", [RT("s1", "Is there a smoke alarm in the living room (or the room used most)?"), RT("s2", "Is there a smoke alarm in every hallway?"), RT("s3", "Is there a smoke alarm on every landing?"), RT("s4", "Is there a heat alarm in the kitchen?"), RT("s5", "Are the alarms linked together (do they all sound when you test one)?"), RT("s6", "In open-plan areas, is every spot within 7.5 m of an alarm?"), RT("s7", "Are the alarms fixed to the ceiling, undamaged, and not covered or painted over?"), RT("s8", "Are all alarms still in date (none past the replace-by date)?"), RT("s9", "If the tenant is deaf or uses Telecare, is a suitable alarm fitted? (N/A if not needed)"), RT("s10", "Has the tenant been told to test the alarms every week?")]]
-    ] },
-  co: { title: "Carbon monoxide alarm check", reg: "Registration or qualification (if any)",
-    intro: "Records a check of carbon monoxide alarms. A CO alarm is required in the same room as any carbon-fuelled appliance, such as a boiler, open fire or wood burner. It does not need to be linked to the smoke alarms. A gas cooker or hob on its own does not need one.",
-    sections: [
-      ["Alarms", [RB("alarms", "Rooms with a fuel-burning appliance (one row per room)", [["room", "Room", "tx", 1.2], ["app", "Appliance and fuel (e.g. gas boiler)", "tx", 1.5], ["alarm", "Is there a CO alarm?", "tri", 1], ["test", "Did it sound when tested?", "tri", 1], ["eol", "End-of-life date (on the alarm)", "tx", 1]])]],
-      ["Checks", [RT("c1", "Is there a CO alarm in every room with a boiler, fire or stove that burns fuel?"), RT("c2", "Is each alarm positioned as the maker says, and not covered or blocked?"), RT("c3", "Is each alarm still in date?"), RT("c4", "Did each alarm sound when tested?"), RT("c5", "Has the tenant been told to test the alarm every month?")]]
-    ] },
-  lra: { title: "Legionella risk assessment record", reg: "Competence or qualification",
-    intro: "Records the Legionella risk assessment the landlord must carry out under the Repairing Standard before the first let, and review at least every 2 years or whenever the water system changes. There is no legal certificate for a domestic assessment, so this record is the written evidence.",
-    sections: [
-      ["The water system", [RY("w1", "Does the cold water come straight from the mains (no loft tank)?"), RY("w2", "Is there a cold water tank (usually in the loft)?"), RX("w3", "How is the hot water made? (hot water cylinder, combi boiler, or instant heater)"), RY("w4", "Is there a shower?"), RY("w5", "Are there other water outlets, such as a bath, outside tap or dishwasher?"), RY("w6", "Are there taps or rooms that are rarely used?"), RY("w7", "Is anyone living there at higher risk (elderly, weak immune system, chest problems)?")]],
-      ["Checks carried out", [RT("l1", "Does the hot water cylinder store water at 60°C or more?"), RX("t1", "Temperature measured at the cylinder (°C)"), RT("l2", "Does the hot water come out hot and the cold water stay cold?"), RX("t2", "Temperatures measured at the taps (hot and cold, °C)"), RT("l3", "Does the cold water tank have a tight lid, and is it clean and insulated? (N/A if no tank)"), RT("l4", "Is the pipework free of dead ends and unused pipes?"), RT("l5", "Are the shower heads and hoses clean and free of limescale?"), RT("l6", "Was the system flushed before letting? (needed if not flushed in the last 2 years)"), RT("l7", "Is standing water dealt with (flushed weekly, or drained down while empty)?")]],
-      ["Risk and tenant", [RS("risk", "What is the overall Legionella risk?", [["low", "Low"], ["medium", "Medium"], ["high", "High"]]), RT("m1", "Has the tenant been told what is being done to control the risk, and what they should do?"), RD("review", "Date this assessment must be reviewed (within 2 years)")]]
-    ] },
-  mould: { title: "Mould and damp inspection report", reg: "Competence or qualification",
-    intro: "Records an investigation of damp and mould under the Repairing Standard and Awaab's Law in Scotland (in force from 6 October 2026). A competent person investigates within 10 working days of the landlord becoming aware, normally in person, and the tenant gets a written summary.",
-    sections: [
-      ["Report and access", [RD("aware", "Date the landlord first found out about the problem"), RX("by2", "Who reported it?"), RD("notice", "Date the tenant was given notice of the visit"), RD("inspDate", "Date of inspection"), RT("w10", "Was it inspected within 10 working days of the landlord finding out?")]],
-      ["Areas affected (one row per room)", [RB("areas", "Areas affected (one row per room)", [["room", "Which room or area?", "tx", 1.3], ["type", "Type of damp (rising, penetrating, condensation or leak)", "tx", 1.6], ["ext", "How big is the affected area?", "tx", 1.2], ["cause", "What is the likely cause?", "tx", 1.6]])]],
-      ["What was found", [RY("m1", "Can you see mould?"), RY("m2", "Is there a musty smell?"), RY("m3", "Is there condensation on windows, walls or ceilings?"), RY("m4", "Are any water, waste or heating pipes leaking?"), RY("m5", "Are the seals around the bath, shower or basin split or failed?"), RY("m6", "Are any wastes blocked or overflowing?"), RY("m7", "Are there roof, gutter, brickwork or wall faults letting water in?"), RY("m8", "Do you suspect hidden damp (behind walls, floors or ceilings)?"), RT("m9", "Do the extractor fans work and vent to the outside?"), RT("m10", "Is the heating enough to keep the home warm?"), RT("m11", "Is there enough ventilation (windows, trickle vents, fans)?"), RY("m12", "Does anyone at higher risk live there (children, elderly, health problems)?"), RX("meter", "Moisture meter readings (if used)"), RY("m13", "Were photos taken?")]],
-      ["Make safe and repair", [RT("a1", "Has the home been made safe (any hazard dealt with)?"), RD("summary", "Date the tenant was given the written summary")]]
-    ] }
+  job: { title: "Job report", short: "Job report",
+    intro: "A plain-English report for the customer, landlord or agent: what was found, what is causing it, what was done and what still needs doing.",
+    sections: [] },
+  smoke: { title: "Smoke and heat alarm report", short: "Alarm report",
+    intro: "A check of the fire alarms against the Scottish standard: linked alarms, a smoke alarm in the living room and every hall and landing, and a heat alarm in the kitchen.",
+    sections: [["What we checked", [RQ("s1", "Smoke alarm in the living room (or the room used most)", "no"), RQ("s2", "Smoke alarm in every hall and on every landing", "no"), RQ("s4", "Heat alarm in the kitchen", "no"), RQ("s5", "Alarms linked (they all sound when one is tested)", "no"), RQ("s8", "Every alarm in date and sounding when tested", "no")]]] },
+  co: { title: "Carbon monoxide alarm report", short: "CO alarm report",
+    intro: "A check of the carbon monoxide alarms. One is needed in every room with a boiler, fire or stove that burns fuel.",
+    sections: [["What we checked", [RQ("c1", "CO alarm in every room with a boiler, fire or stove", "no"), RQ("c4", "Every CO alarm in date and sounding when tested", "no"), RQ("c2", "Alarms in the right place and not covered", "no")]]] },
+  lra: { title: "Legionella check report", short: "Legionella report",
+    intro: "A check of the water system for conditions that let Legionella bacteria grow: warm standing water, dirty tanks and pipes that are rarely used.",
+    sections: [["What we checked", [RQ("l1", "Hot water stored at 60°C or more", "no"), RX("t1", "Temperature measured at the cylinder or tap (°C)"), RQ("l2", "Hot runs hot and cold runs cold at the taps", "no"), RQ("l3", "Cold water tank clean, lidded and insulated (N/A if none)", "no"), RQ("l4", "No dead legs or unused pipework", "no"), RQ("l5", "Shower heads clean and free of limescale", "no"), RQ("l7", "Little-used taps and showers flushed regularly", "no"), RS("risk", "Overall risk", [["low", "Low"], ["medium", "Medium"], ["high", "High"]])]]] },
+  mould: { title: "Damp and mould report", short: "Damp report",
+    intro: "A look at damp and mould in the home: where it is, what is likely causing it, and what will fix it.",
+    sections: [["Where it is", [RB("areas", "Area", [["room", "Room or area", "tx", 1.2], ["seen", "What you can see", "tx", 1.6], ["cause", "Likely cause", "tx", 1.6]])]],
+      ["What we checked", [RQ("m1", "Mould visible", "yes"), RQ("m3", "Condensation on windows or walls", "yes"), RQ("m4", "Leaking pipes, wastes or radiators", "yes"), RQ("m5", "Failed seals around the bath, shower or basin", "yes"), RQ("m7", "Water getting in from outside (roof, gutters, walls)", "yes"), RQ("m9", "Extractor fans working and venting outside", "no"), RQ("m10", "Heating enough to keep the home warm", "no"), RQ("m11", "Enough ventilation (windows, trickle vents)", "no")]]] }
+};
+const SOON_OPTS = [["asap", "As soon as possible"], ["weeks", "In the next few weeks"], ["plan", "Can be planned in"]];
+const soonLabel = (v) => { const o = SOON_OPTS.find((x) => x[0] === v); return o ? o[1] : ""; };
+/* one or two plain sentences at the top so anyone reading (customer, landlord, agent) gets the gist */
+const firstSentence = (t) => { const x = String(t || "").trim().split("\n")[0]; const m = /^(.*?[.!?])(\s|$)/.exec(x); return (m ? m[1] : x).trim(); };
+function reportSummary(v) {
+  const bits = [];
+  if (v.outcome) bits.push(v.outcome === "satisfactory" ? "Everything checked was OK." : v.outcome === "unsatisfactory" ? "Something needs to be put right." : "A follow-up is needed.");
+  const f = firstSentence(v.found), n = firstSentence(v.now);
+  if (f) bits.push("Found: " + f.replace(/[.!?]$/, "") + ".");
+  if (n) bits.push("Needs doing: " + n.replace(/[.!?]$/, "") + (v.soon ? " (" + soonLabel(v.soon).toLowerCase() + ")" : "") + ".");
+  return bits.join(" ");
+}
+const REPORT_NARR = [
+  ["found", "What we found", "In plain words: what is wrong, where, and how bad it is."],
+  ["cause", "What is causing it", "The likely cause, and how sure you are."],
+  ["did", "What we did today", "Anything fixed or made safe on this visit."],
+  ["now", "What needs doing", "Work that should be done, by whom, and how soon."],
+  ["later", "What may need doing", "Things to keep an eye on, or that may be needed later."],
+];
+const reportFails = (id, v) => {
+  const out = [];
+  REPORT_FORMS[id].sections.forEach(([, fields]) => fields.forEach((x) => { if (x.bad && v[x.k] === x.bad) out.push(x.l + (x.bad === "no" ? ": no" : "") + (v[x.k + "_n"] ? ". " + v[x.k + "_n"] : "")); }));
+  return out;
 };
 
 const rKey = (id) => (REPORT_FORMS[id] ? id : "");
@@ -3981,7 +4313,10 @@ const reportVals = (job, id, biz) => {
   const chk = CHECKS.find((c) => c[0] === id);
   const dflt = { site: job.noAddr ? "" : job.where || "", date: (job.done && job.done[id]) || job.date || localYmd(), company: biz || "", next: chk ? dueOf(job, chk) : "" };
   const out = {};
-  ["site", "date", "tenant", "landlord", "by", "company", "reg", "outcome", "summary", "actions", "given", "next", "signed", "signedDate"].forEach((k) => { out[k] = f[k] !== undefined ? f[k] : dflt[k] !== undefined ? dflt[k] : ""; });
+  if (id === "job") { dflt.found = [job.issue, job.issueWhere ? "(" + job.issueWhere + ")" : ""].filter((x) => String(x || "").trim()).join(" "); dflt.did = job.work || ""; dflt.now = job.further || ""; }
+  if (f.summary && f.found === undefined) dflt.found = f.summary;
+  if (f.actions && f.now === undefined) dflt.now = f.actions;
+  ["site", "date", "tenant", "landlord", "by", "company", "outcome", "found", "cause", "did", "now", "soon", "later", "next", "signed"].forEach((k) => { out[k] = f[k] !== undefined ? f[k] : dflt[k] !== undefined ? dflt[k] : ""; });
   REPORT_FORMS[id].sections.forEach((s) => s[1].forEach((x) => { out[x.k] = f[x.k] !== undefined ? f[x.k] : ""; out[x.k + "_n"] = f[x.k + "_n"] || ""; }));
   return out;
 };
@@ -3994,33 +4329,29 @@ const MAX_PHOTOS = 8;
 function reportText(id, job, biz) {
   const def = REPORT_FORMS[id], v = reportVals(job, id, biz), L = [];
   L.push((v.company || "[Company]") + " — " + def.title.toUpperCase());
-  L.push("Property: " + (v.site || "[address]") + " · Date: " + fmtDate(v.date));
-  L.push("Tenant: " + (v.tenant || "-") + " · Landlord or agent: " + (v.landlord || "-"));
-  L.push("Completed by: " + (v.by || "-") + (v.reg ? " · " + def.reg + ": " + v.reg : ""));
+  L.push("Property: " + (v.site || "[address]"));
+  L.push("Date: " + fmtDate(v.date));
+  if (v.tenant) L.push("Customer or tenant: " + v.tenant);
+  if (v.landlord) L.push("Landlord or agent: " + v.landlord);
+  if (v.by) L.push("Carried out by: " + v.by);
   L.push("");
+  if (v.outcome) { L.push("RESULT: " + optLabel({ t: "sg", o: OUTCOME_OPTS }, v.outcome)); L.push(""); }
+  { const sm = reportSummary(v); if (sm) { L.push("IN SHORT:"); L.push(sm); L.push(""); } }
+  REPORT_NARR.forEach(([k, h]) => { if (String(v[k] || "").trim()) { L.push(h.toUpperCase() + ":"); L.push(v[k].trim()); if (k === "now" && v.soon) L.push("How soon: " + soonLabel(v.soon)); L.push(""); } });
+  const fails = reportFails(id, v);
+  if (fails.length) { L.push("POINTS THAT NEED ATTENTION:"); fails.forEach((x) => L.push("- " + x)); L.push(""); }
   def.sections.forEach(([h, fields]) => {
-    L.push(h.toUpperCase() + ":");
+    const lines = [];
     fields.forEach((x) => {
-      if (x.t === "tb") {
-        const rows = reportRows(job, id, x.k);
-        if (!rows.length) { L.push("- " + x.l + ": none recorded"); return; }
-        rows.forEach((r, i) => L.push("- " + x.l + " " + (i + 1) + ": " + x.cols.map((c) => c[1] + " " + (c[2] === "tri" ? optLabel({ t: "tri" }, r[c[0]]) || "-" : r[c[0]] || "-")).join("; ")));
-      } else if (x.t === "tri" || x.t === "yn" || x.t === "sg") {
-        const val = optLabel(x, v[x.k]);
-        L.push("- " + x.l + ": " + (val || "not answered") + (v[x.k + "_n"] ? " (" + v[x.k + "_n"] + ")" : ""));
-      } else if (x.t === "dt") L.push("- " + x.l + ": " + (v[x.k] ? fmtDate(v[x.k]) : "-"));
-      else L.push("- " + x.l + ": " + (v[x.k] || "-"));
+      if (x.t === "tb") reportRows(job, id, x.k).forEach((r, i) => lines.push("- " + x.l + " " + (i + 1) + ": " + x.cols.map((c) => c[1] + " " + (r[c[0]] || "-")).join("; ")));
+      else if (x.t === "tri" || x.t === "yn" || x.t === "sg") { const val = optLabel(x, v[x.k]); if (val) lines.push("- " + x.l + ": " + val + (v[x.k + "_n"] ? " (" + v[x.k + "_n"] + ")" : "")); }
+      else if (v[x.k]) lines.push("- " + x.l + ": " + (x.t === "dt" ? fmtDate(v[x.k]) : v[x.k]));
     });
-    L.push("");
+    if (lines.length) { L.push(h.toUpperCase() + ":"); lines.forEach((x) => L.push(x)); L.push(""); }
   });
-  { const ph = reportPhotos(job, id); if (ph.length) { L.push("PHOTOS: " + ph.length + " taken (they are included in the PDF)." + ph.filter((x) => x.cap).map((x, i) => " " + (i + 1) + ". " + x.cap).join("")); L.push(""); } }
-  L.push("OVERALL OUTCOME: " + (optLabel({ t: "sg", o: OUTCOME_OPTS }, v.outcome) || "not stated"));
-  if (v.summary.trim()) L.push("Summary: " + v.summary.trim());
-  if (v.actions.trim()) L.push("Actions required: " + v.actions.trim());
-  L.push("Copy given to tenant on: " + (v.given ? fmtDate(v.given) : "-") + " · Next check due: " + (v.next ? fmtDate(v.next) : "-"));
-  L.push("");
-  L.push("Declaration: I confirm this record is accurate to the best of my knowledge. Name: " + (v.signed || v.by || "-") + " · Date: " + (v.signedDate ? fmtDate(v.signedDate) : "-"));
-  L.push("This is a record of a visit and does not replace any certificate that must be issued by a registered electrician or Gas Safe engineer.");
+  { const ph = reportPhotos(job, id); if (ph.length) { L.push("PHOTOS: " + ph.length + " (in the PDF)." + ph.filter((x) => x.cap).map((x, i) => " " + (i + 1) + ". " + x.cap).join("")); L.push(""); } }
+  if (v.next) L.push("Next check due: " + fmtDate(v.next));
+  L.push("Report by: " + (v.signed || v.by || v.company || "-"));
   return L.join("\n");
 }
 
@@ -4091,21 +4422,33 @@ async function makeReportPdf(id, job, biz) {
   /* header band */
   fill(ACC); doc.rect(0, 0, PW, 84, "F");
   font("bold", 17, [255, 255, 255]); wrap(def.title, W)[0] && doc.text(wrap(def.title, W)[0], M, 40);
-  font("normal", 11, [220, 230, 245]); doc.text(v.company || "Property check record", M, 62);
+  font("normal", 11, [220, 230, 245]); doc.text(v.company || "Report", M, 62);
   y = 84 + 24;
   /* details grid */
-  const cells = [["Property", v.site], ["Date the check was done", v.date ? fmtDate(v.date) : ""], ["Tenant", v.tenant], ["Landlord or letting agent (name)", v.landlord], ["Who carried out this check? (name)", v.by], [def.reg, v.reg]];
-  fill(TINT); doc.roundedRect(M, y - 6, W, 3 * 34 + 8, 4, 4, "F");
-  cells.forEach(([k, val], i) => { const cx = M + 12 + (i % 2) * (W / 2), cy = y + 8 + Math.floor(i / 2) * 34; font("bold", 8, SOFT); doc.text(String(k).toUpperCase(), cx, cy - 2); font("normal", 10.5, INK); doc.text(wrap(val || "", W / 2 - 24)[0] || "", cx, cy + 12); if (!val) { stroke(RULE); doc.setLineWidth(0.5); doc.line(cx, cy + 14, cx + W / 2 - 24, cy + 14); } });
-  y += 3 * 34 + 14;
+  const cells = [["Property", v.site], ["Date", v.date ? fmtDate(v.date) : ""], ["Customer or tenant", v.tenant], ["Landlord or agent", v.landlord], ["Carried out by", v.by], ["Company", v.company]].filter((c) => c[1]);
+  const rowsN = Math.ceil(cells.length / 2);
+  fill(TINT); doc.roundedRect(M, y - 6, W, rowsN * 34 + 8, 4, 4, "F");
+  cells.forEach(([k, val], i) => { const cx = M + 12 + (i % 2) * (W / 2), cy = y + 8 + Math.floor(i / 2) * 34; font("bold", 8, SOFT); doc.text(String(k).toUpperCase(), cx, cy - 2); font("normal", 10.5, INK); doc.text(wrap(val || "", W / 2 - 24)[0] || "", cx, cy + 12); });
+  y += rowsN * 34 + 14;
   font("italic", 9, SOFT); wrap(def.intro, W).forEach((ln) => { need(12); doc.text(ln, M, y); y += 12; });
-  y += 4;
+  y += 6;
+  if (v.outcome) {
+    const lbl = optLabel({ t: "sg", o: OUTCOME_OPTS }, v.outcome), col = v.outcome === "satisfactory" ? [22, 120, 80] : v.outcome === "unsatisfactory" ? RED : [176, 110, 20];
+    need(40); fill(col); doc.roundedRect(M, y - 4, W, 28, 4, 4, "F"); font("bold", 12, [255, 255, 255]); doc.text("Result: " + lbl, M + 12, y + 14); y += 38;
+  }
+  const para = (h, t) => { heading(h); font("normal", 10.5, INK); String(t).trim().split("\n").forEach((pp) => { wrap(pp, W).forEach((ln) => { need(14); doc.text(ln, M, y); y += 14; }); y += 3; }); y += 2; };
+  { const sm = reportSummary(v); if (sm) { need(40); font("italic", 10.5, INK); wrap(sm, W).forEach((ln) => { need(14); doc.text(ln, M, y); y += 14; }); y += 6; } }
+  REPORT_NARR.forEach(([k, h]) => { if (String(v[k] || "").trim()) { para(h, v[k]); if (k === "now" && v.soon) { font("bold", 10.5, INK); need(14); doc.text("How soon: " + soonLabel(v.soon), M, y); y += 18; } } });
+  const fails = reportFails(id, v);
+  if (fails.length) { heading("Points that need attention"); font("normal", 10.5, INK); fails.forEach((t) => wrap(t, W - 14).forEach((ln, i) => { need(14); doc.text((i ? "  " : "• ") + ln, M + 2, y); y += 14; })); y += 4; }
   def.sections.forEach(([h, fields]) => {
+    const any = fields.some((x) => (x.t === "tb" ? reportRows(job, id, x.k).length : v[x.k]));
+    if (!any) return;
     heading(h);
     fields.forEach((x) => {
-      if (x.t === "tb") table(x);
-      else if (x.t === "tri" || x.t === "yn" || x.t === "sg") choiceRow(x, v[x.k], v[x.k + "_n"]);
-      else textRow(x.l, v[x.k], x.t === "dt");
+      if (x.t === "tb") { if (reportRows(job, id, x.k).length) table(x); }
+      else if (x.t === "tri" || x.t === "yn" || x.t === "sg") { if (v[x.k]) choiceRow(x, v[x.k], v[x.k + "_n"]); }
+      else if (v[x.k]) textRow(x.l, v[x.k], x.t === "dt");
     });
   });
   { const ph = reportPhotos(job, id);
@@ -4124,20 +4467,11 @@ async function makeReportPdf(id, job, biz) {
       });
       if (col === 1) y += rowH;
     } }
-  heading("Outcome");
-  choiceRow({ t: "sg", l: "Overall result of this check", o: OUTCOME_OPTS }, v.outcome, "");
-  if (OUTCOME_HELP[id]) { font("italic", 8.5, SOFT); OUTCOME_HELP[id].forEach((t) => wrap(t, W - 10).forEach((ln, i) => { need(11); doc.text((i ? "   " : "- ") + ln, M + 4, y); y += 11; })); y += 4; }
-  area("Summary: what did you find? (in plain words)", v.summary);
-  area("What needs to be done next? (what, who does it, and by when)", v.actions);
-  textRow("Date the tenant was given a copy of this", v.given, true);
-  textRow("Date the next check is due", v.next, true);
-  heading("Declaration");
-  font("normal", 10, INK); wrap("I confirm that this record is accurate to the best of my knowledge.", W).forEach((ln) => { need(14); doc.text(ln, M, y); y += 14; });
-  y += 10; textRow("Name", v.signed || v.by, false); need(40);
-  font("normal", 10, INK); doc.text("Signature", M, y + 10); stroke(INK); doc.setLineWidth(0.6); doc.line(M + 80, y + 12, M + 300, y + 12); doc.text("Date", M + 320, y + 10); doc.line(M + 350, y + 12, M + W, y + 12);
-  if (v.signedDate) { font("bold", 10, INK); doc.text(fmtDate(v.signedDate), M + 352, y + 9); }
-  y += 30;
-  font("italic", 8.5, SOFT); wrap("This is a record of a visit. It does not replace any certificate that must be issued by a registered electrician or Gas Safe engineer. Rules change, so confirm against current Scottish Government guidance.", W).forEach((ln) => { need(11); doc.text(ln, M, y); y += 11; });
+  y += 8;
+  if (v.next) textRow("Next check due", v.next, true);
+  if (v.signed || v.by || v.company) textRow("Report by", v.signed || v.by || v.company, false);
+  y += 4;
+  font("italic", 8.5, SOFT); wrap(id === "job" ? "This report describes what was seen and done on the day." : "This report describes what was seen on the day. It is not a certificate. Rules change, so confirm against current Scottish Government guidance.", W).forEach((ln) => { need(11); doc.text(ln, M, y); y += 11; });
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) { doc.setPage(i); font("normal", 8.5, SOFT); stroke(RULE); doc.setLineWidth(0.5); doc.line(M, PH - 40, M + W, PH - 40); doc.text(def.title + (v.site ? " · " + v.site : ""), M, PH - 26); doc.text("Page " + i + " of " + pages, M + W, PH - 26, { align: "right" }); }
   const safe = (v.site || "property").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -4169,7 +4503,7 @@ function ReportSheet({ id, job, setJob, biz, onClose }) {
       <${AddBtn} onClick=${() => addRow(x.k)}>Add a row<//></div>`;
     if (x.t === "tri" || x.t === "yn" || x.t === "sg") return html`<div key=${x.k} className="field"><div className="field-label">${x.l}</div>
       ${seg(x, v[x.k], (nv) => setF(x.k, nv))}
-      ${v[x.k] === "fail" || v[x.k + "_n"] ? html`<input className="text-in" style=${{ margin: "6px 0 0" }} type="text" placeholder="Note: what is wrong and what needs to be done" value=${v[x.k + "_n"]} onChange=${(e) => setF(x.k + "_n", e.target.value)} />` : null}</div>`;
+      ${v[x.k] === "fail" || (x.bad && v[x.k] === x.bad) || v[x.k + "_n"] ? html`<input className="text-in" style=${{ margin: "6px 0 0" }} type="text" placeholder="Note: what is wrong and what needs to be done" value=${v[x.k + "_n"]} onChange=${(e) => setF(x.k + "_n", e.target.value)} />` : null}</div>`;
     return html`<div key=${x.k} className="field"><label className="field-label">${x.l}</label>
       <input className="text-in" style=${{ margin: 0 }} type=${x.t === "dt" ? "date" : "text"} placeholder=${x.ph || ""} value=${v[x.k]} onChange=${(e) => setF(x.k, e.target.value)} /></div>`;
   };
@@ -4186,27 +4520,29 @@ function ReportSheet({ id, job, setJob, biz, onClose }) {
       <${CopyQuote} cls="grow" text=${text} label="Copy as text" />
       <button type="button" className="btn" onClick=${onClose}>Done</button></div>`}>
     <p className="note">${def.intro}</p>
-    <div className="mini-label">Property and who did the check</div>
-    ${plain("site", "Property address (where the check was done)")}${plain("date", "Date the check was done", "date")}${plain("tenant", "Tenant")}${plain("landlord", "Landlord or letting agent (name)")}${plain("by", "Who carried out this check? (name)")}${plain("company", "Your company name")}${plain("reg", def.reg)}
-    ${def.sections.map(([h, fields]) => html`<div key=${h} style=${{ marginTop: 14 }}><div className="mini-label">${h}</div>${fields.map(field)}</div>`)}
+    <div className="mini-label">Where and who for</div>
+    ${plain("site", "Property address")}${plain("date", "Date", "date")}${plain("tenant", "Customer or tenant")}${plain("landlord", "Landlord or agent (if any)")}
+    <div style=${{ marginTop: 14 }}><div className="mini-label">The report</div>
+      <p className="note">Write it as you would explain it to the customer. Leave out anything that does not apply: empty boxes are not printed. The same report works for the customer, the landlord and the agent.</p>
+      ${REPORT_NARR.map(([k, h, ph]) => html`<div key=${k} className="field"><label className="field-label">${h}</label><textarea className="manual note-ta" placeholder=${ph} value=${v[k]} onChange=${(e) => setF(k, e.target.value)}></textarea>
+        ${k === "now" && String(v.now || "").trim() ? html`<div style=${{ marginTop: 6 }}><div className="field-label">How soon?</div>${seg({ t: "sg", o: SOON_OPTS }, v.soon, (nv) => setF("soon", nv))}</div>` : null}</div>`)}</div>
+    <div style=${{ marginTop: 14 }}><div className="mini-label">Overall result</div>
+      ${seg({ t: "sg", o: OUTCOME_OPTS }, v.outcome, (nv) => setF("outcome", nv))}
+      ${OUTCOME_HELP[id] ? html`<${Drop} bare=${true} title="What each result means" sub="">
+        <ul className="note" style=${{ margin: "6px 0 0", paddingLeft: 18 }}>${OUTCOME_HELP[id].map((t, i) => html`<li key=${i}>${t}</li>`)}</ul><//>` : null}</div>
+    ${def.sections.length ? html`<div style=${{ marginTop: 6 }}><${Drop} bare=${true} title="Quick checklist" sub="optional">
+      ${def.sections.map(([h, fields]) => html`<div key=${h} style=${{ marginTop: 8 }}><div className="mini-label">${h}</div>${fields.map(field)}</div>`)}
+    <//></div>` : null}
     <div style=${{ marginTop: 14 }}><div className="mini-label">Photos (up to ${MAX_PHOTOS})</div>
-      <p className="note">Take or choose photos of anything you want on the record, such as mould, a damaged flue or an alarm label. They print in the PDF.</p>
       ${photos.map((x) => html`<div key=${x.id} className="card" style=${{ margin: "0 0 8px" }}>
         <img src=${x.d} alt="Report photo" style=${{ maxWidth: "100%", maxHeight: 180, borderRadius: 6, display: "block" }} />
         <input className="text-in" style=${{ margin: "6px 0 0" }} type="text" placeholder="What does this photo show?" value=${x.cap || ""} onChange=${(e) => upd((c) => { c.p = c.p.map((q) => (q.id === x.id ? { ...q, cap: e.target.value } : q)); return c; })} />
         <button type="button" className="linkbtn" onClick=${() => upd((c) => { c.p = c.p.filter((q) => q.id !== x.id); return c; })}>Remove this photo</button></div>`)}
       <label className="btn" style=${{ display: "inline-block", cursor: "pointer" }}>Add photos<input type="file" accept="image/*" multiple style=${{ display: "none" }} onChange=${(e) => { addPhotos(e.target.files); e.target.value = ""; }} /></label>
       ${phMsg ? html`<p className="note" role="status">${phMsg}</p>` : null}</div>
-    <div style=${{ marginTop: 14 }}><div className="mini-label">Outcome</div>
-      <div className="field"><div className="field-label">Overall result of this check</div>${seg({ t: "sg", o: OUTCOME_OPTS }, v.outcome, (nv) => setF("outcome", nv))}
-        ${OUTCOME_HELP[id] ? html`<ul className="note" style=${{ margin: "6px 0 0", paddingLeft: 18 }}>${OUTCOME_HELP[id].map((t, i) => html`<li key=${i}>${t}</li>`)}</ul>` : null}</div>
-      <div className="field"><label className="field-label">Summary of findings</label><textarea className="manual note-ta" value=${v.summary} onChange=${(e) => setF("summary", e.target.value)}></textarea></div>
-      <div className="field"><label className="field-label">Actions required (what, who and by when)</label><textarea className="manual note-ta" value=${v.actions} onChange=${(e) => setF("actions", e.target.value)}></textarea></div>
-      ${plain("given", "Date the tenant was given a copy of this", "date")}${plain("next", "Date the next check is due", "date")}</div>
-    <div style=${{ marginTop: 14 }}><div className="mini-label">Declaration</div>
-      <p className="note">I confirm that this record is accurate to the best of my knowledge.</p>
-      ${plain("signed", "Name")}${plain("signedDate", "Date", "date")}</div>
-    <p className="note">This is a record of a visit. It does not replace any certificate that must be issued by a registered electrician or Gas Safe engineer. It saves with the job.</p>
+    <div style=${{ marginTop: 14 }}>
+      ${id !== "job" ? plain("next", "Next check due (optional)", "date") : null}
+      ${plain("signed", "Report by (name)")}${plain("company", "Your company name")}</div>
     ${msg ? html`<p className="note" role="status">${msg}</p>` : null}
   <//>`;
 }
@@ -4215,13 +4551,14 @@ const addMonths = (iso, m) => { if (!iso) return ""; const d = new Date(iso + "T
 const fmtDate = (iso) => (iso ? iso.split("-").reverse().join("/") : "");
 const dueOf = (j, c) => (j.due && j.due[c[0]]) || addMonths(j.done && j.done[c[0]], c[2]);
 const emptyJob = () => ({ ...EMPTY_JOB, date: localYmd() });
-const EMPTY_JOB = { jobType: "", date: "", where: "", issue: "", issueWhere: "", work: "", hours: "", mats: [{ id: "m0", item: "", where: "", cost: "" }], checks: {}, done: {}, due: {}, noAddr: false, orders: [], bulk: [], rateOn: false, rate: "", complete: false, reports: {}, resolved: "", resolvedNote: "", further: "", tradeNeeded: false, trade: "", tradeNote: "" };
+const EMPTY_JOB = { jobType: "", date: "", where: "", issue: "", issueWhere: "", work: "", hours: "", x: {}, mats: [], checks: {}, done: {}, due: {}, noAddr: false, orders: [], bulk: [], rateOn: false, rate: "", complete: false, reports: {}, resolved: "", resolvedNote: "", further: "", tradeNeeded: false, trade: "", tradeNote: "" };
 function jobNoteText(j) {
   const L = [];
   const d = j.date || new Date().toLocaleDateString("en-GB");
   L.push("JOB NOTES — " + d);
   if (j.jobType.trim()) L.push("Job: " + j.jobType.trim());
   if (!j.noAddr && j.where.trim()) L.push("Location: " + j.where.trim());
+  clientLines((k) => (j.x || {})[k]).forEach((x) => L.push(x));
   if (j.issue.trim()) L.push("Issue: " + j.issue.trim());
   if (j.issueWhere.trim()) L.push("Where in property: " + j.issueWhere.trim());
   if (j.work.trim()) L.push("Work carried out: " + j.work.trim());
@@ -4336,9 +4673,17 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
   const bulkTotal = (job.bulk || []).reduce((a, x) => a + Math.max(0, Number(x.cost) || 0), 0);
   const setBulk = (id, patch) => setJob((p) => ({ ...p, bulk: (p.bulk || []).map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
   const matTotal = bulkTotal + job.mats.reduce((a, x) => a + (Math.max(0, Number(x.cost) || 0)) * Math.max(1, Math.floor(Number(x.qty)) || 1), 0);
+  const gx = (k) => (job.x || {})[k];
+  const sx = (k, v) => setJob((p) => ({ ...p, x: { ...(p.x || {}), [k]: v } }));
+  const [pay, setPay] = usePay();
+  const jh = job.hours !== "" && !isNaN(Number(job.hours)) ? Number(job.hours) : 0;
+  const jr = job.rateOn ? Math.min(100, Math.max(0, Number(job.rate) || 0)) : 0;
+  const jc = chargeOf(gx);
+  const invText = buildInvoiceText({ businessName: bizName, customerName: (job.x || {})["inv:cust"] || "", siteAddress: job.noAddr ? "" : job.where, get: gx,
+    work: [job.jobType, job.work], charges: [["Labour", jh * jr], ["Materials", matTotal], ["Callout charge", jc.call]], minCharge: jc.min, pay });
   return html`<div>
     <div className="title-row"><h1>Maintenance Jobs</h1></div>
-    <p className="lead">Fill in what you can, then copy the notes into your job system. Landlord and letting agent visits: say what you found, what you did, and what still needs doing.</p>
+    <p className="lead">Fill in what you can, then copy the notes or send an invoice.</p>
     <${JobStatus} job=${job} />
 
     <${Sec} n="1">The job<//>
@@ -4352,6 +4697,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <${Tick} checked=${!!job.noAddr} onChange=${() => setJob((p) => ({ ...p, noAddr: !p.noAddr }))} label="No address needed (it is held in another app)" />
       ${job.noAddr ? null : inp("where", "Where was the job?", "e.g. 2/1, 14 Example Street, G11 (agent or landlord)", "mj-where")}
       ${job.noAddr ? null : html`<p className="note" style=${{ marginTop: -8 }}>Tenement flat? Write it as floor/door, such as 2/1. Add anything the next visit needs: stair door code, tenant contact, parking.</p>`}
+      <${ClientBlock} get=${gx} set=${sx} />
     </div>
 
     <${Sec} n="2">What happened<//>
@@ -4359,15 +4705,13 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       ${inp("issue", "What was the issue?", "e.g. Cartridge worn, dripping from spout", "mj-issue")}
       ${inp("issueWhere", "Where is it?", "e.g. Main bathroom basin", "mj-iw")}
       ${area("work", "e.g. Isolated water, replaced cartridge, tested", "What did you have to do?", "mj-work")}
-      <${Drop} bare=${true} title="Tenement and shared-area notes" sub="tap to add a line">
-        <p className="note">Tap a line to add it to what you did. Edit it to fit the job.</p>
-        <${GlasgowChips} items=${GLA_WORK} value=${job.work} onAdd=${(t) => setJob((p) => ({ ...p, work: addLine(p.work, t) }))} />
-      <//>
       <div className="field"><div className="field-label" id="mj-res-l">Has the issue been resolved?</div>
         <${Segmented} options=${[["yes", "Yes"], ["partly", "Partly"], ["no", "No"]]} value=${job.resolved || ""} onChange=${(v) => setJob((p) => ({ ...p, resolved: p.resolved === v ? "" : v }))} /></div>
       ${job.resolved === "partly" || job.resolved === "no" ? area("resolvedNote", "e.g. Still dripping, new part needed", "What is still wrong?", "mj-resnote") : null}
       <${HoursInput} quick=${true} label="How long did it take?" value=${job.hours} onChange=${(v) => setJob((p) => ({ ...p, hours: v }))} />
       <${RateBox} on=${!!job.rateOn} rate=${job.rate} onOn=${(v) => setJob((p) => ({ ...p, rateOn: v }))} onRate=${(v) => setJob((p) => ({ ...p, rate: v }))} hours=${job.hours !== "" && !isNaN(Number(job.hours)) ? Number(job.hours) : 0} />
+      <${ChargeBlock} get=${gx} set=${sx} />
+      <div className="link-row" style=${{ marginTop: 8 }}><button type="button" className="btn" onClick=${() => setReportId("job")}>${reportStarted(job, "job") ? "Open the job report" : "Write a report for the customer"}</button></div>
     </div>
 
     <${Sec} n="3">Materials bought<//>
@@ -4396,9 +4740,14 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
     <${Sec} n="4">Work status<//>
     <div className="card">
       <${Tick} checked=${!!job.complete} onChange=${() => setJob((p) => ({ ...p, complete: !p.complete }))} label="Work is complete" />
-      ${area("further", "e.g. Return to fit new valve once part arrives", "Further work required (if any)", "mj-further")}
+      <${TickSection} on=${!!(job.further || "").trim() || !!gx("fw:on")} onToggle=${(v) => { sx("fw:on", v); if (!v) setJob((p) => ({ ...p, further: "", x: { ...(p.x || {}), "fw:on": false } })); }} title="More work needed" hint="Another visit, a part to order, or work to quote">
+        ${area("further", "e.g. Return to fit new valve once part arrives", "What still needs doing?", "mj-further")}
+      <//>
       <${GlasgowChips} items=${GLA_FURTHER} value=${job.further} onAdd=${(t) => setJob((p) => ({ ...p, further: addLine(p.further, t) }))} />
       <${Tick} checked=${!!job.tradeNeeded} onChange=${() => setJob((p) => ({ ...p, tradeNeeded: !p.tradeNeeded }))} label="Another trade is required to attend" />
+      <${InvoiceBlock} get=${gx} set=${sx} text=${invText} filename=${"Invoice-" + invMeta(gx).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf"} pay=${pay} setPay=${setPay}>
+        <${Lbl} label="Customer name for the invoice" wide=${true}><input className="text-in" type="text" placeholder="Who the invoice is for" value=${gx("inv:cust") || ""} onChange=${(e) => sx("inv:cust", e.target.value)} /><//>
+      <//>
       ${job.tradeNeeded ? html`<div className="mat-grid indent">
         <${Lbl} label="Which trade"><input className="text-in" type="text" placeholder="e.g. Electrician, Plasterer" value=${job.trade || ""} onChange=${set("trade")} /><${QuickChips} items=${["Electrician", "Plasterer", "Tiler", "Joiner", "Gas Safe engineer", "Builder"]} value=${job.trade} label="Common trades" onPick=${(v) => setJob((p) => ({ ...p, trade: v }))} /><//>
         <${Lbl} label="What they need to do" wide=${true}><input className="text-in" type="text" placeholder="e.g. Move socket before tiling" value=${job.tradeNote || ""} onChange=${set("tradeNote")} /><//>
@@ -4514,7 +4863,7 @@ function HomeCard() { return null; /* decluttered */
   </details>`;
 }
 
-const TABS = [["small", "wrench", "Maintenance"], ["survey", "bath", "Bathroom"], ["kitchen", "kitchen", "Kitchen"], ["book", "tag", "Price Book"], ["jobs", "folder", "My Jobs"]];
+const TABS = [["small", "wrench", "Maintenance"], ["survey", "bath", "Bathroom"], ["kitchen", "kitchen", "Kitchen"], ["heating", "heat", "Heating"], ["book", "tag", "Price Book"], ["jobs", "folder", "My Jobs"]];
 
 function App() {
   const prefs = useMemo(loadPrefs, []);
@@ -4523,7 +4872,7 @@ function App() {
   const [sjob, setSjob] = useState(emptyJob);
   const auth = useAuth();
   useEffect(() => { if (auth.user) bookSync(); }, [auth.user && auth.user.id]);
-  const [jobIds, setJobIds] = useState({ bathroom: null, kitchen: null, small: null });
+  const [jobIds, setJobIds] = useState({ bathroom: null, kitchen: null, heating: null, small: null });
   const setJobId = (kind, id) => setJobIds((p) => ({ ...p, [kind]: id }));
 
   const [size, setSize] = useState("medium");
@@ -4561,6 +4910,12 @@ function App() {
   const [kSource, setKSource] = useState("");
   const [kSupplier, setKSupplier] = useState(typeof prefs.kSupplier === "string" && prefs.kSupplier ? prefs.kSupplier : "Howdens");
   const kSupplierName = (kSupplier || "").trim() || "supplier";
+  const hr = useRoom(HEATING, tier);
+  const [hview, setHview] = useState("form");
+  const [hCustomer, setHCustomer] = useState("");
+  const [hSite, setHSite] = useState("");
+  const [hNotes, setHNotes] = useState("");
+  const heatSnap = () => ({ ...hr.snap(), tier, hCustomer, hSite, hNotes });
   const bathSnap = () => ({ size, dims, tier, layoutChange, tiling, electrical, plastering, hrs, prov, prices, srcs, bulk, bulkOnly, fixtures, structural, kit, customerName, siteAddress, officeNotes });
   const kitchenSnap = () => ({ ...k.snap(), tier, kCustomer, kSite, kNotes, kSupply, kSource, kSupplier });
   const openSaved = (row) => {
@@ -4574,6 +4929,9 @@ function App() {
     } else if (row.kind === "kitchen") {
       k.restore(d); if (d.tier) setTier(d.tier); setKCustomer(d.kCustomer || ""); setKSite(d.kSite || ""); setKNotes(d.kNotes || ""); setKSupply(d.kSupply || ""); setKSource(d.kSource || ""); setKSupplier(typeof d.kSupplier === "string" ? d.kSupplier : "Howdens");
       setKview("form"); setMode("kitchen");
+    } else if (row.kind === "heating") {
+      hr.restore(d); if (d.tier) setTier(d.tier); setHCustomer(d.hCustomer || ""); setHSite(d.hSite || ""); setHNotes(d.hNotes || "");
+      setHview("form"); setMode("heating");
     } else {
       setSjob({ ...EMPTY_JOB, ...d }); setMode("small");
     }
@@ -4583,11 +4941,11 @@ function App() {
 
   /* baselines: what each screen looked like untouched, or as last saved / opened. Work that differs from them is worth keeping as a draft. */
   const initJ = useRef(null);
-  if (initJ.current === null) initJ.current = { bath: JSON.stringify(bathSnap()), kitchen: JSON.stringify(kitchenSnap()), small: JSON.stringify(sjob) };
+  if (initJ.current === null) initJ.current = { bath: JSON.stringify(bathSnap()), kitchen: JSON.stringify(kitchenSnap()), heating: JSON.stringify(heatSnap()), small: JSON.stringify(sjob) };
   const rebase = useRef(null);
   const baseKey = (kind) => (kind === "bathroom" ? "bath" : kind);
-  const snapJ = (kind) => JSON.stringify(kind === "bathroom" ? bathSnap() : kind === "kitchen" ? kitchenSnap() : sjob);
-  const isDirty = () => ["bathroom", "kitchen", "small"].some((kd) => snapJ(kd) !== initJ.current[baseKey(kd)]);
+  const snapJ = (kind) => JSON.stringify(kind === "bathroom" ? bathSnap() : kind === "kitchen" ? kitchenSnap() : kind === "heating" ? heatSnap() : sjob);
+  const isDirty = () => ["bathroom", "kitchen", "heating", "small"].some((kd) => snapJ(kd) !== initJ.current[baseKey(kd)]);
   const [draft, setDraft] = useState(() => loadDraft());
   const [oldD, setOldD] = useState(() => loadDraft(OLD_KEY));
   const saved = (kind, id) => { setJobId(kind, id); initJ.current[baseKey(kind)] = snapJ(kind); };
@@ -4602,9 +4960,10 @@ function App() {
     const ids = d.ids || {};
     if (d.small) setSjob({ ...EMPTY_JOB, ...d.small });
     if (d.kitchen) openSaved({ kind: "kitchen", data: d.kitchen, id: ids.kitchen || null });
+    if (d.heating) openSaved({ kind: "heating", data: d.heating, id: ids.heating || null });
     if (d.bath) openSaved({ kind: "bathroom", data: d.bath, id: ids.bathroom || null });
     setJobId("small", ids.small || null);
-    setMode(d.mode === "kitchen" || d.mode === "small" ? d.mode : "survey");
+    setMode(d.mode === "kitchen" || d.mode === "heating" || d.mode === "small" ? d.mode : "survey");
     if (isOld) { try { localStorage.removeItem(OLD_KEY); } catch (err) { /* ignore */ } setOldD(null); } else setDraft(null);
   };
   const discardDraft = (d, isOld) => {
@@ -4633,7 +4992,7 @@ function App() {
         const cur = loadDraft();
         if (!isDirty()) { if (cur && (!draft || cur.ts !== draft.ts)) localStorage.removeItem(DRAFT_KEY); return; }
         if (draft && cur && cur.ts === draft.ts) { localStorage.setItem(OLD_KEY, JSON.stringify(cur)); setOldD(cur); setDraft(null); }
-        localStorage.setItem(DRAFT_KEY, JSON.stringify({ ts: Date.now(), mode: mode === "kitchen" || mode === "small" ? mode : "survey", bath: bathSnap(), kitchen: kitchenSnap(), small: sjob, ids: jobIds }));
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ ts: Date.now(), mode: mode === "kitchen" || mode === "heating" || mode === "small" ? mode : "survey", bath: bathSnap(), kitchen: kitchenSnap(), heating: heatSnap(), small: sjob, ids: jobIds }));
       } catch (err) { /* storage unavailable */ }
     }, 800);
     return () => clearTimeout(t);
@@ -4641,7 +5000,7 @@ function App() {
 
   useEffect(() => { savePrefs({ tier, businessName, kSupplier }); }, [tier, businessName, kSupplier]);
   /* every screen opens at the top */
-  useEffect(() => { try { window.scrollTo(0, 0); } catch (e) { /* ignore */ } }, [mode, view, kview]);
+  useEffect(() => { try { window.scrollTo(0, 0); } catch (e) { /* ignore */ } }, [mode, view, kview, hview]);
   /* hide the bottom bars while a keyboard is up (phones only, see CSS) */
   useEffect(() => {
     const isText = (t) => !!t && (t.tagName === "TEXTAREA" || t.tagName === "SELECT" || (t.tagName === "INPUT" && !/^(checkbox|radio|button|range|submit)$/.test(t.type)));
@@ -4674,14 +5033,16 @@ function App() {
   const survey = useMemo(() => computeSurvey(BATHROOM, fixtures, structural, kit, tier, hrs, prov, prices, srcs, bulk, bulkOnly, size), [fixtures, structural, kit, tier, hrs, prov, prices, srcs, bulk, bulkOnly, size]);
 
   const calc = useMemo(() => {
-    const layoutHours = layoutChange ? hrOf(hrs, "x-layout", DEF_H) : 0;
+    const o2x = []; let o2h = 0;
+    const mv = (key, h, label) => { if (h > 0 && xTag(prov, key) === "o2") { o2h += h; o2x.push({ label, hours: h, materials: 0 }); return 0; } return h; };
+    const layoutHours = mv("layout", layoutChange ? hrOf(hrs, "x-layout", DEF_H) : 0, "Soil pipe reroute for repositioned WC");
     const plumbHours = survey.hours.plumbing + layoutHours;
     const joinerHours = survey.hours.joinery;
     const wetWallHours = survey.hours.wetwall;
     const flooringHours = survey.hours.flooring;
-    const tileHours = hrOf(hrs, "x-tile-" + tiling + "-" + size, (tiling === "none" ? 0 : DEF_H));
-    const elecHours = hrOf(hrs, "x-elec-" + electrical, (electrical === "none" ? 0 : DEF_H));
-    const plasterHours = plastering ? hrOf(hrs, "x-plaster-" + tiling + "-" + size, DEF_H) : 0;
+    const tileHours = mv("tile", tiling === "none" ? 0 : hrOf(hrs, "x-tile-" + tiling + "-" + size, DEF_H), tiling === "full" ? "Full retile" : "Part-tiling");
+    const elecHours = mv("elec", electrical === "none" ? 0 : hrOf(hrs, "x-elec-" + electrical, DEF_H), electrical === "shower" ? "Shower electrical circuit" : "Lighting circuit");
+    const plasterHours = mv("plaster", plastering ? hrOf(hrs, "x-plaster-" + tiling + "-" + size, DEF_H) : 0, "Plastering / making good");
     const totalHours = plumbHours + joinerHours + wetWallHours + flooringHours + tileHours + elecHours + plasterHours;
     const tileMaterials = 0; const tileNeeded = TILE_AREA[tiling][size] > 0;
     const sundriesNeeded = totalHours > 0 && !bathCtx.prices["sund:off"]; const sundries = sundriesNeeded ? sundriesOf(survey.materials + tileMaterials, bathCtx.prices) : 0;
@@ -4694,8 +5055,10 @@ function App() {
       provMaterials: survey.prov.materials * (1 + markup / 100),
       tileMaterials, sundries, tileNeeded, sundriesNeeded,
       provItems: survey.prov.items.map((i) => ({ ...i, materials: i.materials * (1 + markup / 100) })),
+      o2Hours: survey.o2.hours + o2h, o2Materials: survey.o2.materials * (1 + markup / 100),
+      o2Items: survey.o2.items.map((i) => ({ ...i, materials: i.materials * (1 + markup / 100) })).concat(o2x),
     };
-  }, [survey, size, tier, layoutChange, tiling, electrical, plastering, markup, hrs, bathCtx.prices]);
+  }, [survey, size, tier, layoutChange, tiling, electrical, plastering, markup, hrs, bathCtx.prices, prov]);
 
   const kcalc = useMemo(() => {
     const h = k.survey.hours;
@@ -4709,23 +5072,39 @@ function App() {
       supply: Math.max(0, Number(kSupply) || 0), supplyLabel: "Kitchen units (" + kSupplierName + ")" + (kSource.trim() ? " — " + kSource.trim() : ""),
       provHours: k.survey.prov.hours, provMaterials: k.survey.prov.materials * m,
       provItems: k.survey.prov.items.map((i) => ({ ...i, materials: i.materials * m })),
+      o2Hours: k.survey.o2.hours, o2Materials: k.survey.o2.materials * m,
+      o2Items: k.survey.o2.items.map((i) => ({ ...i, materials: i.materials * m })),
     };
   }, [k.survey, markup, kSupply, kSource, kSupplierName, k.ctx.prices]);
 
+  const hcalc = useMemo(() => {
+    const h = hr.survey.hours;
+    const totalHours = h.plumbing + h.joinery + h.wetwall + h.flooring + h.tiling + (h.elec || 0);
+    const sundriesNeeded = totalHours > 0 && !hr.ctx.prices["sund:off"]; const sundries = sundriesNeeded ? sundriesOf(hr.survey.materials, hr.ctx.prices) : 0;
+    const materialsBase = hr.survey.materials + sundries;
+    return {
+      plumbHours: h.plumbing, joinerHours: h.joinery, wetWallHours: 0, flooringHours: h.flooring, tileHours: h.tiling, elecHours: h.elec || 0, plasterHours: 0,
+      totalHours, materialsBase, materialsWithMarkup: materialsBase, tileMaterials: 0, sundries, tileNeeded: false, sundriesNeeded, supply: 0, supplyLabel: "",
+      provHours: hr.survey.prov.hours, provMaterials: hr.survey.prov.materials, provItems: hr.survey.prov.items,
+      o2Hours: hr.survey.o2.hours, o2Materials: hr.survey.o2.materials, o2Items: hr.survey.o2.items,
+    };
+  }, [hr.survey, hr.ctx.prices]);
+
   const scopeItems = useMemo(() => {
     const items = [...survey.scope];
-    if (layoutChange) items.push("Soil pipe reroute for repositioned WC");
-    if (tiling !== "none") items.push(tiling === "full" ? "Full retile" : "Part-tiling");
-    if (electrical !== "none") items.push(electrical === "shower" ? "Shower electrical circuit" : "Lighting circuit");
-    if (plastering) items.push("Plastering / making good");
+    const inMain = (k) => xTag(prov, k) !== "o2";
+    if (layoutChange && inMain("layout")) items.push("Soil pipe reroute for repositioned WC");
+    if (tiling !== "none" && inMain("tile")) items.push(tiling === "full" ? "Full retile" : "Part-tiling");
+    if (electrical !== "none" && inMain("elec")) items.push(electrical === "shower" ? "Shower electrical circuit" : "Lighting circuit");
+    if (plastering && inMain("plaster")) items.push("Plastering / making good");
     return items;
-  }, [survey, layoutChange, tiling, electrical, plastering]);
+  }, [survey, layoutChange, tiling, electrical, plastering, prov]);
 
   const surveyHours = survey.hours.plumbing + calc.joinerHours + calc.wetWallHours + calc.flooringHours;
 
   /* which jobs have work on screen that differs from untouched or last saved (shown as a dot on the tab and a resume strip on the other tabs) */
-  const dirtyMap = { survey: snapJ("bathroom") !== initJ.current.bath, kitchen: snapJ("kitchen") !== initJ.current.kitchen, small: snapJ("small") !== initJ.current.small };
-  const resumeList = [["small", "Maintenance"], ["survey", "Bathroom"], ["kitchen", "Kitchen"]].filter(([id]) => dirtyMap[id] && !(id === "survey" ? (mode === "survey" || mode === "calculator") : mode === id));
+  const dirtyMap = { survey: snapJ("bathroom") !== initJ.current.bath, kitchen: snapJ("kitchen") !== initJ.current.kitchen, heating: snapJ("heating") !== initJ.current.heating, small: snapJ("small") !== initJ.current.small };
+  const resumeList = [["small", "Maintenance"], ["survey", "Bathroom"], ["kitchen", "Kitchen"], ["heating", "Heating"]].filter(([id]) => dirtyMap[id] && !(id === "survey" ? (mode === "survey" || mode === "calculator") : mode === id));
 
   return html`<div className="wrap">
     <${AppHeader} businessName=${businessName} />
@@ -4750,7 +5129,7 @@ function App() {
       updateFixture=${updateFixture} updateStructural=${updateStructural} toggleKit=${toggleKit}
       customerName=${customerName} setCustomerName=${setCustomerName} siteAddress=${siteAddress} setSiteAddress=${setSiteAddress}
       survey=${survey} calc=${calc} isExample=${isExample} onClear=${withUndo("bathroom", clearAll)} hrs=${hrs} setHr=${setHr} prov=${prov} toggleProv=${toggleProv}
-      extra=${{ layoutChange, setLayoutChange, tiling, setTiling, electrical, setElectrical, plastering, setPlastering }}
+      extra=${{ layoutChange, setLayoutChange, tiling, setTiling, electrical, setElectrical, plastering, setPlastering, prov, toggleProv }}
       onViewQuote=${() => { setMode("calculator"); setView("quote"); }} /><//>`}
 
     ${mode === "calculator" && view === "quote" && html`<${QuoteView} calc=${calc} survey=${survey} markup=${markup} tier=${tier} scopeItems=${scopeItems} sizeLabel=${roomLabel(size, dims) + " bathroom"}
@@ -4769,6 +5148,19 @@ function App() {
       siteAddress=${kSite} setSiteAddress=${setKSite} officeNotes=${kNotes} setOfficeNotes=${setKNotes}
       todayStr=${todayStr} ticks=${k.ctx.prices} setTick=${k.ctx.setPrice} onBack=${() => setKview("form")} />`}
 
+    ${mode === "heating" && hview === "form" && html`<${PriceCtx.Provider} value=${hr.ctx}><${SiteSurveyView} room=${HEATING} fixtures=${hr.fixtures} structural=${hr.structural} kit=${hr.kit} tier=${tier} setTier=${setTier}
+      updateFixture=${hr.updateFixture} updateStructural=${hr.updateStructural} toggleKit=${hr.toggleKit}
+      customerName=${hCustomer} setCustomerName=${setHCustomer} siteAddress=${hSite} setSiteAddress=${setHSite}
+      survey=${hr.survey} calc=${hcalc} isExample=${false} onClear=${withUndo("heating", () => { hr.clearAll(); setJobId("heating", null); })} hrs=${hr.hrs} setHr=${hr.setHr} prov=${hr.prov} toggleProv=${hr.toggleProv}
+      onViewQuote=${() => setHview("quote")} /><//>`}
+
+    ${mode === "heating" && hview === "quote" && html`<${QuoteView} calc=${hcalc} survey=${hr.survey} markup=${markup} tier=${tier} scopeItems=${hr.survey.scope} sizeLabel="Heating"
+      businessName=${businessName} setBusinessName=${setBusinessName} customerName=${hCustomer} setCustomerName=${setHCustomer}
+      siteAddress=${hSite} setSiteAddress=${setHSite} officeNotes=${hNotes} setOfficeNotes=${setHNotes}
+      todayStr=${todayStr} ticks=${hr.ctx.prices} setTick=${hr.ctx.setPrice} onBack=${() => setHview("form")} />`}
+    ${mode === "heating" && html`<${SavePanel} bottom=${true} kind="heating" auth=${auth} autoTitle=${true} defaultTitle=${hSite.trim() || hCustomer.trim()} getData=${heatSnap}
+      currentId=${jobIds.heating} onSaved=${(id) => saved("heating", id)} onNeedLogin=${() => setMode("jobs")} />`}
+
     ${(mode === "survey" || mode === "calculator") && html`<${SavePanel} bottom=${true} kind="bathroom" auth=${auth} autoTitle=${true} defaultTitle=${siteAddress.trim() || customerName.trim()} getData=${bathSnap}
       currentId=${jobIds.bathroom} onSaved=${(id) => saved("bathroom", id)} onNeedLogin=${() => setMode("jobs")} />`}
     ${mode === "kitchen" && html`<${SavePanel} bottom=${true} kind="kitchen" auth=${auth} autoTitle=${true} defaultTitle=${kSite.trim() || kCustomer.trim()} getData=${kitchenSnap}
@@ -4783,7 +5175,7 @@ function App() {
       ${TABS.map(([id, icon, lbl]) => {
         const on = id === "survey" ? (mode === "survey" || mode === "calculator") : mode === id;
         return html`<button type="button" key=${id} aria-pressed=${on} aria-label=${lbl + (dirtyMap[id] ? " (job in progress)" : "")} aria-current=${on ? "page" : undefined} className=${"tabbtn" + (on ? " on" : "")}
-          onClick=${() => { if (on && mode === id && !(id === "kitchen" && kview === "quote")) { try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { /* ignore */ } } else { setMode(id); if (id === "kitchen") setKview("form"); } }}><span className="tabico"><${Icon} name=${icon} />${dirtyMap[id] ? html`<i className="tabdot" aria-hidden="true" title="Job in progress"></i>` : null}</span><span>${lbl}</span></button>`;
+          onClick=${() => { if (on && mode === id && !(id === "kitchen" && kview === "quote") && !(id === "heating" && hview === "quote")) { try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { /* ignore */ } } else { setMode(id); if (id === "kitchen") setKview("form"); if (id === "heating") setHview("form"); } }}><span className="tabico"><${Icon} name=${icon} />${dirtyMap[id] ? html`<i className="tabdot" aria-hidden="true" title="Job in progress"></i>` : null}</span><span>${lbl}</span></button>`;
       })}
     </nav>
   </div>`;
