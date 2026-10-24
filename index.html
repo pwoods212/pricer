@@ -727,6 +727,16 @@ body.kb .undo { bottom: 12px; }
 .alt-pick { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
 .alt-box { border-left: 3px solid var(--accent); padding: 4px 0 6px 12px; margin: 8px 0; }
 .alt-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14.5px; margin-bottom: 4px; }
+
+.van-row { border-top: 1px solid var(--line); padding: 8px 0; display: grid; gap: 6px; }
+.van-name { font-weight: 600; font-size: 15px; }
+.van-row-r { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.van-ctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.van-q { min-width: 26px; text-align: center; font-weight: 700; }
+.van-price { width: 96px; margin: 0; }
+.van-pound { color: var(--muted); margin-left: 6px; }
+.van-re { display: flex; align-items: center; gap: 6px; font-size: 14px; margin-right: auto; }
+.mute { color: var(--muted); font-weight: 400; }
 /* ---- flatter, calmer layout: fewer boxes, sections divided by space and thin rules ---- */
 body { background: var(--panel); }
 .card, .group, .form-card, .ord-card { background: transparent; border: 0; box-shadow: none; border-radius: 0; }
@@ -1795,6 +1805,8 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
   const scope = [];
   const pv = { hours: 0, materials: 0, items: [] };
   const o2 = { hours: 0, materials: 0, items: [] };
+  /* where each item's own "extra materials" belong: the main price, provisional, option 2, or an option 2 swap */
+  const route = {};
 
   room.fixtures.forEach((f) => {
     const st = fixtures[f.key];
@@ -1851,8 +1863,8 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
       o2.hours += ah - fh; o2.materials += amt - fm;
       o2.items.push({ label: fixtureScope(f.label, as) + " (instead of: " + fixtureScope(f.label, st).replace(/^./, (c) => c.toLowerCase()) + ")", hours: ah - fh, materials: amt - fm, swap: true, fullH: ah, fullM: amt, base: fl });
     }
-    if (tag === "in") { hours.plumbing += fh; materials += fm; scope.push(fl); }
-    else { const b = tag === "o2" ? o2 : pv; b.hours += fh; b.materials += fm; b.items.push({ label: fl, hours: fh, materials: fm }); }
+    if (tag === "in") { hours.plumbing += fh; materials += fm; scope.push(fl); route[f.label] = { tag: "in", swap: am ? o2.items[o2.items.length - 1] : null }; if (am) route[f.label + O2_SFX] = { tag: "alt", item: o2.items[o2.items.length - 1] }; }
+    else { const b = tag === "o2" ? o2 : pv; const itm = { label: fl, hours: fh, materials: fm }; b.hours += fh; b.materials += fm; b.items.push(itm); route[f.label] = { tag, b, item: itm, group: grp }; }
   });
 
   if (suiteOn(room, fixtures)) suiteItems(fixtures, tier, "room").forEach((it) => {
@@ -1892,8 +1904,15 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
     const q = Math.max(1, Math.floor(Number(x.qty)) || 1);
     const c = Math.max(0, Number(x.price) || 0) * q;
     if (!(x.item || "").trim() && !(c > 0)) return;
-    materials += c;
-    kitLines.push({ group: x.group || "Extra materials", id: "xtra:" + x.id, qty: q, code: x.code || "", label: (x.item || "").trim() || "Extra material", cost: c, source: x.where || "", covered: false, unkFlag: !!x.unk });
+    const r = route[x.group || ""];
+    if (!r && String(x.group || "").endsWith(O2_SFX)) return; /* option 2 extras for an item no longer priced two ways */
+    let fl = {}, grp = x.group || "Extra materials";
+    if (!r || r.tag === "in") {
+      materials += c;
+      if (r && r.swap) { o2.materials -= c; r.swap.materials -= c; } /* option 2 swaps this item, so its option 1 extras come off */
+    } else if (r.tag === "alt") { o2.materials += c; r.item.materials += c; r.item.fullM += c; fl = { prov: true, o2: true }; }
+    else { r.b.materials += c; r.item.materials += c; fl = { prov: true, o2: r.tag === "o2" }; grp = r.group; }
+    kitLines.push({ ...fl, group: grp, id: "xtra:" + x.id, qty: q, code: x.code || "", label: (x.item || "").trim() || "Extra material", cost: c, source: x.where || "", covered: false, unkFlag: !!x.unk });
   });
   let bulkTotal = 0;
   (bulk || []).forEach((b) => {
@@ -1994,7 +2013,7 @@ function matBreakdown(survey, calc) {
   });
   const bl = bulkLines(survey).filter((l) => l.cost > 0).map((l) => ({ label: l.label, cost: Number(l.cost) || 0, note: "" }));
   if (bl.length) out.push({ group: "Bulk buys", rows: bl, total: bl.reduce((a, r) => a + r.cost, 0) });
-  if (calc && calc.sundries > 0) out.push({ group: "Sundries", rows: [{ label: "Silicone, fixings, consumables (" + SUNDRIES_PCT + "% of materials)", cost: calc.sundries, note: "" }], total: calc.sundries });
+  if (calc && calc.sundries > 0) out.push({ group: "Sundries", rows: [{ label: "Sundries (" + SUNDRIES_PCT + "% of materials)", cost: calc.sundries, note: "" }], total: calc.sundries });
   return out;
 }
 const NO_SUP = "No supplier set", IN_BULK = "Already in a bulk buy", OTHER_GRP = "Other";
@@ -2132,6 +2151,9 @@ function buildQuoteText(q) {
     o2i.forEach((i) => { const sh = o2Show(i); L.push(D ? "- " + i.label + ": " + fmt(sh.materials + (q.rate > 0 ? sh.hours * q.rate : 0)) : "- " + i.label + ": approx " + fmtHrs(sh.hours) + " hours + materials " + fmt(sh.materials)); });
     const sund2 = c.sundriesNeeded ? Math.round(c.o2Materials * SUNDRIES_PCT) / 100 : 0;
     const sn = (v) => (v > 0 ? " (includes sundries at " + SUNDRIES_PCT + "%: " + fmt(v) + ")" : "");
+    { const og = {}; (q.survey ? q.survey.kitLines : []).filter((k) => k.o2 && (Number(k.cost) > 0 || k.tbc)).forEach((k) => { const g = k.group.replace(O2_SFX, ""); (og[g] = og[g] || []).push(k); });
+      const ogs = Object.entries(og);
+      if (ogs.length) { L.push(""); L.push(ON[1].toUpperCase() + " MATERIALS (amounts):"); ogs.forEach(([g, rows]) => { L.push(g + ": " + fmt(rows.reduce((a, k) => a + (Number(k.cost) || 0), 0))); rows.forEach((k) => L.push("  - " + k.label + " — " + (k.tbc ? "price TBC" : fmt(k.cost)))); }); } }
     L.push("");
     L.push("PRICE FOR EACH OPTION:");
     const t1 = optBlock(ON[0].toUpperCase() + ":", ON[0], c.totalHours, c.materialsBase, sn(c.sundries));
@@ -2886,6 +2908,113 @@ function ReceiptImport() {
   </div>`;
 }
 
+
+/* ---------- van stock: what you carry, what you used on a job, and what to restock ---------- */
+const VAN_KEY = "pricer-van-v1", RESTOCK_KEY = "pricer-restock-v1";
+const VAN_DEFAULT = ["Sanitary silicone (white)", "Sanitary silicone (clear)", "PTFE tape", "Gas PTFE tape", "Jointing compound", "Flux", "Solder", "Solvent weld cement",
+  "Epoxy putty", "Grab adhesive", "Hybrid sealant-adhesive", "Self-amalgamating tape", "Duct tape", "Insulation tape", "Masking tape",
+  "Wood screws (assorted)", "Wall plugs", "Plasterboard fixings", "Pan fixing kit", "Basin / sink fixing kit", "Floorboard screws", "Cable ties",
+  "15mm pipe clips", "22mm pipe clips", "15mm olives", "22mm olives", "15mm compression elbow", "22mm compression elbow", "15mm push-fit elbow", "15mm push-fit stop end",
+  "15mm isolation valve", "Appliance valve", "Flexi tap connector", "Tap washers / O-rings", "Fibre washers", "Pan connector", "Close-coupling kit",
+  "32mm waste fittings", "40mm waste fittings", "Bottle trap", "Universal waste coupler", "Inhibitor", "Heating leak sealer", "Pipe insulation",
+  "Multi-tool blade", "Recip saw blade", "Hacksaw blade", "Stanley blades", "Masonry drill bit", "Tile drill bit", "Driver bits", "Pipe cutter wheel",
+  "Lever connectors", "Fuses", "Rubble sacks", "Plumber's wipes", "Nitrile gloves", "Blowtorch gas", "Silicone grease", "Descaler", "Filler"];
+const loadList = (k) => { try { const v = JSON.parse(localStorage.getItem(k)); return Array.isArray(v) ? v : null; } catch (e) { return null; } };
+const saveList = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } };
+const vanStarter = () => VAN_DEFAULT.map((n) => ({ id: newId(), name: n, code: "", price: "" }));
+function useStored(k, init) {
+  const [v, setV] = useState(() => loadList(k) || init());
+  return [v, (nv) => { const x = typeof nv === "function" ? nv(loadList(k) || v) : nv; setV(x); saveList(k, x); }];
+}
+const vanUsedTotal = (j) => (j.van || []).reduce((a, x) => a + Math.max(0, Number(x.price) || 0) * Math.max(1, Math.floor(Number(x.qty)) || 1), 0);
+function restockText(list) {
+  const L = ["RESTOCK — van stock"];
+  const by = {};
+  list.forEach((x) => { const sp = (x.where || "").trim() || "Screwfix"; (by[sp] = by[sp] || []).push(x); });
+  Object.entries(by).forEach(([sp, rows]) => { L.push(""); L.push(sp); rows.forEach((x) => L.push(Math.max(1, Math.floor(Number(x.qty)) || 1) + " x " + x.name + (x.code ? " (" + x.code + ")" : ""))); });
+  return L.join("\n");
+}
+function VanUsed({ job, setJob, gx, sx }) {
+  const [van] = useStored(VAN_KEY, vanStarter);
+  const [, setRestock] = useStored(RESTOCK_KEY, () => []);
+  const [q, setQ] = useState("");
+  const [msg, setMsg] = useState("");
+  const used = job.van || [];
+  const setRow = (id, patch) => setJob((p) => ({ ...p, van: (p.van || []).map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
+  const add = () => {
+    const nm = q.trim(); if (!nm) return;
+    const v = van.find((x) => x.name.toLowerCase() === nm.toLowerCase());
+    setJob((p) => ({ ...p, van: [...(p.van || []), { id: newId(), name: v ? v.name : nm, code: v ? v.code || "" : "", price: v ? v.price || "" : "", qty: 1, re: true }] }));
+    setQ(""); setMsg("");
+  };
+  const toRestock = () => {
+    const pick = used.filter((x) => x.re && !x.sent);
+    if (!pick.length) { setMsg("Tick Restock on the items you need to replace."); return; }
+    const label = (job.where || job.jobType || "").trim();
+    setRestock((cur) => cur.concat(pick.map((x) => ({ id: newId(), name: x.name, code: x.code || "", qty: Math.max(1, Math.floor(Number(x.qty)) || 1), job: label, where: (van.find((v) => v.name === x.name) || {}).where || "" }))));
+    setJob((p) => ({ ...p, van: (p.van || []).map((x) => (x.re && !x.sent ? { ...x, sent: true } : x)) }));
+    setMsg(pick.length + (pick.length === 1 ? " item" : " items") + " added to your restock list (Price Book tab).");
+  };
+  const tot = vanUsedTotal(job);
+  return html`<${TickSection} on=${used.length > 0 || !!gx("van:on")} onToggle=${(v) => sx("van:on", v)} title="Used my own van stock" hint="Note what you used, charge for it and add it to your restock list">
+    <div className="link-row tight">
+      <input className="text-in grow" type="text" list="van-items" placeholder="Type or pick an item (e.g. PTFE tape)" aria-label="Van stock item" value=${q} onChange=${(e) => setQ(e.target.value)} onKeyDown=${(e) => { if (e.key === "Enter") add(); }} />
+      <button type="button" className="btn" onClick=${add} disabled=${!q.trim()}>Add</button>
+    </div>
+    <datalist id="van-items">${van.map((x) => html`<option key=${x.id} value=${x.name} />`)}</datalist>
+    ${used.map((x) => html`<div key=${x.id} className="van-row">
+      <div className="van-name">${x.name}${x.code ? html`<span className="mute"> · ${x.code}</span>` : null}</div>
+      <div className="van-ctl">
+        <button type="button" className="btn step-btn" aria-label=${"One less " + x.name} onClick=${() => setRow(x.id, { qty: Math.max(1, (Math.floor(Number(x.qty)) || 1) - 1) })}>−</button>
+        <span className="van-q">${Math.max(1, Math.floor(Number(x.qty)) || 1)}</span>
+        <button type="button" className="btn step-btn" aria-label=${"One more " + x.name} onClick=${() => setRow(x.id, { qty: (Math.floor(Number(x.qty)) || 1) + 1 })}>+</button>
+        <span className="van-pound">£</span><input className="text-in van-price" type="number" inputMode="decimal" min="0" step="0.01" placeholder="each" aria-label=${"Price each for " + x.name} value=${x.price || ""} onChange=${(e) => setRow(x.id, { price: e.target.value })} />
+      </div>
+      <div className="van-ctl">
+        <label className="van-re"><input type="checkbox" checked=${!!x.re} onChange=${() => setRow(x.id, { re: !x.re, sent: false })} /> Restock${x.sent ? " (added)" : ""}</label>
+        <button type="button" className="linkbtn" onClick=${() => setJob((p) => ({ ...p, van: (p.van || []).filter((y) => y.id !== x.id) }))}>Remove</button>
+      </div>
+    </div>`)}
+    ${used.length ? html`<p className="note" style=${{ margin: "8px 0" }}>Van stock used: <b>${fmtKit(tot)}</b> (added to the materials total and the invoice)</p>
+      <button type="button" className="btn btn-accent" onClick=${toRestock}>Add ticked items to my restock list</button>` : null}
+    ${msg ? html`<p className="note" role="status">${msg}</p>` : null}
+  <//>`;
+}
+function RestockPanel() {
+  const [list, setList] = useStored(RESTOCK_KEY, () => []);
+  const [van, setVan] = useStored(VAN_KEY, vanStarter);
+  const [nm, setNm] = useState("");
+  const addOne = () => { const n = nm.trim(); if (!n) return; const v = van.find((x) => x.name.toLowerCase() === n.toLowerCase()); setList((c) => c.concat([{ id: newId(), name: v ? v.name : n, code: v ? v.code || "" : "", qty: 1, job: "", where: v ? v.where || "" : "" }])); setNm(""); };
+  const setV = (id, patch) => setVan((c) => c.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  return html`<div>
+    <${Sec}>Van stock and restock<//>
+    <div className="card">
+      ${list.length ? html`<div>
+        ${list.map((x) => html`<div key=${x.id} className="van-row van-row-r">
+          <div className="van-name">${Math.max(1, Math.floor(Number(x.qty)) || 1)} x ${x.name}${x.code ? html`<span className="mute"> · ${x.code}</span>` : null}${x.job ? html`<div className="mute" style=${{ fontSize: 12.5 }}>used at ${x.job}</div>` : null}</div>
+          <div className="van-ctl"><button type="button" className="btn" onClick=${() => setList((c) => c.filter((y) => y.id !== x.id))}>Got it</button></div>
+        </div>`)}
+        <div className="link-row" style=${{ marginTop: 8 }}><${CopyQuote} text=${restockText(list)} label="Copy restock list" btnCls="btn btn-accent" /></div>
+      </div>` : html`<p className="note">Nothing to restock. When you use your van stock on a job, tick Restock and it lands here.</p>`}
+      <div className="link-row tight" style=${{ marginTop: 10 }}>
+        <input className="text-in grow" type="text" list="van-items-b" placeholder="Add something to restock" aria-label="Add to restock list" value=${nm} onChange=${(e) => setNm(e.target.value)} onKeyDown=${(e) => { if (e.key === "Enter") addOne(); }} />
+        <button type="button" className="btn" onClick=${addOne} disabled=${!nm.trim()}>Add</button>
+      </div>
+      <datalist id="van-items-b">${van.map((x) => html`<option key=${x.id} value=${x.name} />`)}</datalist>
+      <${Drop} bare=${true} title="My van stock list" sub=${van.length + " items · names, codes and prices"}>
+        <p className="note">The items you carry. Add your usual price and code once and they fill in when you use them on a job.</p>
+        ${van.map((x) => html`<div key=${x.id} className="mat-grid" style=${{ borderTop: "1px solid var(--line)", paddingTop: 8 }}>
+          <${Lbl} label="Item" wide=${true}><input className="text-in" type="text" value=${x.name} onChange=${(e) => setV(x.id, { name: e.target.value })} /><//>
+          <${Lbl} label="Code"><input className="text-in" type="text" placeholder="e.g. 1043W" value=${x.code || ""} onChange=${(e) => setV(x.id, { code: e.target.value })} /><//>
+          <${Lbl} label="Price each (£)"><input className="text-in" type="number" inputMode="decimal" min="0" step="0.01" value=${x.price || ""} onChange=${(e) => setV(x.id, { price: e.target.value })} /><//>
+          <${Lbl} label="Supplier"><input className="text-in" type="text" placeholder="Screwfix" value=${x.where || ""} onChange=${(e) => setV(x.id, { where: e.target.value })} /><//>
+          <button type="button" className="linkbtn" onClick=${() => setVan((c) => c.filter((y) => y.id !== x.id))}>Remove</button>
+        </div>`)}
+        <${AddBtn} onClick=${() => setVan((c) => c.concat([{ id: newId(), name: "New item", code: "", price: "" }]))}>Add an item<//>
+      <//>
+    </div>
+  </div>`;
+}
 function PriceBookView({ auth }) {
   const book = useBook();
   const kits = useKits();
@@ -2907,6 +3036,7 @@ function PriceBookView({ auth }) {
       next=${allNames.length ? (staleN ? staleN + (staleN === 1 ? " item was last priced" : " items were last priced") + " over 6 months ago. Check those before you quote." : "Prices are up to date. The newest price paid is used next time you add the item.") : "Add a price below, scan a receipt, or just type prices into a survey. They collect here."}>
       <div className="stat-row"><div className="stat"><b>${allNames.length}</b><span>items</span></div><div className="stat"><b>${supList.length}</b><span>suppliers</span></div><div className="stat"><b>${kits.length}</b><span>kits</span></div></div>
     <//>
+    <${RestockPanel} />
     <${Sec}>Prices I have paid<//>
     <div className="card">
       ${allNames.length > 0 ? html`<input className="text-in" style=${{ marginBottom: 8 }} type="text" placeholder="Filter your items" aria-label="Filter your items" value=${q} onChange=${(e) => setQ(e.target.value)} />` : null}
@@ -3067,10 +3197,10 @@ function TickSection({ on, onToggle, title, hint, children }) {
   </div>`;
 }
 /* insurance, landlord and letting agent work: who pays and the references they need on paperwork */
-const CL_TYPES = [["ins", "Insurance"], ["land", "Landlord"], ["agent", "Letting agent"], ["other", "Other"]];
-const CL_WHO = { ins: "Insurer", land: "Landlord", agent: "Letting agent", other: "Paid by" };
-const CL_NAME = { ins: "Policy holder", land: "Tenant", agent: "Landlord", other: "Contact" };
-const CL_REF = { ins: "Claim reference", land: "Reference", agent: "Job / works order number", other: "Reference" };
+const CL_TYPES = [["ins", "Insurance"], ["land", "Landlord"], ["agent", "Letting agent"], ["sub", "Another plumber"], ["other", "Other"]];
+const CL_WHO = { ins: "Insurer", land: "Landlord", agent: "Letting agent", sub: "Working for", other: "Paid by" };
+const CL_NAME = { ins: "Policy holder", land: "Tenant", agent: "Landlord", sub: "Contact", other: "Contact" };
+const CL_REF = { ins: "Claim reference", land: "Reference", agent: "Job / works order number", sub: "Their job reference", other: "Reference" };
 function clientLines(get) {
   if (!get("cl:on")) return [];
   const t = get("cl:type") || "ins", v = (k) => String(get(k) || "").trim();
@@ -3086,10 +3216,10 @@ const clExcess = (get) => (get("cl:on") && (get("cl:type") || "ins") === "ins" ?
 function ClientBlock({ get, set }) {
   const t = get("cl:type") || "ins";
   const inp = (k, label, ph, wide, num) => html`<${Lbl} label=${label} wide=${!!wide}><input className="text-in" type=${num ? "number" : "text"} inputMode=${num ? "decimal" : undefined} placeholder=${ph} value=${get(k) || ""} onChange=${(e) => set(k, e.target.value)} /><//>`;
-  return html`<${TickSection} on=${!!get("cl:on")} onToggle=${(v) => set("cl:on", v)} title="Insurance, landlord or letting agent job" hint="Adds who is paying and their reference numbers">
+  return html`<${TickSection} on=${!!get("cl:on")} onToggle=${(v) => set("cl:on", v)} title="Insurance, landlord, agent or another plumber" hint="Adds who is paying and their reference numbers">
     <${Segmented} options=${CL_TYPES} value=${t} onChange=${(v) => set("cl:type", v)} />
     <div className="mat-grid" style=${{ marginTop: 8 }}>
-      ${inp("cl:co", t === "ins" ? "Insurance company" : t === "agent" ? "Letting agent" : t === "land" ? "Landlord name" : "Who is paying", t === "ins" ? "e.g. Aviva, Direct Line" : "Name or company", true)}
+      ${inp("cl:co", t === "ins" ? "Insurance company" : t === "agent" ? "Letting agent" : t === "land" ? "Landlord name" : t === "sub" ? "Plumber or company you are working for" : "Who is paying", t === "ins" ? "e.g. Aviva, Direct Line" : "Name or company", true)}
       ${inp("cl:ref", CL_REF[t], "As they gave it to you")}
       ${inp("cl:po", "Order / PO number", "If they issued one")}
       ${inp("cl:name", CL_NAME[t], t === "ins" ? "Name on the policy" : "Name")}
@@ -3202,13 +3332,6 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
     ${false ? html`<p className="gla-hint">${GLA_HINTS[def.key]}</p>` : null}
     <${HoursInput} label=${hrsLabel} value=${hrRaw(hrs, hk, fxDefH(state))} onChange=${(v) => setHr(hk, v)} />
     ${active && !alt ? html`<${PriceAs} value=${tag} onPick=${(v) => setTag(toggleProv, tag, v, "pv-fx-" + def.key, "o2-fx-" + def.key)} />` : null}
-    ${alt ? html`<div className="alt-box">
-      <div className="alt-head"><span><b>Option 2:</b> ${altName.toLowerCase()} instead</span><button type="button" className="linkbtn" onClick=${() => onChange({ alt: "" })}>Remove</button></div>
-      <${HoursInput} label=${"Time to " + altName.toLowerCase()} value=${hrRaw(hrs, "fxa-" + def.key, fxDefH(altSt))} onChange=${(v) => setHr("fxa-" + def.key, v)} />
-      ${altList.length ? html`<div className="kit-head">Option 2 kit — ${altName.toLowerCase()}</div>
-        <${KitList} list=${altList} prefix=${def.key + "-" + fixtureListName(altSt)} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />` : null}
-      ${altCost > 0 ? html`<p className="note" style=${{ margin: "4px 0 0" }}>Option 2 materials for this item: ${fmtKit(altCost)}</p>` : null}
-    </div>` : active && tag === "in" && !su ? html`<button type="button" className="linkbtn" style=${{ margin: "4px 0 6px" }} onClick=${() => pickAlt(mode === "repair" ? "new" : "repair")}>+ Give a second price (${mode === "repair" ? "replace" : "repair"} as Option 2)</button>` : null}
     ${su && active ? html`<${SuitePanel} def=${def} state=${state} onChange=${onChange} fixtures=${fixtures} tier=${tier} />` : null}
     ${!su && list.length > 0 ? html`<div>
       <div className="kit-head">${kitLabel}</div>
@@ -3220,7 +3343,15 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
       ${prov["bx-" + e.key] ? html`<${HoursInput} label=${"Provisional time: " + e.label} value=${hrRaw(hrs, "bx-" + e.key, DEF_H)} onChange=${(v) => setHr("bx-" + e.key, v)} />` : null}
       ${prov["bx-" + e.key] ? html`<${KitList} list=${e.kit} prefix=${"bx-" + e.key} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />` : null}
     </div>`)}
-    <${ExtraBlock} group=${def.label} hint=${def.label.toLowerCase().replace(/ \(.*\)/, "")} />
+    <${ExtraBlock} group=${def.label} hint=${def.label.toLowerCase().replace(/ \(.*\)/, "")} title=${alt ? "Option 1 extra materials (" + modeName.toLowerCase() + ")" : ""} />
+    ${alt ? html`<div className="alt-box">
+      <div className="alt-head"><span><b>Option 2:</b> ${altName.toLowerCase()} instead</span><button type="button" className="linkbtn" onClick=${() => onChange({ alt: "" })}>Remove</button></div>
+      <${HoursInput} label=${"Time to " + altName.toLowerCase()} value=${hrRaw(hrs, "fxa-" + def.key, fxDefH(altSt))} onChange=${(v) => setHr("fxa-" + def.key, v)} />
+      ${altList.length ? html`<div className="kit-head">Option 2 kit — ${altName.toLowerCase()}</div>
+        <${KitList} list=${altList} prefix=${def.key + "-" + fixtureListName(altSt)} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />` : null}
+      <${ExtraBlock} group=${def.label + O2_SFX} title=${"Option 2 extra materials (" + altName.toLowerCase() + ")"} />
+      ${altCost > 0 ? html`<p className="note" style=${{ margin: "4px 0 0" }}>Option 2 materials for this item: ${fmtKit(altCost)}</p>` : null}
+    </div>` : active && tag === "in" && !su ? html`<button type="button" className="linkbtn" style=${{ margin: "4px 0 6px" }} onClick=${() => pickAlt(mode === "repair" ? "new" : "repair")}>+ Give a second price (${mode === "repair" ? "replace" : "repair"} as Option 2)</button>` : null}
     <${DescField} id=${"fx-" + def.key} />
   <//>`;
 }
@@ -3262,11 +3393,11 @@ function ExtraRow({ x, pc }) {
     onRemove=${() => pc.removeExtra(x.id)} removeLabel="Remove this material" />`;
 }
 
-function ExtraBlock({ group, hint }) {
+function ExtraBlock({ group, hint, title }) {
   const pc = React.useContext(PriceCtx);
   const mine = (pc.extras || []).filter((x) => (x.group || "") === group);
   return html`<div style=${{ marginTop: 8 }}>
-    ${group ? html`<div className="kit-head">Extra materials for this ${hint || "item"}</div>` : null}
+    ${group ? html`<div className="kit-head">${title || "Extra materials for this " + (hint || "item")}</div>` : null}
     ${mine.map((x) => html`<${ExtraRow} key=${x.id} x=${x} pc=${pc} />`)}
     <${AddBtn} onClick=${() => pc.addExtra({ item: "", group })}>Add new material<//>
   </div>`;
@@ -3701,7 +3832,7 @@ async function makeAndSharePdf(sections, filename) {
       const ln = lines[k], t = ln.trim();
       let m;
       if (!t) { flushInfo(); gap(5); continue; }
-      if ((m = /^(Customer|Site|Surveyed|Date|Valid until|Invoice number|Invoice date|Payment due|Insurer|Landlord|Letting agent|Paid by|Claim reference|Reference|Job \/ works order number|Order \/ PO number|Policy holder|Tenant|Contact|Invoice to): (.*)$/.exec(ln))) {
+      if ((m = /^(Customer|Site|Surveyed|Date|Valid until|Invoice number|Invoice date|Payment due|Insurer|Landlord|Letting agent|Working for|Their job reference|Paid by|Claim reference|Reference|Job \/ works order number|Order \/ PO number|Policy holder|Tenant|Contact|Invoice to): (.*)$/.exec(ln))) {
         if (m[1] === "Surveyed" || m[1] === "Date" || m[1] === "Invoice date") dateStr = m[2].split(" · ")[0];
         inInfo.push([m[1] === "Surveyed" ? "Survey" : m[1], m[2]]); continue;
       }
@@ -3931,6 +4062,8 @@ function QuoteView(p) {
           <thead><tr><th>${ON[1].split(" — ")[0]}</th>${direct ? null : html`<th>Est. hours</th>`}<th>${direct ? "Price" : "Materials"}</th></tr></thead>
           <tbody>${calc.o2Items.map((i, k) => { const sh = o2Show(i); return html`<tr key=${k}><td>${i.label}</td>${direct ? null : html`<td>${fmtHrs(sh.hours)}</td>`}<td>${fmt(direct ? sh.materials + (rateOn ? sh.hours * rateVal : 0) : sh.materials)}</td></tr>`; })}</tbody>
         </table>
+        ${(() => { const rows = survey.kitLines.filter((k) => k.o2 && Number(k.cost) > 0); return rows.length ? html`<div className="mini-label" style=${{ marginTop: 12 }}>${ON[1].split(" — ")[0]} materials</div>
+          <table className="q-table mb-table"><tbody>${rows.map((k, i) => html`<tr key=${i} className="mb-row"><td>${k.group.replace(O2_SFX, "")}: ${k.label}</td><td>${fmt(k.cost)}</td></tr>`)}</tbody></table>` : null; })()}
         <table className="q-table" style=${{ marginTop: 10 }}><tbody>
           <tr className="total"><td>${ON[0]}${direct || rateOn ? "" : " (" + fmtHrs(calc.totalHours) + " hrs, no labour price)"}</td><td>${fmt(t1)}</td></tr>
           <tr className="total"><td>${ON[1]}${direct || rateOn ? "" : " (" + fmtHrs(calc.totalHours + calc.o2Hours) + " hrs, no labour price)"}</td><td>${fmt(t2)}</td></tr>
@@ -4634,6 +4767,14 @@ function jobNoteText(j) {
     bk.forEach((x) => L.push("- " + ((x.what || "").trim() || "Bulk buy") + ((x.where || "").trim() ? " (" + x.where.trim() + ")" : "") + " — " + fmtKit(Math.max(0, Number(x.cost) || 0))));
     if (ms.length || bk.length > 1) L.push("Total including bulk buys: " + fmtKit(ms.reduce((a, x) => a + Math.max(0, Number(x.cost) || 0) * Math.max(1, Math.floor(Number(x.qty)) || 1), 0) + bk.reduce((a, x) => a + Math.max(0, Number(x.cost) || 0), 0)));
   }
+  const vu = (j.van || []);
+  if (vu.length) {
+    L.push("Van stock used:");
+    vu.forEach((x) => { const q = Math.max(1, Math.floor(Number(x.qty)) || 1), c = Math.max(0, Number(x.price) || 0) * q; L.push("- " + x.name + (q > 1 ? " × " + q : "") + (x.code ? " [code " + x.code + "]" : "") + (c > 0 ? " — " + fmtKit(c) : "")); });
+    if (vanUsedTotal(j) > 0) L.push("Van stock total: " + fmtKit(vanUsedTotal(j)));
+    const rs = vu.filter((x) => x.re);
+    if (rs.length) L.push("To restock: " + rs.map((x) => Math.max(1, Math.floor(Number(x.qty)) || 1) + " x " + x.name).join(", "));
+  }
   const ords = (j.orders || []).filter((o) => (o.from || "").trim() || (o.ref || "").trim() || (o.address || "").trim() || (o.items || "").trim());
   if (ords.length) {
     L.push("Orders placed:");
@@ -4723,7 +4864,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
     <textarea id=${id} className="manual note-ta" placeholder=${ph} value=${job[k] || ""} onChange=${set(k)}></textarea></div>`;
   const bulkTotal = (job.bulk || []).reduce((a, x) => a + Math.max(0, Number(x.cost) || 0), 0);
   const setBulk = (id, patch) => setJob((p) => ({ ...p, bulk: (p.bulk || []).map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
-  const matTotal = bulkTotal + job.mats.reduce((a, x) => a + (Math.max(0, Number(x.cost) || 0)) * Math.max(1, Math.floor(Number(x.qty)) || 1), 0);
+  const matTotal = bulkTotal + vanUsedTotal(job) + job.mats.reduce((a, x) => a + (Math.max(0, Number(x.cost) || 0)) * Math.max(1, Math.floor(Number(x.qty)) || 1), 0);
   const gx = (k) => (job.x || {})[k];
   const sx = (k, v) => setJob((p) => ({ ...p, x: { ...(p.x || {}), [k]: v } }));
   const [pay, setPay] = usePay();
@@ -4785,6 +4926,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <//>`)}
       <${AddBtn} onClick=${() => setJob((p) => ({ ...p, bulk: [...(p.bulk || []), { id: newId(), what: "", where: "", cost: "" }] }))}>Add bulk buy<//>
       <//>
+      <${VanUsed} job=${job} setJob=${setJob} gx=${gx} sx=${sx} />
       <p className="note" style=${{ margin: "10px 0 0" }}>Total materials: <b>${fmtKit(matTotal)}</b></p>
     </div>
 
