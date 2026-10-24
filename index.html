@@ -740,6 +740,9 @@ body.kb .undo { bottom: 12px; }
 .mute { color: var(--muted); font-weight: 400; }
 .actionbar .btn-dark { background: var(--panel2); color: var(--ink); border-color: var(--line2); }
 .btn.btn-armed, .btn-armed { background: var(--bad); color: #1A1B1D; border-color: var(--bad); font-weight: 700; box-shadow: 0 0 0 3px rgba(242, 118, 110, 0.25); }
+
+.kind-tag.st-done { background: var(--accent); color: var(--accent-ink); }
+.kind-tag.st-paid { background: var(--ok); color: #1A1B1D; }
 /* ---- flatter, calmer layout: fewer boxes, sections divided by space and thin rules ---- */
 body { background: var(--panel); }
 .card, .group, .form-card, .ord-card { background: transparent; border: 0; box-shadow: none; border-radius: 0; }
@@ -2135,7 +2138,9 @@ function buildQuoteText(q) {
   if (c.supply > 0) L.push(c.supplyLabel + ": " + fmt(c.supply));
   const tr = q.trades || [];
   tr.forEach((x) => L.push(x.label + (x.tag ? " " + x.tag : "") + ": " + fmt(x.cost) + (x.ref ? " (" + x.ref + ")" : "")));
-  if (!o2i.length && (q.rate > 0 || tr.length)) L.push((o2i.length ? "Total for " + ON[0] : D ? "Total quote price" : totalLabel(q.rate > 0, tr.length > 0)) + ": " + fmt(c.materialsBase + (c.supply > 0 ? c.supply : 0) + (q.rate > 0 ? c.totalHours * q.rate : 0) + tr.reduce((a, x) => a + x.cost, 0)));
+  const VR = D ? q.vat || 0 : 0;
+  const vatL = (tot, lbl) => { if (VR > 0) { L.push("VAT at " + VR + "%: " + fmt(tot * VR / 100)); L.push(lbl + " including VAT: " + fmt(tot * (1 + VR / 100))); } };
+  if (!o2i.length && (q.rate > 0 || tr.length)) { const tt = c.materialsBase + (c.supply > 0 ? c.supply : 0) + (q.rate > 0 ? c.totalHours * q.rate : 0) + tr.reduce((a, x) => a + x.cost, 0); L.push((D ? (VR > 0 ? "Total before VAT" : "Total quote price") : totalLabel(q.rate > 0, tr.length > 0)) + ": " + fmt(tt)); vatL(tt, "Total quote price"); }
   const extraSup0 = (c.supply > 0 ? c.supply : 0) + tr.reduce((x, t) => x + t.cost, 0);
   const optBlock = (title, short, hrs, mat, note) => {
     L.push("");
@@ -2145,7 +2150,8 @@ function buildQuoteText(q) {
     L.push("Materials at cost: " + fmt(mat) + (note || ""));
     if (extraSup0 > 0) L.push("Trades and supplied items: " + fmt(extraSup0));
     const tot = mat + extraSup0 + (q.rate > 0 ? hrs * q.rate : 0);
-    L.push("Total for " + short + (q.rate > 0 ? "" : " (no labour price)") + ": " + fmt(tot));
+    L.push("Total for " + short + (q.rate > 0 ? "" : " (no labour price)") + (VR > 0 ? " before VAT" : "") + ": " + fmt(tot));
+    vatL(tot, "Total for " + short);
     return tot;
   };
   if (o2i.length) {
@@ -2205,6 +2211,7 @@ function buildQuoteText(q) {
   L.push("");
   if (D) L.push("Prices are fixed for the work in the scope above and are valid until " + q.validUntil + ".");
   else L.push(q.rate > 0 ? "Hours are estimates. The total includes labour. Materials are priced from the amounts entered on the survey." : "Hours are estimates and no labour price is included. Materials are priced from the amounts entered on the survey.");
+  if (D && q.terms && q.terms.length) { L.push(""); L.push("TERMS:"); q.terms.forEach((x) => L.push("- " + x)); }
   if (q.disclaimer) {
     L.push("");
     L.push("DISCLAIMER:");
@@ -3254,7 +3261,7 @@ const ymdGB = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ""
 const addDaysYmd = (s, n) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || "")); const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
 const defInvNo = () => "INV-" + localYmd().replace(/-/g, "").slice(2);
 const invMeta = (get) => { const date = get("inv:date") || localYmd(); const days = Math.max(0, Math.floor(Number(get("inv:days"))) || 14); return { no: String(get("inv:no") || "").trim() || defInvNo(), date, due: addDaysYmd(date, days) }; };
-function buildInvoiceText({ businessName, customerName, siteAddress, get, work, charges, minCharge, pay }) {
+function buildInvoiceText({ businessName, customerName, siteAddress, get, work, charges, minCharge, pay, terms }) {
   const L = [], mt = invMeta(get);
   L.push(businessName || "[Your business name]");
   L.push("INVOICE");
@@ -3262,6 +3269,7 @@ function buildInvoiceText({ businessName, customerName, siteAddress, get, work, 
   L.push("Invoice number: " + mt.no);
   L.push("Invoice date: " + ymdGB(mt.date));
   L.push("Payment due: " + ymdGB(mt.due));
+  if (terms && vatRate(terms) > 0 && String(terms.vatNo || "").trim()) L.push("VAT number: " + String(terms.vatNo).trim());
   L.push("Customer: " + (customerName || "[Customer name]"));
   L.push("Site: " + (siteAddress || "[Site address]"));
   clientLines(get).forEach((x) => L.push(x));
@@ -3274,6 +3282,8 @@ function buildInvoiceText({ businessName, customerName, siteAddress, get, work, 
   let tot = rows.reduce((a, c) => a + c[1], 0);
   rows.forEach((c) => L.push(c[0] + ": " + fmtKit(c[1])));
   if (minCharge > 0 && tot < minCharge) { L.push("Minimum charge top-up (minimum charge " + fmtKit(minCharge) + "): " + fmtKit(minCharge - tot)); tot = minCharge; }
+  const vr = vatRate(terms);
+  if (vr > 0) { L.push("Total before VAT: " + fmtKit(tot)); L.push("VAT at " + vr + "%: " + fmtKit(tot * vr / 100)); tot = tot * (1 + vr / 100); }
   const ex = clExcess(get);
   if (ex > 0) {
     L.push("Total for the work: " + fmtKit(tot));
@@ -3282,13 +3292,14 @@ function buildInvoiceText({ businessName, customerName, siteAddress, get, work, 
   L.push("Total due: " + fmtKit(Math.max(0, tot - ex)));
   const note = String(get("inv:note") || "").trim();
   if (note) { L.push(""); L.push(note); }
+  if (terms && !get("terms:off")) { L.push(""); L.push("TERMS:"); termsLines(terms, "invoice").forEach((x) => L.push("- " + x)); }
   if (String(pay || "").trim()) { L.push(""); L.push("PAYMENT DETAILS:"); String(pay).trim().split("\n").forEach((x) => L.push(x)); }
   L.push("");
   L.push("Please pay by " + ymdGB(mt.due) + " and quote invoice number " + mt.no + ".");
   L.push("Thank you for your business.");
   return L.join("\n");
 }
-function InvoiceBlock({ get, set, text, filename, pay, setPay, children }) {
+function InvoiceBlock({ get, set, text, filename, pay, setPay, profit, children }) {
   const mt = invMeta(get);
   return html`<${TickSection} on=${!!get("inv:on")} onToggle=${(v) => set("inv:on", v)} title="Job done: make an invoice" hint="Turns this into an invoice for the customer">
     <div className="mat-grid">
@@ -3299,10 +3310,144 @@ function InvoiceBlock({ get, set, text, filename, pay, setPay, children }) {
     ${children}
     <${Lbl} label="Your payment details (saved on this phone)" wide=${true}><textarea className="manual note-ta" placeholder=${"e.g. Bank transfer to: Business name\nSort code and account number"} value=${pay} onChange=${(e) => setPay(e.target.value)}></textarea><//>
     <${Lbl} label="Note on the invoice (optional)" wide=${true}><input className="text-in" type="text" placeholder="e.g. Parts guaranteed for 12 months" value=${get("inv:note") || ""} onChange=${(e) => set("inv:note", e.target.value)} /><//>
+    ${profit !== undefined ? html`<${TaxAside} profit=${profit} />` : null}
     <div className="link-row" style=${{ marginTop: 8 }}>
       <${CopyQuote} text=${text} label="Copy invoice" btnCls="btn" />
       <${SharePdf} sections=${[text]} filename=${filename} label="Send invoice PDF" />
     </div>
+  <//>`;
+}
+
+/* ---------- day rate, waste removal, terms, VAT and job status ---------- */
+function extraLines(get) {
+  const out = [];
+  const c = chargeOf(get);
+  if (c.call > 0) out.push(["Callout charge", c.call]);
+  if (get("dr:on")) { const r = Math.max(0, Number(get("dr:rate")) || 0), d = Math.max(0, Number(get("dr:days")) || 0); if (r > 0 && d > 0) out.push([(String(get("dr:desc") || "").trim() || "Day rate") + ": " + fmtDays(d) + (d === 1 ? " day" : " days") + " at " + fmtKit(r) + " a day", r * d]); }
+  if (get("ws:on")) { const w = Math.max(0, Number(get("ws:cost")) || 0); if (w > 0) out.push([String(get("ws:desc") || "").trim() || "Removal and disposal of waste and old fittings", w]); }
+  return out;
+}
+function DayRateBlock({ get, set }) {
+  return html`<${TickSection} on=${!!get("dr:on")} onToggle=${(v) => set("dr:on", v)} title="Charge a day rate" hint="For unusual work that is hard to price item by item">
+    <div className="mat-grid">
+      <${Lbl} label="Day rate (£)"><input className="text-in" type="number" inputMode="decimal" min="0" placeholder="e.g. 220" value=${get("dr:rate") || ""} onChange=${(e) => set("dr:rate", e.target.value)} /><//>
+      <${Lbl} label="Days"><input className="text-in" type="number" inputMode="decimal" min="0" step="0.5" placeholder="e.g. 1.5" value=${get("dr:days") || ""} onChange=${(e) => set("dr:days", e.target.value)} /><//>
+      <${Lbl} label="What it covers (optional)" wide=${true}><input className="text-in" type="text" placeholder="e.g. Labour for investigating and rerouting pipework" value=${get("dr:desc") || ""} onChange=${(e) => set("dr:desc", e.target.value)} /><//>
+    </div>
+    <p className="note">Shown as its own line, for example "1.5 days at £220 a day". Half days are fine.</p>
+  <//>`;
+}
+function WasteBlock({ get, set }) {
+  return html`<${TickSection} on=${!!get("ws:on")} onToggle=${(v) => set("ws:on", v)} title="Waste removal and disposal" hint="Taking away old fittings and rubbish">
+    <div className="mat-grid">
+      <${Lbl} label="Charge (£)"><input className="text-in" type="number" inputMode="decimal" min="0" placeholder="e.g. 60" value=${get("ws:cost") || ""} onChange=${(e) => set("ws:cost", e.target.value)} /><//>
+      <${Lbl} label="Wording on the quote" wide=${true}><input className="text-in" type="text" placeholder="Removal and disposal of waste and old fittings" value=${get("ws:desc") || ""} onChange=${(e) => set("ws:desc", e.target.value)} /><//>
+    </div>
+    <p className="note">If you take customers' waste away in your van, check you are registered as a waste carrier with SEPA and keep the tip receipts.</p>
+  <//>`;
+}
+/* standard terms, kept on this phone and printed on direct quotes and invoices. Not legal advice. */
+const TERMS_KEY = "pricer-terms-v1";
+const TERMS_EXCL = [
+  ["dec", "Decorating, tiling and making good are not included unless they are listed above."],
+  ["hidden", "Hidden problems found once work starts (for example corroded pipework, rot or leaks) will be explained and priced before any extra work is done."],
+  ["trades", "Electrical and gas work is not included unless listed, and is only carried out by a registered electrician or Gas Safe registered engineer."],
+  ["asb", "Any material that may contain asbestos will not be disturbed. Work on that area stops until it has been tested."],
+  ["cust", "Items supplied by the customer are fitted, but the item itself is not guaranteed."],
+  ["access", "The price assumes clear access and working water and drainage on the day."],
+];
+const termsDefault = () => ({ payDays: "14", guar: "12", vat: false, vatRate: "20", vatNo: "", excl: Object.fromEntries(TERMS_EXCL.map((x) => [x[0], true])), extra: "" });
+const loadTerms = () => { try { const t = JSON.parse(localStorage.getItem(TERMS_KEY)); return t && typeof t === "object" ? { ...termsDefault(), ...t } : termsDefault(); } catch (e) { return termsDefault(); } };
+function useTerms() {
+  const [t, setT] = useState(loadTerms);
+  return [t, (patch) => { const n = { ...loadTerms(), ...patch }; setT(n); try { localStorage.setItem(TERMS_KEY, JSON.stringify(n)); } catch (e) { /* storage unavailable */ } }];
+}
+const vatRate = (t) => (t && t.vat ? Math.max(0, Number(t.vatRate) || 0) : 0);
+function termsLines(t, kind) {
+  const L = [];
+  const pd = Math.max(0, Math.floor(Number(t.payDays)) || 0), gm = Math.max(0, Math.floor(Number(t.guar)) || 0);
+  if (kind === "quote") TERMS_EXCL.forEach(([k, txt]) => { if (t.excl && t.excl[k]) L.push(txt); });
+  if (gm > 0) L.push("Workmanship is guaranteed for " + gm + " months. Parts carry the manufacturer's guarantee.");
+  if (pd > 0) L.push("Payment is due within " + pd + " days of the invoice.");
+  L.push(vatRate(t) > 0 ? "Prices include VAT at " + vatRate(t) + "% where shown." + (String(t.vatNo || "").trim() ? " VAT number " + String(t.vatNo).trim() + "." : "") : "Not VAT registered: no VAT is charged.");
+  String(t.extra || "").split("\n").map((x) => x.trim()).filter(Boolean).forEach((x) => L.push(x));
+  return L;
+}
+function TermsBlock({ get, set, terms, setTerms }) {
+  const on = !get("terms:off");
+  return html`<${TickSection} on=${on} onToggle=${(v) => set("terms:off", !v)} title="Terms and what is not included" hint="Printed on the quote and invoice to make the price clear">
+    <p className="note" style=${{ margin: "0 0 4px" }}>Prints your standard terms: what is not included, a ${terms.guar || 0}-month guarantee, payment within ${terms.payDays || 0} days, ${terms.vat ? "VAT at " + (terms.vatRate || 0) + "%" : "not VAT registered"}.</p>
+    <${Drop} bare=${true} title="Edit my terms" sub="saved on this phone">
+    <p className="note">Used on every quote and invoice. A starting point, not legal advice.</p>
+    ${TERMS_EXCL.map(([k, txt]) => html`<${Tick} key=${k} checked=${!!(terms.excl && terms.excl[k])} onChange=${() => setTerms({ excl: { ...terms.excl, [k]: !(terms.excl && terms.excl[k]) } })} label=${txt} />`)}
+    <div className="mat-grid" style=${{ marginTop: 8 }}>
+      <${Lbl} label="Guarantee on your work (months)"><input className="text-in" type="number" inputMode="numeric" min="0" value=${terms.guar} onChange=${(e) => setTerms({ guar: e.target.value })} /><//>
+      <${Lbl} label="Payment due within (days)"><input className="text-in" type="number" inputMode="numeric" min="0" value=${terms.payDays} onChange=${(e) => setTerms({ payDays: e.target.value })} /><//>
+    </div>
+    <${Tick} checked=${!!terms.vat} onChange=${() => setTerms({ vat: !terms.vat })} label="I am VAT registered (add VAT to my prices)" />
+    ${terms.vat ? html`<div className="mat-grid">
+      <${Lbl} label="VAT rate (%)"><input className="text-in" type="number" inputMode="decimal" min="0" value=${terms.vatRate} onChange=${(e) => setTerms({ vatRate: e.target.value })} /><//>
+      <${Lbl} label="VAT number"><input className="text-in" type="text" value=${terms.vatNo} onChange=${(e) => setTerms({ vatNo: e.target.value })} /><//>
+    </div>` : null}
+    <${Lbl} label="Anything else to add (one per line)" wide=${true}><textarea className="manual note-ta" placeholder="e.g. A 50% deposit is due before materials are ordered." value=${terms.extra} onChange=${(e) => setTerms({ extra: e.target.value })}></textarea><//>
+    <//>
+  <//>`;
+}
+const JOB_STATUS = [["quoted", "Quoted"], ["accepted", "Accepted"], ["done", "Done: to invoice"], ["invoiced", "Invoiced"], ["paid", "Paid"]];
+const statusLabel = (v) => { const o = JOB_STATUS.find((x) => x[0] === v); return o ? o[1] : ""; };
+function StatusPick({ get, set }) {
+  return html`<div className="field"><div className="field-label">Where is this job at?</div>
+    <${Segmented} options=${JOB_STATUS} value=${get("jobstatus") || ""} onChange=${(v) => set("jobstatus", get("jobstatus") === v ? "" : v)} /></div>`;
+}
+/* a quick quote for a small repair, before the work */
+function buildSmallQuote({ businessName, customerName, siteAddress, get, work, charges, minCharge, terms }) {
+  const L = [], t = terms, vr = vatRate(t);
+  const d = new Date(), v = new Date(); v.setDate(v.getDate() + 30);
+  const gb = (x) => x.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
+  L.push(businessName || "[Your business name]");
+  L.push("QUOTATION — FIXED PRICE FOR THE WORK BELOW");
+  L.push("");
+  L.push("Customer: " + (customerName || "[Customer name]"));
+  L.push("Site: " + (siteAddress || "[Site address]"));
+  clientLines(get).forEach((x) => L.push(x));
+  L.push("Date: " + gb(d));
+  L.push("Valid until: " + gb(v));
+  L.push("");
+  L.push("WORK TO BE DONE:");
+  work.filter((w) => String(w || "").trim()).forEach((w) => L.push("- " + String(w).trim().replace(/\n/g, "\n  ")));
+  L.push("");
+  L.push("PRICE:");
+  const rows = charges.filter((c) => c[1] > 0);
+  let tot = rows.reduce((a, c) => a + c[1], 0);
+  rows.forEach((c) => L.push(c[0] + ": " + fmtKit(c[1])));
+  if (minCharge > 0 && tot < minCharge) { L.push("Minimum charge top-up (minimum charge " + fmtKit(minCharge) + "): " + fmtKit(minCharge - tot)); tot = minCharge; }
+  if (vr > 0) { L.push("Price before VAT: " + fmtKit(tot)); L.push("VAT at " + vr + "%: " + fmtKit(tot * vr / 100)); L.push("Total quote price including VAT: " + fmtKit(tot * (1 + vr / 100))); }
+  else L.push("Total quote price: " + fmtKit(tot));
+  if (!get("terms:off")) { L.push(""); L.push("TERMS:"); termsLines(t, "quote").forEach((x) => L.push("- " + x)); }
+  L.push("");
+  L.push("ACCEPTANCE:");
+  L.push("I accept this quote and the price and work described above.");
+  L.push("Customer signature: ______________________   Date: ____________");
+  return L.join("\n");
+}
+
+/* tax and NI to put aside: a private rough guide, never printed on a quote or invoice */
+const TAX_KINDS = [["sole", "Sole trader"], ["ltd", "Limited company"]];
+function TaxAside({ profit }) {
+  const [t, setT] = useTerms();
+  const kind = t.taxKind || "sole";
+  const it = t.taxIt !== undefined ? t.taxIt : "20", ni = t.taxNi !== undefined ? t.taxNi : "6", ct = t.taxCt !== undefined ? t.taxCt : "19";
+  const pct = kind === "ltd" ? Math.max(0, Number(ct) || 0) : Math.max(0, Number(it) || 0) + Math.max(0, Number(ni) || 0);
+  const pr = Math.max(0, profit || 0), aside = pr * pct / 100;
+  return html`<${TickSection} on=${!!t.taxOn} onToggle=${(v) => setT({ taxOn: v })} title="Tax and NI to put aside (just for you)" hint="Not shown on the invoice">
+    <${Segmented} options=${TAX_KINDS} value=${kind} onChange=${(v) => setT({ taxKind: v })} />
+    <div className="mat-grid" style=${{ marginTop: 8 }}>
+      ${kind === "ltd" ? html`<${Lbl} label="Corporation tax (%)"><input className="text-in" type="number" inputMode="decimal" min="0" value=${ct} onChange=${(e) => setT({ taxCt: e.target.value })} /><//>`
+        : html`<${Lbl} label="Income tax (%)"><input className="text-in" type="number" inputMode="decimal" min="0" value=${it} onChange=${(e) => setT({ taxIt: e.target.value })} /><//>
+          <${Lbl} label="Class 4 NI (%)"><input className="text-in" type="number" inputMode="decimal" min="0" value=${ni} onChange=${(e) => setT({ taxNi: e.target.value })} /><//>`}
+    </div>
+    <p className="note" style=${{ margin: "6px 0" }}>Profit on this job (charges less materials and subcontractors${t.vat ? ", before VAT" : ""}): <b>${fmtKit(pr)}</b><br />Put aside about <b>${fmtKit(aside)}</b> (${pct}%).</p>
+    <p className="note">A rough guide only. ${kind === "ltd" ? "Corporation tax is 19% on profits up to £50,000 and up to 25% above that. Money you take out of the company as salary or dividends is taxed again." : "Sole traders in Scotland pay Scottish income tax (20% basic, 21% intermediate, 42% higher) and Class 4 NI (6%, then 2% over £50,270) on yearly profit over £12,570."} Check your own figures with an accountant.</p>
   <//>`;
 }
 function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, setHr, prov, toggleProv, survey, fixtures }) {
@@ -3835,7 +3980,7 @@ async function makeAndSharePdf(sections, filename) {
       const ln = lines[k], t = ln.trim();
       let m;
       if (!t) { flushInfo(); gap(5); continue; }
-      if ((m = /^(Customer|Site|Surveyed|Date|Valid until|Invoice number|Invoice date|Payment due|Insurer|Owner|Landlord|Letting agent|Working for|Their job reference|Paid by|Claim reference|Reference|Job \/ works order number|Order \/ PO number|Policy holder|Tenant|Contact|Invoice to): (.*)$/.exec(ln))) {
+      if ((m = /^(Customer|Site|Surveyed|Date|Valid until|Invoice number|Invoice date|Payment due|VAT number|Insurer|Owner|Landlord|Letting agent|Working for|Their job reference|Paid by|Claim reference|Reference|Job \/ works order number|Order \/ PO number|Policy holder|Tenant|Contact|Invoice to): (.*)$/.exec(ln))) {
         if (m[1] === "Surveyed" || m[1] === "Date" || m[1] === "Invoice date") dateStr = m[2].split(" · ")[0];
         inInfo.push([m[1] === "Surveyed" ? "Survey" : m[1], m[2]]); continue;
       }
@@ -3869,7 +4014,7 @@ async function makeAndSharePdf(sections, filename) {
       }
       if (/^DISCLAIMER:/.test(ln)) { heading(ln); continue; }
       if (/^\s{2,}\S/.test(ln)) { para(t, { indent: 12, size: 10, color: SOFT }); continue; }
-      const small = /^(Please pay by|Thank you for your business|Hours are estimates|Please quote for this|Please quote for these|Please quote both|Choose one option|Prices are fixed|These tasks are only)/.test(t);
+      const small = /^(Not VAT registered|Please pay by|Thank you for your business|Hours are estimates|Please quote for this|Please quote for these|Please quote both|Choose one option|Prices are fixed|These tasks are only)/.test(t);
       para(t, small ? { size: 9.5, color: SOFT } : {});
     }
     flushInfo();
@@ -3943,7 +4088,9 @@ function QuoteView(p) {
   const g = (k) => ticks && ticks[k];
   const sv = (k, v) => { if (setTick) setTick(k, v); };
   const chg = chargeOf(g);
-  const trades0 = tradeList(ticks).concat(chg.call > 0 ? [{ key: "callout", tag: "", label: "Callout charge", scope: "", cost: chg.call, ref: "" }] : []);
+  const [terms, setTerms] = useTerms();
+  const VRq = direct ? vatRate(terms) : 0;
+  const trades0 = tradeList(ticks).concat(extraLines(g).map((x, i) => ({ key: "ex" + i, tag: "", label: x[0], scope: "", cost: x[1], ref: "" })));
   const base0 = calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + trades0.reduce((a, x) => a + x.cost, 0);
   const topUp = chg.min > 0 && !(calc.o2Items || []).length && base0 < chg.min ? chg.min - base0 : 0;
   const trades = trades0.concat(topUp > 0 ? [{ key: "min", tag: "", label: "Minimum charge top-up (minimum charge " + fmt(chg.min) + ")", scope: "", cost: topUp, ref: "" }] : []), tradeTotal = trades.reduce((a, x) => a + x.cost, 0);
@@ -3961,9 +4108,10 @@ function QuoteView(p) {
     calc.supply > 0 ? [[calc.supplyLabel, calc.supply]] : [], trades0.map((x) => [x.label + (x.tag ? " " + x.tag : ""), x.cost]));
   const swapped = invOpt === 2 ? calc.o2Items.filter((i) => i.swap).map((i) => i.base) : [];
   const invWork = scopeItems.filter((x) => swapped.indexOf(x) < 0).concat(invOpt === 2 ? calc.o2Items.map((i) => (i.swap ? i.label.replace(/ \(instead of: .*\)$/, "") : i.label)) : [], pvUsed.map((i) => i.label + " (found to be needed)"));
-  const invText = buildInvoiceText({ businessName, customerName, siteAddress, get: g, work: invWork, charges: invCharges, minCharge: chg.min, pay });
+  const invText = buildInvoiceText({ businessName, customerName, siteAddress, get: g, work: invWork, charges: invCharges, minCharge: chg.min, pay, terms });
+  const invProfit = (() => { const all = invCharges.reduce((a, c) => a + (c[1] > 0 ? c[1] : 0), 0); const costs = invCharges.filter((c) => /^Materials/.test(c[0]) || (calc.supply > 0 && c[0] === calc.supplyLabel) || /\(subcontract\)/.test(c[0])).reduce((a, c) => a + (c[1] > 0 ? c[1] : 0), 0); return Math.max(all, chg.min) - costs; })();
   const invName = "Invoice-" + invMeta(g).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf";
-  const text = buildQuoteText({ businessName, customerName, siteAddress, todayStr, scopeItems, sizeLabel, calc, tier, survey, markup, officeNotes, rate: rateOn ? rateVal : 0, trades, disclaimer: disclaimerOf(ticks), direct: direct, validUntil: validUntil, optNames: optNames(ticks, calc), clientLines: clientLines(g).concat(clExcess(g) > 0 ? ["Policy excess (paid by the customer): " + fmt(clExcess(g))] : []) });
+  const text = buildQuoteText({ businessName, customerName, siteAddress, todayStr, scopeItems, sizeLabel, calc, tier, survey, markup, officeNotes, rate: rateOn ? rateVal : 0, trades, disclaimer: disclaimerOf(ticks), direct: direct, validUntil: validUntil, optNames: optNames(ticks, calc), vat: VRq, terms: g("terms:off") ? [] : termsLines(terms, "quote"), clientLines: clientLines(g).concat(clExcess(g) > 0 ? ["Policy excess (paid by the customer): " + fmt(clExcess(g))] : []) });
   const [orderBy, setOrderByRaw] = useState(loadOrderBy);
   const setOrderBy = (v) => { setOrderByRaw(v); saveOrderBy(v); };
   const orderText = buildOrderText({ customerName, siteAddress, todayStr, calc, tier, survey, ticks, groupBy: orderBy });
@@ -4024,12 +4172,16 @@ function QuoteView(p) {
           <tr className="total"><td>Materials at cost</td><td>${fmt(calc.materialsBase)}</td></tr>
           ${calc.supply > 0 && html`<tr><td>${calc.supplyLabel}</td><td>${fmt(calc.supply)}</td></tr>`}
           ${trades.map((x) => html`<tr key=${x.key}><td>${x.label}${x.tag ? " " + x.tag : ""}</td><td>${fmt(x.cost)}</td></tr>`)}
-          ${(rateOn || trades.length > 0) && html`<tr className="total"><td>${direct ? "Total quote price" : totalLabel(rateOn, trades.length > 0)}</td><td>${fmt(calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + tradeTotal)}</td></tr>`}
+          ${(rateOn || trades.length > 0) && html`<tr className="total"><td>${direct ? (VRq > 0 ? "Total before VAT" : "Total quote price") : totalLabel(rateOn, trades.length > 0)}</td><td>${fmt(calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + tradeTotal)}</td></tr>`}
+          ${(rateOn || trades.length > 0) && VRq > 0 && html`<tr><td>VAT at ${VRq}%</td><td>${fmt((calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + tradeTotal) * VRq / 100)}</td></tr>`}
+          ${(rateOn || trades.length > 0) && VRq > 0 && html`<tr className="total"><td>Total including VAT</td><td>${fmt((calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + tradeTotal) * (1 + VRq / 100))}</td></tr>`}
         </tbody>
       </table>
       ${setTick ? html`<div className="rate-box"><label className="kit-row"><input type="checkbox" checked=${!(ticks && ticks["sund:off"])} onChange=${() => setTick("sund:off", !(ticks && ticks["sund:off"]))} /><span className="name">Add sundries at ${SUNDRIES_PCT}% of the materials</span></label></div>` : null}
       ${setTick ? html`<${RateBox} on=${rateOn} rate=${rateVal} onOn=${(v) => setTick("rate:on", v)} onRate=${(v) => setTick("rate:val", v)} />` : null}
       ${setTick ? html`<${ChargeBlock} get=${g} set=${sv} />` : null}
+      ${setTick ? html`<${DayRateBlock} get=${g} set=${sv} />` : null}
+      ${setTick ? html`<${WasteBlock} get=${g} set=${sv} />` : null}
       ${topUp > 0 ? html`<p className="note">The total is under your minimum charge, so a top-up of ${fmt(topUp)} is added.</p>` : chg.min > 0 && hasO2 ? html`<p className="note">The minimum charge is not applied when the quote has two options.</p>` : null}
 
       ${(() => { const mb = matBreakdown(survey, calc); return mb.length ? html`<div>
@@ -4089,7 +4241,9 @@ function QuoteView(p) {
         placeholder="Access, stair and parking, tenant or agent contact, shut-off location, anything the office needs to know to quote" onChange=${(e) => setOfficeNotes(e.target.value)}></textarea>
       <${GlasgowChips} items=${GLA_SURVEY} value=${officeNotes} onAdd=${(t) => setOfficeNotes(addLine(officeNotes, t))} /></div>`}
 
-      ${direct && setTick ? html`<${InvoiceBlock} get=${g} set=${sv} text=${invText} filename=${invName} pay=${pay} setPay=${setPay}>
+      ${direct && setTick ? html`<${TermsBlock} get=${g} set=${sv} terms=${terms} setTerms=${setTerms} />` : null}
+      ${setTick ? html`<div style=${{ marginTop: 10 }}><${StatusPick} get=${g} set=${sv} /></div>` : null}
+      ${direct && setTick ? html`<${InvoiceBlock} get=${g} set=${sv} text=${invText} filename=${invName} pay=${pay} setPay=${setPay} profit=${invProfit}>
         ${hasO2 ? html`<div className="field"><div className="field-label">Which option did the customer choose?</div>
           <${Segmented} options=${[["1", ONq[0]], ["2", ONq[1]]]} value=${invOpt === 2 ? "2" : "1"} onChange=${(v) => sv("inv:opt", v)} /></div>` : null}
         ${calc.provItems.length ? html`<div className="field"><div className="field-label">Provisional items that were needed</div>
@@ -4220,10 +4374,12 @@ function MyJobsView({ auth, onOpen }) {
   const [jobs, setJobs] = useState(null);
   const [err, setErr] = useState("");
   const [kindF, setKindF] = useState("");
+  const [stF, setStF] = useState("");
+  const stOf = (j) => j.s1 || j.s2 || "";
   const load = async () => {
     if (!sb || !auth.user) return;
     try {
-      const { data, error } = await sb.from("pricer_jobs").select("id,kind,title,updated_at").order("updated_at", { ascending: false });
+      const { data, error } = await sb.from("pricer_jobs").select("id,kind,title,updated_at,s1:data->x->>jobstatus,s2:data->prices->>jobstatus").order("updated_at", { ascending: false });
       if (error) setErr(error.message); else { setJobs(data); setErr(""); }
     } catch (e) { setErr("Could not load your jobs. Check your connection."); }
   };
@@ -4252,8 +4408,9 @@ function MyJobsView({ auth, onOpen }) {
       : jobs.length === 0 ? html`<${EmptyState} icon="folder" title="No saved jobs yet">Use "Save job" at the bottom of any survey or maintenance job. Jobs also save themselves when you send a PDF or copy the estimate.<//>`
       : html`<div>
         <div className="qpicks" role="group" aria-label="Filter by job type"><button type="button" className=${"qpick" + (!kindF ? " on" : "")} aria-pressed=${!kindF} onClick=${() => setKindF("")}>All (${jobs.length})</button>${Object.keys(KIND_LABEL).filter((kk) => jobs.some((j) => j.kind === kk)).map((kk) => html`<button type="button" key=${kk} className=${"qpick" + (kindF === kk ? " on" : "")} aria-pressed=${kindF === kk} onClick=${() => setKindF(kindF === kk ? "" : kk)}>${KIND_LABEL[kk]}</button>`)}</div>
-        ${jobs.filter((j) => !kindF || j.kind === kindF).map((j) => html`<div key=${j.id} className="card job-row">
-          <div className="job-main"><strong>${j.title}</strong><div className="note" style=${{ margin: 0 }}><span className="kind-tag">${KIND_LABEL[j.kind] || j.kind}</span>updated ${whenText(j.updated_at)}</div></div>
+        <div className="qpicks" role="group" aria-label="Filter by status"><button type="button" className=${"qpick" + (!stF ? " on" : "")} aria-pressed=${!stF} onClick=${() => setStF("")}>Any status</button>${JOB_STATUS.filter(([v]) => jobs.some((j) => stOf(j) === v)).map(([v, l]) => html`<button type="button" key=${v} className=${"qpick" + (stF === v ? " on" : "")} aria-pressed=${stF === v} onClick=${() => setStF(stF === v ? "" : v)}>${l} (${jobs.filter((j) => stOf(j) === v).length})</button>`)}</div>
+        ${jobs.filter((j) => (!kindF || j.kind === kindF) && (!stF || stOf(j) === stF)).map((j) => html`<div key=${j.id} className="card job-row">
+          <div className="job-main"><strong>${j.title}</strong><div className="note" style=${{ margin: 0 }}><span className="kind-tag">${KIND_LABEL[j.kind] || j.kind}</span>${stOf(j) ? html`<span className=${"kind-tag st-" + stOf(j)}>${statusLabel(stOf(j))}</span>` : null}updated ${whenText(j.updated_at)}</div></div>
           <div className="link-row">
             <button type="button" className="btn" onClick=${() => open(j.id)}>Open</button>
             <${ConfirmBtn} label="Delete" armedLabel="Tap again to delete" onConfirm=${() => del(j.id)} />
@@ -4785,7 +4942,7 @@ function jobNoteText(j) {
       L.push("- " + ((o.from || "").trim() || "Supplier") + ((o.items || "").trim() ? ": " + o.items.trim() : "") + ((o.ref || "").trim() ? " — ref " + o.ref.trim() : "") + (!j.noAddr && (o.address || "").trim() ? " — for " + o.address.trim() : ""));
     });
   }
-  L.push("Work status: " + (j.complete ? "COMPLETE" : "NOT yet complete"));
+  L.push("Work status: " + (j.complete ? "COMPLETE" : "NOT yet complete") + ((j.x || {}).jobstatus ? " · " + statusLabel(j.x.jobstatus) : ""));
   if ((j.further || "").trim()) L.push("Further work required: " + j.further.trim());
   if (j.tradeNeeded) L.push("Another trade required to attend: " + ((j.trade || "").trim() || "trade not stated") + ((j.tradeNote || "").trim() ? " — " + j.tradeNote.trim() : ""));
   const req = CHECKS.filter((c) => j.checks && j.checks[c[0]]);
@@ -4874,8 +5031,13 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
   const jh = job.hours !== "" && !isNaN(Number(job.hours)) ? Number(job.hours) : 0;
   const jr = job.rateOn ? Math.min(100, Math.max(0, Number(job.rate) || 0)) : 0;
   const jc = chargeOf(gx);
+  const [terms, setTerms] = useTerms();
   const invText = buildInvoiceText({ businessName: bizName, customerName: (job.x || {})["inv:cust"] || "", siteAddress: job.noAddr ? "" : job.where, get: gx,
-    work: [job.jobType, job.work], charges: [["Labour", jh * jr], ["Materials", matTotal], ["Callout charge", jc.call]], minCharge: jc.min, pay });
+    work: [job.jobType, job.work], charges: [["Labour", jh * jr], ["Materials", matTotal]].concat(extraLines(gx)), minCharge: jc.min, pay, terms });
+  const qFixed = Math.max(0, Number(gx("q:fixed")) || 0);
+  const qText = buildSmallQuote({ businessName: bizName, customerName: gx("inv:cust") || "", siteAddress: job.noAddr ? "" : job.where, get: gx,
+    work: [String(gx("q:work") || "").trim() || [job.jobType, job.issue].filter((x) => String(x || "").trim()).join(": ")],
+    charges: (qFixed > 0 ? [["Price for the work", qFixed]] : [["Labour", jh * jr], ["Materials", matTotal]]).concat(extraLines(gx)), minCharge: jc.min, terms });
   return html`<div>
     <div className="title-row"><h1>Maintenance Jobs</h1></div>
     <p className="lead">Fill in what you can, then copy the notes or send an invoice.</p>
@@ -4906,6 +5068,8 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <${HoursInput} quick=${true} label="How long did it take?" value=${job.hours} onChange=${(v) => setJob((p) => ({ ...p, hours: v }))} />
       <${RateBox} on=${!!job.rateOn} rate=${job.rate} onOn=${(v) => setJob((p) => ({ ...p, rateOn: v }))} onRate=${(v) => setJob((p) => ({ ...p, rate: v }))} hours=${job.hours !== "" && !isNaN(Number(job.hours)) ? Number(job.hours) : 0} />
       <${ChargeBlock} get=${gx} set=${sx} />
+      <${DayRateBlock} get=${gx} set=${sx} />
+      <${WasteBlock} get=${gx} set=${sx} />
       <div className="link-row" style=${{ marginTop: 8 }}><button type="button" className="btn" onClick=${() => setReportId("job")}>${reportStarted(job, "job") ? "Open the job report" : "Write a report for the customer"}</button></div>
     </div>
 
@@ -4941,7 +5105,19 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <//>
       <${GlasgowChips} items=${GLA_FURTHER} value=${job.further} onAdd=${(t) => setJob((p) => ({ ...p, further: addLine(p.further, t) }))} />
       <${Tick} checked=${!!job.tradeNeeded} onChange=${() => setJob((p) => ({ ...p, tradeNeeded: !p.tradeNeeded }))} label="Another trade is required to attend" />
-      <${InvoiceBlock} get=${gx} set=${sx} text=${invText} filename=${"Invoice-" + invMeta(gx).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf"} pay=${pay} setPay=${setPay}>
+      <${StatusPick} get=${gx} set=${sx} />
+      <${TickSection} on=${!!gx("q:on")} onToggle=${(v) => sx("q:on", v)} title="Quote this repair before doing it" hint="A fixed price for the customer to accept">
+        <${Lbl} label="Customer name" wide=${true}><input className="text-in" type="text" placeholder="Who the quote is for" value=${gx("inv:cust") || ""} onChange=${(e) => sx("inv:cust", e.target.value)} /><//>
+        <${Lbl} label="Work to be done" wide=${true}><textarea className="manual note-ta" placeholder=${[job.jobType, job.issue].filter((x) => String(x || "").trim()).join(": ") || "e.g. Replace the fill valve in the main bathroom toilet"} value=${gx("q:work") || ""} onChange=${(e) => sx("q:work", e.target.value)}></textarea><//>
+        <${Lbl} label="Fixed price for the work (£, optional)"><input className="text-in" type="number" inputMode="decimal" min="0" placeholder="Leave blank to use hours and materials" value=${gx("q:fixed") || ""} onChange=${(e) => sx("q:fixed", e.target.value)} /><//>
+        <p className="note">Uses the hourly rate, materials, callout, day rate and waste charge above, unless you type a fixed price. Valid for 30 days.</p>
+        <div className="link-row" style=${{ marginTop: 8 }}>
+          <${CopyQuote} text=${qText} label="Copy quote" btnCls="btn" />
+          <${SharePdf} sections=${[qText]} filename=${"Quote-" + ((job.where || job.jobType || "repair").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "repair") + ".pdf"} label="Send quote PDF" />
+        </div>
+      <//>
+      <${TermsBlock} get=${gx} set=${sx} terms=${terms} setTerms=${setTerms} />
+      <${InvoiceBlock} get=${gx} set=${sx} profit=${Math.max(jh * jr + extraLines(gx).reduce((a, c) => a + c[1], 0), jc.min - matTotal)} text=${invText} filename=${"Invoice-" + invMeta(gx).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf"} pay=${pay} setPay=${setPay}>
         <${Lbl} label="Customer name for the invoice" wide=${true}><input className="text-in" type="text" placeholder="Who the invoice is for" value=${gx("inv:cust") || ""} onChange=${(e) => sx("inv:cust", e.target.value)} /><//>
       <//>
       ${job.tradeNeeded ? html`<div className="mat-grid indent">
