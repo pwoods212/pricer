@@ -749,6 +749,9 @@ body.kb .undo { bottom: 12px; }
 .usual-btn { display: block; width: 100%; text-align: left; background: var(--panel2); color: var(--ink); border: 1px dashed var(--line2); border-radius: 10px; padding: 9px 12px; margin: 6px 0; font: inherit; font-size: 14px; cursor: pointer; min-height: 44px; }
 .usual-btn b { font-weight: 600; }
 .usual-go { float: right; color: var(--accent); font-weight: 700; }
+.bar-two { display: flex; gap: 8px; flex: 1 1 auto; min-width: 0; justify-content: flex-end; }
+.bar-two .grow { flex: 1 1 0; min-width: 0; }
+.bar-two .btn { width: 100%; padding-left: 8px; padding-right: 8px; white-space: nowrap; }
 /* ---- flatter, calmer layout: fewer boxes, sections divided by space and thin rules ---- */
 body { background: var(--panel); }
 .card, .group, .form-card, .ord-card { background: transparent; border: 0; box-shadow: none; border-radius: 0; }
@@ -2375,7 +2378,10 @@ function ConfirmBtn({ label, armedLabel, onConfirm, cls }) {
 
 const DISCLAIMER_DEFAULT = "This is a provisional estimate based on what could be seen and the information available at the time of the survey. It is not a fixed-price quote, a contract or a guarantee of cost or time. Hidden problems (for example rot, damp, concealed pipework, asbestos or unsuitable structure) may only be found once work starts and could change the price and the time needed. Material prices are as entered on the date shown and may change. Provisional tasks are priced separately as Option B and are only charged if they turn out to be needed once the work is opened up. A written quote must be agreed and accepted by the customer before any work starts, and the final price may be different from this estimate.";
 const DISCLAIMER_DIRECT = "This quote is for the work described in the scope above, based on what could be seen at the survey. If hidden problems are found once the work is opened up (for example rot, damp, concealed pipework or an unsuitable structure), I will tell you and agree any extra cost with you before doing the extra work. Provisional tasks are listed separately and are only charged if they turn out to be needed. The price is fixed for the work listed and the date it is valid until is shown above.";
-const isDirect = (ticks) => !!(ticks && ticks["direct:on"]);
+/* what the app is being used for on this phone: employed work (job notes, estimates for the office) or my own business (quotes and invoices) */
+const USE_KEY = "pricer-use-v1";
+const loadUse = () => { try { return localStorage.getItem(USE_KEY) === "biz" ? "biz" : "emp"; } catch (e) { return "emp"; } };
+const isDirect = (ticks) => (ticks && ticks["direct:on"] !== undefined ? !!ticks["direct:on"] : loadUse() === "biz");
 const disclaimerOf = (ticks) => (ticks && ticks["disc:off"] ? "" : (ticks && typeof ticks["disc:text"] === "string" && ticks["disc:text"].trim() ? ticks["disc:text"].trim() : isDirect(ticks) ? DISCLAIMER_DIRECT : DISCLAIMER_DEFAULT));
 function DisclaimerEdit({ ticks, setTick }) {
   const [edit, setEdit] = useState(false);
@@ -3993,11 +3999,13 @@ async function makeAndSharePdf(sections, filename) {
       if (lines[1]) { para(lines[1].replace("tick [x] when ordered", "tick the box when ordered"), { size: 9.5, color: SOFT }); k = 2; }
       gap(4);
     } else {
+      if (/^JOB NOTES/.test(lines[0] || "")) { bizName = ""; header("Job notes", (lines[0].split(" — ")[1] || "").trim()); k = 1; gap(4); }
+      else {
       bizName = lines[0] || ""; k = 1;
       if (/^INVOICE/.test(lines[1] || "")) { header(bizName || "Invoice", "Invoice"); k = 2; gap(6); }
       else if (/^QUOTATION/.test(lines[1] || "")) { header(bizName || "Quotation", "Quotation"); para("Fixed price for the work described below.", { size: 9.5, color: SOFT, style: "italic" }); k = 2; gap(6); }
       else { header(bizName || "Estimate", "Provisional estimate");
-      if (lines[1]) { para("For the office to prepare the quote. This is not a customer quote.", { size: 9.5, color: SOFT, style: "italic" }); k = 2; gap(6); } }
+      if (lines[1]) { para("For the office to prepare the quote. This is not a customer quote.", { size: 9.5, color: SOFT, style: "italic" }); k = 2; gap(6); } } }
     }
     for (; k < lines.length; k++) {
       const ln = lines[k], t = ln.trim();
@@ -5048,6 +5056,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
   const bulkTotal = (job.bulk || []).reduce((a, x) => a + Math.max(0, Number(x.cost) || 0), 0);
   const setBulk = (id, patch) => setJob((p) => ({ ...p, bulk: (p.bulk || []).map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
   const matTotal = bulkTotal + vanUsedTotal(job) + job.mats.reduce((a, x) => a + (Math.max(0, Number(x.cost) || 0)) * Math.max(1, Math.floor(Number(x.qty)) || 1), 0);
+  const [use, setUse] = useState(loadUse);
   const gx = (k) => (job.x || {})[k];
   const sx = (k, v) => setJob((p) => ({ ...p, x: { ...(p.x || {}), [k]: v } }));
   const [pay, setPay] = usePay();
@@ -5063,7 +5072,9 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
     charges: (qFixed > 0 ? [["Price for the work", qFixed]] : [["Labour", jh * jr], ["Materials", matTotal]]).concat(extraLines(gx)), minCharge: jc.min, terms });
   return html`<div>
     <div className="title-row"><h1>Maintenance Jobs</h1></div>
-    <p className="lead">Fill in what you can, then copy the notes or send an invoice.</p>
+    <p className="lead">Fill in what you can, then copy the notes or send a quote or invoice.</p>
+    <div className="field use-sw"><div className="field-label">Using the app for</div>
+      <${Segmented} options=${[["emp", "Employed work"], ["biz", "My own business"]]} value=${use} onChange=${(v) => { setUse(v); try { localStorage.setItem(USE_KEY, v); } catch (e) { /* storage unavailable */ } }} /></div>
     <${JobStatus} job=${job} />
 
     <${Sec} n="1">The job<//>
@@ -5183,6 +5194,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       ${reportId ? html`<${ReportSheet} id=${reportId} job=${job} setJob=${setJob} biz=${bizName || ""} onClose=${() => setReportId(null)} />` : null}
       <${Drop} title="Job notes preview" sub="what will be copied">
         <pre className="mono" style=${{ whiteSpace: "pre-wrap", fontSize: 13, margin: 0 }}>${text}</pre>
+        <div className="link-row" style=${{ marginTop: 8 }}><${CopyQuote} text=${text} label="Copy job notes" btnCls="btn" /></div>
       <//>
     </div>
 
@@ -5191,8 +5203,14 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
     </div>
 
     <div className="actionbar"><div className="bar-in">
-      <div className="bar-tot"><div className="bar-main">${fmtKit(matTotal)}</div><div className="bar-sub">materials${job.hours !== "" && !isNaN(Number(job.hours)) ? " · " + fmtDays(Number(job.hours)) + " hrs" : ""}</div></div>
-      <${CopyQuote} text=${text} label="Copy job notes" btnCls="btn btn-accent bar-go" />
+      ${use === "biz" ? html`<div className="bar-two">
+          <${SharePdf} sections=${[qText]} filename=${"Quote-" + ((job.where || job.jobType || "repair").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "repair") + ".pdf"} label="Quote PDF" cls="grow" />
+          <${SharePdf} sections=${[invText]} filename=${"Invoice-" + invMeta(gx).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf"} label="Invoice PDF" cls="grow" />
+        </div>`
+        : html`<div className="bar-two">
+          <${CopyQuote} text=${text} label="Copy notes" btnCls="btn btn-dark" cls="grow" />
+          <${SharePdf} sections=${[text]} filename=${"Job-notes-" + ((job.where || job.jobType || "job").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "job") + ".pdf"} label="Notes PDF" cls="grow" />
+        </div>`}
     </div></div>
   </div>`;
 }
