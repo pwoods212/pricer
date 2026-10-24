@@ -3,6 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<script>
+/* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
+(function () { var B = "202610241614"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+  fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
+    var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
+</script>
 <meta name="description" content="Tick-box site survey and job pricer for bathroom refits, with labour hours, materials prices and a provisional estimate to send to the office.">
 <style>
 :root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
@@ -1861,7 +1870,7 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
       pv.hours += h; pv.materials += mat; pv.items.push({ label: e.verb, hours: h, materials: mat });
     });
     const fl = fixtureScope(f.label, st) + noteOf(prices, "fx-" + f.key);
-    const am = tag === "in" && !suiteOn(room, fixtures) && st.alt && st.alt !== stateMode(st) ? st.alt : "";
+    const am = tag === "in" && st.alt && st.alt !== stateMode(st) ? st.alt : "";
     if (am) {
       /* a second price for option 2 (for example replace instead of repair): option 2 swaps this item's work for the other */
       const as = modeState(am), an = fixtureListName(as);
@@ -3490,7 +3499,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
   const extras = active && !state.repair ? room.extras[def.key] || [] : [];
   const nProv = extras.filter((e) => prov["bx-" + e.key]).length;
   const tag = fxTag(prov, def.key);
-  const alt = active && tag === "in" && !su && state.alt && state.alt !== mode ? state.alt : "";
+  const alt = active && tag === "in" && state.alt && state.alt !== mode ? state.alt : "";
   const altName = alt ? (FIX_MODES.find((m) => m[0] === alt) || ["", ""])[1] : "";
   const altSt = alt ? modeState(alt) : null, altList = alt ? room.fixtureKits[def.key][fixtureListName(altSt)] || [] : [];
   const altCost = alt ? survey.kitLines.filter((k) => k.o2 && k.group === def.label + O2_SFX).reduce((a, k) => a + (Number(k.cost) || 0), 0) : 0;
@@ -3503,7 +3512,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
     : v === "fit" ? onChange({ remove: false, fit: true, repair: false, condition: "new" })
     : onChange({ remove: true, fit: true, repair: false, condition: v }));
   const pickAlt = (v) => { onChange({ alt: v }); if (v && tag !== "in") setTag(toggleProv, tag, "in", "pv-fx-" + def.key, "o2-fx-" + def.key); };
-  return html`<${ItemCard} title=${def.label} valueLabel=${modeName} active=${active} sub=${sub} options=${FIX_MODES} value=${mode} onPick=${pick} altValue=${alt} onAlt=${su ? null : pickAlt}>
+  return html`<${ItemCard} title=${def.label} valueLabel=${modeName} active=${active} sub=${sub} options=${FIX_MODES} value=${mode} onPick=${pick} altValue=${alt} onAlt=${pickAlt}>
     ${false ? html`<p className="gla-hint">${GLA_HINTS[def.key]}</p>` : null}
     <${HoursInput} label=${hrsLabel} value=${hrRaw(hrs, hk, fxDefH(state))} onChange=${(v) => setHr(hk, v)} />
     ${active && !alt ? html`<${PriceAs} value=${tag} onPick=${(v) => setTag(toggleProv, tag, v, "pv-fx-" + def.key, "o2-fx-" + def.key)} />` : null}
@@ -3526,7 +3535,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
         <${KitList} list=${altList} prefix=${def.key + "-" + fixtureListName(altSt)} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />` : null}
       <${ExtraBlock} group=${def.label + O2_SFX} title=${"Option 2 extra materials (" + altName.toLowerCase() + ")"} />
       ${altCost > 0 ? html`<p className="note" style=${{ margin: "4px 0 0" }}>Option 2 materials for this item: ${fmtKit(altCost)}</p>` : null}
-    </div>` : active && tag === "in" && !su ? html`<button type="button" className="linkbtn" style=${{ margin: "4px 0 6px" }} onClick=${() => pickAlt(mode === "repair" ? "new" : "repair")}>+ Give a second price (${mode === "repair" ? "replace" : "repair"} as Option 2)</button>` : null}
+    </div>` : active ? html`<button type="button" className="linkbtn" style=${{ margin: "4px 0 6px" }} onClick=${() => pickAlt(mode === "repair" ? "new" : "repair")}>+ Give a second price (${mode === "repair" ? "replace" : "repair"} as Option 2)</button>` : null}
     <${DescField} id=${"fx-" + def.key} />
   <//>`;
 }
