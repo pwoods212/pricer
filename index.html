@@ -739,6 +739,7 @@ body.kb .undo { bottom: 12px; }
 .van-re { display: flex; align-items: center; gap: 6px; font-size: 14px; margin-right: auto; }
 .mute { color: var(--muted); font-weight: 400; }
 .actionbar .btn-dark { background: var(--panel2); color: var(--ink); border-color: var(--line2); }
+.btn.btn-armed, .btn-armed { background: var(--bad); color: #1A1B1D; border-color: var(--bad); font-weight: 700; box-shadow: 0 0 0 3px rgba(242, 118, 110, 0.25); }
 /* ---- flatter, calmer layout: fewer boxes, sections divided by space and thin rules ---- */
 body { background: var(--panel); }
 .card, .group, .form-card, .ord-card { background: transparent; border: 0; box-shadow: none; border-radius: 0; }
@@ -2356,7 +2357,7 @@ const localYmd = () => { const d = new Date(); return d.getFullYear() + "-" + St
 function ConfirmBtn({ label, armedLabel, onConfirm, cls }) {
   const [armed, setArmed] = useState(false);
   useEffect(() => { if (!armed) return undefined; const t = setTimeout(() => setArmed(false), 5000); return () => clearTimeout(t); }, [armed]);
-  return html`<button type="button" className=${(cls || "btn") + (armed ? " btn-dark" : "")} onClick=${() => { if (!armed) { setArmed(true); return; } setArmed(false); onConfirm(); }}>${armed ? armedLabel : label}</button>`;
+  return html`<button type="button" className=${(cls || "btn") + (armed ? " btn-armed" : "")} onClick=${() => { if (!armed) { setArmed(true); return; } setArmed(false); onConfirm(); }}>${armed ? armedLabel : label}</button>`;
 }
 
 const DISCLAIMER_DEFAULT = "This is a provisional estimate based on what could be seen and the information available at the time of the survey. It is not a fixed-price quote, a contract or a guarantee of cost or time. Hidden problems (for example rot, damp, concealed pipework, asbestos or unsuitable structure) may only be found once work starts and could change the price and the time needed. Material prices are as entered on the date shown and may change. Provisional tasks are priced separately as Option B and are only charged if they turn out to be needed once the work is opened up. A written quote must be agreed and accepted by the customer before any work starts, and the final price may be different from this estimate.";
