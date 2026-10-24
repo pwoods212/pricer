@@ -2084,7 +2084,7 @@ const GLASGOW_TIPS = {
     "Gas appliances: Gas Safe registered engineers only. Electrics: SELECT, NICEIC or NAPIT registered electricians only. Put these under Trade needed.",
     "Tenement flat: record floor/door (such as 2/1), the stair door code and whether a neighbour above or below is affected."]
 };
-function GlasgowTips({ kind }) {
+function GlasgowTips({ kind }) { return null; /* decluttered */ 
   const L = GLASGOW_TIPS[kind] || [];
   return html`<details className="gtips"><summary>Glasgow and tenement notes</summary>
     <ul>${L.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul>
@@ -2881,7 +2881,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
     : v === "fit" ? onChange({ remove: false, fit: true, repair: false, condition: "new" })
     : onChange({ remove: true, fit: true, repair: false, condition: v }));
   return html`<${ItemCard} title=${def.label} valueLabel=${modeName} active=${active} sub=${sub} options=${FIX_MODES} value=${mode} onPick=${pick}>
-    ${GLA_HINTS[def.key] ? html`<p className="gla-hint">${GLA_HINTS[def.key]}</p>` : null}
+    ${false ? html`<p className="gla-hint">${GLA_HINTS[def.key]}</p>` : null}
     <${HoursInput} label=${hrsLabel} value=${hrRaw(hrs, hk, fxDefH(state))} onChange=${(v) => setHr(hk, v)} />
     ${su && active ? html`<${SuitePanel} def=${def} state=${state} onChange=${onChange} fixtures=${fixtures} tier=${tier} />` : null}
     ${!su && list.length > 0 ? html`<div>
@@ -3013,7 +3013,7 @@ function pushRecent(kind, val) {
   } catch (e) { /* storage unavailable */ }
 }
 /* small one-tap suggestions under an empty field: your own recent entries first, then any fixed starters */
-function RecentChips({ kind, value, onPick, starters, label }) {
+function RecentChips({ kind, value, onPick, starters, label }) { return null; /* decluttered */ 
   if (String(value || "").trim()) return null;
   const seen = new Set();
   const list = loadRecent(kind).concat(starters || []).filter((x) => { const k = x.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 5);
@@ -3031,7 +3031,7 @@ function goTo(id) {
   } catch (e) { /* ignore */ }
 }
 /* steps: [{ id: element id to jump to, label, next: wording for the Next button, done, opt }]. Optional steps are shown but not counted. */
-function JobProgress({ title, steps, doneText, onDone, doneLabel }) {
+function JobProgress({ title, steps, doneText, onDone, doneLabel }) { return null; /* decluttered */ 
   const req = steps.filter((s) => !s.opt);
   const left = req.filter((s) => !s.done);
   const n = req.length - left.length;
@@ -3089,7 +3089,7 @@ const GLA_HINTS = {
   ktap: "On site: check the isolation valves under the sink work. Older flats may have none."
 };
 function addLine(cur, txt) { const c = String(cur || "").replace(/\s+$/, ""); return c ? c + "\n" + txt : txt; }
-function GlasgowChips({ items, value, onAdd, mode }) {
+function GlasgowChips({ items, value, onAdd, mode }) { return null; /* decluttered */ 
   const cur = String(value || "");
   return html`<div className="gchips">${items.map((it) => { const lbl = Array.isArray(it) ? it[0] : it; const txt = Array.isArray(it) ? it[1] : it; const key = txt.split("[fill in]")[0]; const has = mode === "set" ? cur === txt : cur.indexOf(key) >= 0;
     return html`<button type="button" key=${lbl} aria-pressed=${has} className=${"gchip" + (has ? " on" : "")} onClick=${() => { if (!has) onAdd(txt); }}>${has ? "Added: " : "+ "}${lbl}</button>`; })}${cur.indexOf("[fill in]") >= 0 ? html`<p className="gchip-warn">Replace each [fill in] with the real detail before you copy or send.</p>` : null}</div>`;
@@ -4303,7 +4303,7 @@ function jobStatus(j) {
   return { title, tone, next, missing, steps: flowSteps(["Logged", "Work done", "Fixed", "Closed"], flags) };
 }
 const JOB_QUICK = ["Leaking tap", "Leak under sink", "No hot water", "Radiator fault", "Blocked toilet or drain", "Damp or mould report", "Landlord safety checks visit"];
-function JobStatus({ job }) {
+function JobStatus({ job }) { return null; /* decluttered */ 
   const st = jobStatus(job);
   const ticked = CHECKS.filter((c) => job.checks && job.checks[c[0]]);
   const states = ticked.map((c) => [c, checkState(job, c)]);
@@ -4344,7 +4344,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
     <${Sec} n="1">The job<//>
     <div className="card">
       ${inp("jobType", "What was the job?", "e.g. Leaking tap repair", "mj-type")}
-      ${!(job.jobType || "").trim() ? html`<div className="qpicks" role="group" aria-label="Quick job types">${JOB_QUICK.map((q) => html`<button type="button" key=${q} className="qpick" onClick=${() => setJob((p) => ({ ...p, jobType: q }))}>${q}</button>`)}</div>` : null}
+      ${false ? html`<div className="qpicks" role="group" aria-label="Quick job types">${JOB_QUICK.map((q) => html`<button type="button" key=${q} className="qpick" onClick=${() => setJob((p) => ({ ...p, jobType: q }))}>${q}</button>`)}</div>` : null}
       <div className="field"><label className="field-label" htmlFor="mj-date">Date</label>
         <div className="link-row"><input id="mj-date" className="text-in grow" type="date" value=${job.date} onChange=${set("date")} />
           <button type="button" className="btn" onClick=${() => setJob((p) => ({ ...p, date: localYmd() }))}>Today</button>
@@ -4500,7 +4500,7 @@ function AppHeader({ businessName }) {
   </div>`;
 }
 
-function HomeCard() {
+function HomeCard() { return null; /* decluttered */ 
   /* remembers whether it was folded away (this phone only; the app never needs it) */
   const [shut, setShut] = useState(() => { try { return window.localStorage.getItem("jp_home_shut") !== "0"; } catch (e) { return true; } });
   const onToggle = (e) => { const o = e.currentTarget.open; setShut(!o); try { window.localStorage.setItem("jp_home_shut", o ? "0" : "1"); } catch (err) { /* ignore */ } };
