@@ -9,7 +9,7 @@
 <script>window.PRICER_TEAM = true;</script>
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610251636"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610251733"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -755,6 +755,11 @@ body.kb .undo { bottom: 12px; }
 .kind-tag.st-paid { background: var(--ok); color: #1A1B1D; }
 
 .usual-list { margin: 8px 0; }
+.item { scroll-margin-top: 72px; }
+.qty-line { display: flex; align-items: center; gap: 8px; margin: 2px 0 8px; font-size: 13px; color: var(--muted); }
+.qty-line b { min-width: 18px; text-align: center; color: var(--ink); font-family: var(--font-mono); font-size: 14px; }
+.qty-b { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line2); background: transparent; color: var(--ink2); font: inherit; font-size: 16px; line-height: 1; cursor: pointer; padding: 0; }
+.qty-b:disabled { opacity: 0.35; cursor: default; }
 .blr-hrs { margin: -4px 0 10px; padding-left: 10px; border-left: 2px solid var(--accent); }
 .hub { background: var(--panel); border: 1.5px solid var(--accent); border-radius: 12px; padding: 12px; margin: 4px 0 14px; display: grid; gap: 10px; }
 .hub-search { display: flex; align-items: center; gap: 8px; background: var(--field); border: 1.5px solid var(--line2); border-radius: 10px; padding: 0 12px; min-height: 52px; }
@@ -2673,9 +2678,13 @@ function ItemCard({ title, valueLabel, active, sub, options, value, onPick, altV
   const [pick, setPick] = useState(false);
   const [foldOpen, setFoldRaw] = useState(false);
   const me = useRef(Math.random());
+  const box = useRef(null);
   useEffect(() => { const f = (e) => { if (e.detail !== me.current) setFoldRaw(false); }; window.addEventListener("jobpricer:itemopen", f); return () => window.removeEventListener("jobpricer:itemopen", f); }, []);
-  const setFoldOpen = (v) => { setFoldRaw(v); if (v) { try { window.dispatchEvent(new CustomEvent("jobpricer:itemopen", { detail: me.current })); } catch (e) { /* ignore */ } } };
-  return html`<div className=${"item" + (active ? " active" : "")}>
+  /* opening an item closes the one that was open; if that was above, the page would jump, so keep this item's heading in view */
+  const keepInView = () => { const go = () => { const el = box.current; if (!el) return; const r = el.getBoundingClientRect(); if (r.top < 60 || r.top > window.innerHeight * 0.5) el.scrollIntoView({ block: "start" }); };
+    try { requestAnimationFrame(() => requestAnimationFrame(go)); } catch (e) { setTimeout(go, 50); } };
+  const setFoldOpen = (v) => { setFoldRaw(v); if (v) { try { window.dispatchEvent(new CustomEvent("jobpricer:itemopen", { detail: me.current })); } catch (e) { /* ignore */ } keepInView(); } };
+  return html`<div className=${"item" + (active ? " active" : "")} ref=${box}>
     <button type="button" className="item-head" aria-haspopup="dialog" onClick=${() => setPick(true)}>
       <span className="item-main"><span className="item-title">${title}</span>${sub ? html`<span className="item-sub">${sub}</span>` : null}</span>
       <span className=${"chip" + (active ? " on" : "")}>${valueLabel}</span><${Icon} name="chevr" />
@@ -3768,12 +3777,18 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
   return html`<${ItemCard} title=${def.label} valueLabel=${modeName} active=${active} sub=${sub} options=${FIX_MODES} value=${mode} onPick=${pick} altValue=${alt} onAlt=${pickAlt}>
     ${false ? html`<p className="gla-hint">${GLA_HINTS[def.key]}</p>` : null}
     <${CheckTips} items=${ITEM_CHECKS[def.key]} />
-    ${QTY_FX[def.key] && active && !su ? html`<${Lbl} label=${"How many " + (def.key === "hvalve" ? "pairs of valves" : def.label.toLowerCase().replace(/ \(.*\)/, "") + (/s$/.test(def.label) ? "" : "s")) + "?"}><${NumStepper} value=${state.n === "" ? "" : String(nQ)} placeholder="1" onChange=${(v) => {
-      if (String(v).trim() === "") { onChange({ n: "" }); return; }
-      const nn = Math.min(30, Math.max(1, Math.floor(Number(v)) || 1));
-      /* hours typed for the old quantity are scaled to the new one */
-      [hk, "fxa-" + def.key].forEach((k) => { const old = hrs && hrs[k]; if (old !== undefined && old !== "" && !isNaN(Number(old)) && nQ > 0) setHr(k, String(Math.round(Number(old) / nQ * nn * 4) / 4)); });
-      onChange({ n: String(nn) }); }} step=${1} dp=${0} start=${1} max=${30} label=${"How many " + def.label} /><//>` : null}
+    ${QTY_FX[def.key] && active && !su ? (() => {
+      const setN = (nn) => { nn = Math.min(30, Math.max(1, nn));
+        /* hours typed for the old quantity are scaled to the new one */
+        [hk, "fxa-" + def.key].forEach((k) => { const old = hrs && hrs[k]; if (old !== undefined && old !== "" && !isNaN(Number(old)) && nQ > 0) setHr(k, String(Math.round(Number(old) / nQ * nn * 4) / 4)); });
+        onChange({ n: String(nn) }); };
+      const what = def.key === "hvalve" ? "pairs" : "of these";
+      return html`<div className="qty-line"><span>Quantity</span>
+        <button type="button" className="qty-b" aria-label="One fewer" disabled=${nQ <= 1} onClick=${() => setN(nQ - 1)}>−</button>
+        <b aria-live="polite">${nQ}</b>
+        <button type="button" className="qty-b" aria-label="One more" disabled=${nQ >= 30} onClick=${() => setN(nQ + 1)}>+</button>
+        ${nQ > 1 ? html`<span className="qty-hint">${what === "pairs" ? "pairs" : ""}</span>` : null}</div>`;
+    })() : null}
     <${HoursInput} label=${nQ > 1 ? hrsLabel + " (all " + nQ + ")" : hrsLabel} value=${hrRaw(hrs, hk, fxDefH(state, def.key) * nQ)} onChange=${(v) => setHr(hk, v)} />
     ${mode === "fit" || mode === "new" ? custTick : null}
     ${active && !alt ? html`<${PriceAs} value=${tag} onPick=${(v) => setTag(toggleProv, tag, v, "pv-fx-" + def.key, "o2-fx-" + def.key)} />` : null}
