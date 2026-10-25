@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610250544"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610250757"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -767,6 +767,15 @@ body.kb .undo { bottom: 12px; }
 .biz-show { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
 .cust-show { font-size: 15px; padding: 3px 0; }
 .warn-t { color: var(--warn); }
+
+.chk-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
+.chk-chip { background: var(--panel2); color: var(--ink); border: 1px solid var(--line2); border-radius: 999px; padding: 10px 14px; font: inherit; font-size: 14.5px; min-height: 44px; cursor: pointer; }
+.chk-chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+.chk-card { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; }
+.chk-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+
+.blr { border-left: 3px solid var(--accent) !important; padding-left: 12px !important; margin-top: 8px; }
+.blr-h { font-weight: 700; font-size: 17px; margin-bottom: 4px; }
 /* ---- flatter, calmer layout: fewer boxes, sections divided by space and thin rules ---- */
 body { background: var(--panel); }
 .card, .group, .form-card, .ord-card { background: transparent; border: 0; box-shadow: none; border-radius: 0; }
@@ -1629,6 +1638,7 @@ const KITCHEN = { title: "Kitchen Survey", fixturesLabel: "Plumbing & Appliances
   structural: KITCHEN_STRUCTURAL_ITEMS, structuralKits: KITCHEN_STRUCTURAL_KITS, extras: { sink: KITCHEN_EXTRAS } };
 /* ---------- Heating (wet central heating; boilers and other gas work stay in the gas section) ---------- */
 const HEAT_FIXTURE_ITEMS = [
+  { key: "boiler", label: "Boiler" },
   { key: "hrad", label: "Radiator" },
   { key: "htowel", label: "Heated Towel Rail" },
   { key: "hvalve", label: "Radiator Valves / TRVs" },
@@ -1645,6 +1655,10 @@ const H_JOINT = { l: "Olives, PTFE and fittings", p: 6 };
 const H_INHIB = { l: "Inhibitor top-up", p: 15, opt: true };
 const H_CAPS = [{ l: "Caps / push-fit stops", p: 6 }, H_INHIB];
 const HEAT_FIXTURE_KITS = {
+  boiler: { fitNew: [{ l: "New boiler", p: { budget: 850, mid: 1300, premium: 2000 } }, { l: "Flue kit (standard horizontal)", p: 90 }, { l: "Gas isolation valve", p: 15 }, { l: "Filling loop (combi or system)", p: 15, opt: true },
+      { l: "PRV discharge pipe and fittings", p: 20 }, { l: "Condensate fittings", p: 12 }, { l: "System cleaner", p: 20 }, { l: "Inhibitor", p: 15 }, { l: "Brackets, fixings and sundries", p: 15 }, { l: "Programmer or room thermostat", p: { budget: 40, mid: 120, premium: 220 }, opt: true }],
+    fitOld: [{ l: "Seals, washers and fittings", p: 20 }, { l: "Inhibitor", p: 15 }], removedOnly: [{ l: "Caps and blanking", p: 10 }],
+    repair: hRep(["Diverter valve", "PCB / control board", "Fan", "Pump", "Gas valve", "Expansion vessel recharged", "Pressure sensor", "Ignition or flame sensing electrode", "Heat exchanger cleaned", "Condensate trap cleared"]) },
   get hwtank() { return FIXTURE_KITS.hwtank; },
   hrad: { fitNew: [{ l: "Radiator (double panel)", p: { budget: 60, mid: 95, premium: 180 } }, { l: "TRV and lockshield valve (pair)", p: 18 }, { l: "Brackets and fixings", p: 6 }, H_INHIB, ...PIPE_CHOICE],
     fitOld: [H_JOINT, { l: "TRV and lockshield valve (pair)", p: 18, opt: true }, H_INHIB], removedOnly: H_CAPS,
@@ -1672,6 +1686,18 @@ const HEAT_FIXTURE_KITS = {
     repair: hRep(["Expansion vessel recharged", "Filling loop washers", "Pressure gauge"]) },
 };
 const HEAT_STRUCTURAL_ITEMS = [
+  { key: "bConv", label: "System Conversion", verb: "System conversion", group: "plumbing",
+    options: [["none", "None"], ["backb", "Remove back boiler (and fire)"], ["gravity", "Gravity-fed to combi (remove tanks and cylinder)"], ["sysToCombi", "System or regular to combi (remove cylinder)"], ["toSystem", "Change to system boiler with cylinder"]] },
+  { key: "bGas", label: "Gas Supply to Boiler", verb: "Gas supply", group: "plumbing",
+    options: [["none", "No change (like for like)"], ["up22", "Upgrade 15mm to 22mm"], ["newrun", "New gas run from the meter"]] },
+  { key: "bPipe", label: "Boiler Pipework", verb: "Boiler pipework", group: "plumbing",
+    options: [["none", "Exact same (like for like)"], ["alter", "Needs altered"], ["move", "Boiler moving to a new position"]] },
+  { key: "bFlue", label: "Flue", verb: "Flue", group: "plumbing",
+    options: [["none", "Standard kit, same position"], ["ext", "Flue extension"], ["vert", "Vertical flue"], ["plume", "Plume kit"], ["newpos", "New flue position (make good old hole)"]] },
+  { key: "bCond", label: "Condensate Pipe", verb: "Condensate", group: "plumbing",
+    options: [["none", "Existing condensate is fine"], ["int", "New run to an internal waste"], ["ext", "New external run (32mm, insulated)"], ["soak", "Soakaway needed"]] },
+  { key: "bPump", label: "Condensate Pump", verb: "Condensate pump", group: "plumbing",
+    options: [["none", "Not needed"], ["yes", "Fit a condensate pump"]] },
   { key: "hflush", label: "System Clean", verb: "Heating system clean", group: "plumbing",
     options: [["none", "None"], ["chem", "Chemical cleanse and inhibitor"], ["power", "Power flush"]], days: { chem: 0.5, power: 1 } },
   { key: "hpipe", label: "Pipework", verb: "Heating pipework", group: "plumbing",
@@ -1682,6 +1708,13 @@ const HEAT_STRUCTURAL_ITEMS = [
     options: [["none", "None"], ["some", "A few boards"], ["many", "Most of a room"]], days: { some: 0.25, many: 1 } },
 ];
 const HEAT_STRUCTURAL_KITS = {
+  bConv: { backb: [{ l: "Caps and blanking", p: 15 }, { l: "Making good materials", p: 30, opt: true }], gravity: [{ l: "Caps and fittings for tanks and cylinder", p: 25 }, { l: "Pipe and fittings to reconnect", p: 40 }],
+    sysToCombi: [{ l: "Caps and fittings", p: 20 }, { l: "Pipe and fittings", p: 30 }], toSystem: [{ l: "Pipe and fittings", p: 40 }, { l: "Cylinder (price separately if needed)", p: 0, opt: true }] },
+  bGas: { up22: [{ l: "22mm copper pipe", p: 35 }, { l: "22mm fittings", p: 20 }, { l: "Pipe clips", p: 6 }], newrun: [{ l: "22mm copper pipe", p: 60 }, { l: "Fittings", p: 30 }, { l: "Clips and wall sleeves", p: 12 }] },
+  bPipe: { alter: [{ l: "Copper pipe and fittings", p: 40 }], move: [{ l: "Copper pipe and fittings", p: 90 }, { l: "Clips", p: 10 }, { l: "Making good materials", p: 20, opt: true }] },
+  bFlue: { ext: [{ l: "Flue extension", p: 45 }], vert: [{ l: "Vertical flue kit", p: 180 }, { l: "Roof flashing", p: 40 }], plume: [{ l: "Plume management kit", p: 70 }], newpos: [{ l: "Making good materials", p: 20 }] },
+  bCond: { int: [{ l: "21.5mm pipe and fittings", p: 12 }, { l: "Waste connector / trap", p: 10 }], ext: [{ l: "32mm pipe and fittings", p: 20 }, { l: "Pipe insulation", p: 10 }], soak: [{ l: "Soakaway materials", p: 60 }] },
+  bPump: { yes: [{ l: "Condensate pump", p: 70 }, { l: "Pipe and fittings", p: 10 }] },
   hflush: { chem: [{ l: "System cleaner", p: 20 }, { l: "Inhibitor", p: 15 }], power: [{ l: "System cleaner", p: 20 }, { l: "Inhibitor", p: 15 }, { l: "Power flush machine (own or hire)", p: 0, opt: true }] },
   hpipe: { alter: [{ l: "Pipe and fittings", p: 30 }, { l: "Clips", p: 5 }, { l: "Pipe insulation", p: 8, opt: true }], new: [{ l: "Copper or plastic pipe", p: 60 }, { l: "Fittings", p: 30 }, { l: "Clips", p: 8 }, { l: "Pipe insulation", p: 15, opt: true }] },
   hbal: { yes: [] },
@@ -1717,8 +1750,11 @@ function fixtureScope(label, st) {
 const HPD = 8; // hours in a trade day
 const DEF_H = 2; // most hours boxes start at 2 hours
 /* starting hours only: remove-and-fit jobs and floor repairs / replacements start at 4. Every box can still be changed up or down. */
-const fxDefH = (st) => (st && st.remove && st.fit && !st.repair ? 4 : DEF_H);
-const stDefH = (key, val) => (["floor", "joists", "plywood"].indexOf(key) > -1 && (val === "partial" || val === "full") ? 4 : DEF_H);
+const FX_H = { boiler: { both: 12, fit: 10, remove: 3, repair: 2 } };
+const fxDefH = (st, key) => { const h = FX_H[key]; if (h && st) { if (st.repair) return h.repair; if (st.remove && st.fit) return h.both; if (st.fit) return h.fit; if (st.remove) return h.remove; } return st && st.remove && st.fit && !st.repair ? 4 : DEF_H; };
+const ST_H = { bGas: { up22: 4, newrun: 8 }, bPipe: { alter: 4, move: 10 }, bFlue: { ext: 1, vert: 6, plume: 1, newpos: 4 }, bCond: { int: 1, ext: 2, soak: 6 }, bPump: { yes: 1.5 }, bConv: { backb: 8, gravity: 8, sysToCombi: 4, toSystem: 8 } };
+const stDefH = (key, val) => (ST_H[key] && ST_H[key][val] !== undefined ? ST_H[key][val] : stDefH0(key, val));
+const stDefH0 = (key, val) => (["floor", "joists", "plywood"].indexOf(key) > -1 && (val === "partial" || val === "full") ? 4 : DEF_H);
 const noteOf = (prices, k) => { const n = prices && typeof prices["desc:" + k] === "string" ? prices["desc:" + k].trim() : ""; return n ? "\n" + n : ""; };
 let _catMap = null;
 const catRow = (name) => { if (!_catMap) { _catMap = {}; CATALOG.forEach((r) => { _catMap[r[0]] = r; }); } return _catMap[name] || null; };
@@ -1844,7 +1880,7 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
     const tag = fxTag(prov, f.key);
     const grp = f.label + tagSfx(tag);
     const tf = tag === "in" ? {} : { prov: true, o2: tag === "o2" };
-    let fh = hrOf(hrs, "fx-" + f.key, fxDefH(st)), fm = 0;
+    let fh = hrOf(hrs, "fx-" + f.key, fxDefH(st, f.key)), fm = 0;
     const lname = fixtureListName(st);
     if (suiteOn(room, fixtures)) suiteItems(fixtures, tier, f.key).forEach((it) => {
       const cov = !!(prices && prices["cov:" + it.id]);
@@ -1880,7 +1916,7 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
     if (am) {
       /* a second price for option 2 (for example replace instead of repair): option 2 swaps this item's work for the other */
       const as = modeState(am), an = fixtureListName(as);
-      let ah = hrOf(hrs, "fxa-" + f.key, fxDefH(as)), amt = 0;
+      let ah = hrOf(hrs, "fxa-" + f.key, fxDefH(as, f.key)), amt = 0;
       (room.fixtureKits[f.key][an] || []).forEach((it, i) => {
         const id = f.key + "-" + an + "-" + i;
         if (!kitOn(kit, id, it)) return;
@@ -3547,6 +3583,7 @@ const ITEM_CHECKS = {
   ktap: ["Tap tails and connectors", "Isolation valves work", "Mixer type and hole size"],
   dishwasher: ["Appliance valve and waste connection", "Space and level in the gap"],
   washer: ["Appliance valve and waste connection", "Space and level in the gap"],
+  boiler: ["Gas pipe size and length from the meter (big enough for the new boiler?)", "Flue route and clearances from windows, doors and boundaries", "Condensate route: internal waste nearby, or an external run", "For a combi: water pressure and flow at the kitchen tap", "What is in the loft or cupboard that can come out (tanks, cylinder)"],
   hwtank: ["Tank size and where it sits (cupboard, loft)", "Immersion and thermostat working", "Electrics in good order (electrician if not)", "How the old tank gets out of the building"],
   hrad: ["Do the valves shut off?", "Size and pipe centres of the existing radiator", "Bleed it and feel for cold spots or sludge", "Sealed or open-vented system?"],
   htowel: ["Wet only or dual fuel?", "Valve type and pipe centres"],
@@ -3574,6 +3611,53 @@ function CheckTips({ items, title }) {
     <ul className="chk-list">${items.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul>
   <//>`;
 }
+
+/* boiler survey: quick questions that set the priced items below, plus the commissioning checklist */
+const BLR_NOW = [["combi", "Combi"], ["system", "System"], ["regular", "Regular"], ["back", "Back boiler"], ["gravity", "Gravity-fed"], ["none", "None"]];
+const BLR_NEW = [["combi", "Combi"], ["system", "System"], ["regular", "Regular"]];
+const BLR_DONE = [["inhib", "Inhibitor added"], ["filter", "Magnetic filter fitted or cleaned"], ["flush", "System cleaned or flushed"], ["comm", "Boiler commissioned (Benchmark completed)"], ["gsafe", "Gas Safe notified"], ["warranty", "Warranty registered"], ["handover", "Controls shown to the customer"]];
+const bLabel = (list, v) => { const o = list.find((x) => x[0] === v); return o ? o[1] : ""; };
+function boilerScope(prices, fixtures, part) {
+  const g = (k) => (prices || {})["blr:" + k], L = [];
+  const st = fixtures && fixtures.boiler, fitting = !!(st && st.fit && !st.repair);
+  const now = g("now"), nw = g("new"), mm = String(g("model") || "").trim();
+  if (now || nw) L.push([now ? "Existing system: " + bLabel(BLR_NOW, now).toLowerCase() + (now === "none" ? "" : " boiler") : "", nw ? "New boiler: " + bLabel(BLR_NEW, nw).toLowerCase() + (mm ? " (" + mm + ")" : "") : ""].filter(Boolean).join(". ").replace("gravity-fed boiler", "gravity-fed system"));
+  if (fitting) L.push("Commission the boiler, complete the Benchmark checklist, register the warranty and notify Gas Safe (gas work by a Gas Safe registered engineer)");
+  const done = BLR_DONE.filter(([k]) => g("done:" + k)).map((x) => x[1].toLowerCase());
+  if (done.length) L.push("Completed: " + done.join("; "));
+  return part === "head" ? L.slice(0, now || nw ? 1 : 0) : part === "tail" ? L.slice(now || nw ? 1 : 0) : L;
+}
+function BoilerBlock({ fixtures, structural, updateFixture, updateStructural }) {
+  const pc = React.useContext(PriceCtx);
+  const g = (k) => pc.prices["blr:" + k], sv = (k, v) => pc.setPrice("blr:" + k, v);
+  const st = fixtures.boiler || {}, active = !!(st.remove || st.fit || st.repair);
+  const seg = (k, opts, onPick) => html`<${Segmented} options=${opts} value=${g(k) || ""} onChange=${(v) => { const nv = g(k) === v ? "" : v; sv(k, nv); if (onPick) onPick(nv); }} />`;
+  const conv = (now, nw) => { if (!now || !nw) return; const c = now === "back" ? "backb" : now === "gravity" && nw === "combi" ? "gravity" : (now === "system" || now === "regular") && nw === "combi" ? "sysToCombi" : (now === "combi" && nw === "system") ? "toSystem" : "none"; updateStructural("bConv", c); };
+  const q = (label, inner) => html`<div className="field"><div className="field-label">${label}</div>${inner}</div>`;
+  const yn = [["yes", "Yes"], ["no", "No"]];
+  const nDone = BLR_DONE.filter(([k]) => g("done:" + k)).length;
+  const on = !!(g("on") || g("now") || g("new") || active);
+  return html`<div className="card blr"><${TickSection} on=${on} onToggle=${(v) => sv("on", v)} title="Boiler install or replacement" hint="Quick questions for a boiler quote">
+    <p className="note" style=${{ marginTop: 0 }}>Answer what you can. Your answers set the boiler, gas, pipework, flue and condensate items below, which you can still change.</p>
+    ${q("What is there now?", seg("now", BLR_NOW, (v) => conv(v, g("new"))))}
+    ${q("New boiler", seg("new", BLR_NEW, (v) => { conv(g("now"), v); if (v && !active) updateFixture("boiler", modeState(g("now") && g("now") !== "none" ? "new" : "fit")); }))}
+    <${Lbl} label="Make and model (optional)" wide=${true}><input className="text-in" type="text" placeholder="e.g. Worcester Bosch 4000 30kW" value=${g("model") || ""} onChange=${(e) => sv("model", e.target.value)} /><//>
+    <${Lbl} label="Where is the boiler now? (and where is it going)" wide=${true}><input className="text-in" type="text" placeholder="e.g. Kitchen cupboard, staying the same" value=${g("where") || ""} onChange=${(e) => sv("where", e.target.value)} /><//>
+    ${q("Gas pipe to the boiler", html`<${Segmented} options=${[["none", "Like for like"], ["up22", "Upgrade to 22mm"], ["newrun", "New run"]]} value=${structural.bGas || "none"} onChange=${(v) => updateStructural("bGas", v)} />`)}
+    ${q("Boiler pipework", html`<${Segmented} options=${[["none", "Exact same"], ["alter", "Needs altered"], ["move", "Moving"]]} value=${structural.bPipe || "none"} onChange=${(v) => updateStructural("bPipe", v)} />`)}
+    ${q("Is there a condensate pipe already?", seg("condNow", yn, (v) => { if (v === "yes") updateStructural("bCond", "none"); }))}
+    <${Lbl} label="Where can the condensate tie in?" wide=${true}><input className="text-in" type="text" placeholder="e.g. Kitchen sink waste, 2m away; or outside gully" value=${g("condTie") || ""} onChange=${(e) => sv("condTie", e.target.value)} /><//>
+    ${q("Is there a waste pipe nearby?", seg("waste", yn, (v) => { if (v === "yes" && g("condNow") === "no") updateStructural("bCond", "int"); if (v === "no" && g("condNow") === "no") updateStructural("bCond", "ext"); }))}
+    ${q("Condensate pump needed?", seg("pump", yn, (v) => updateStructural("bPump", v === "yes" ? "yes" : "none")))}
+    ${q("Magnetic filter already fitted?", seg("filter", yn, (v) => { if (v === "no") updateFixture("hfilt", modeState("fit")); if (v === "yes") updateFixture("hfilt", modeState("none")); }))}
+    ${q("Inhibitor in the system?", seg("inhibNow", [["yes", "Yes"], ["no", "No"], ["unknown", "Not sure"]]))}
+    <p className="note">Gas work and commissioning must be done by a Gas Safe registered engineer.</p>
+    <${Drop} bare=${true} title="When the job is done" sub=${nDone ? nDone + " of " + BLR_DONE.length + " ticked" : "commissioning checklist"}>
+      ${BLR_DONE.map(([k, l]) => html`<${Tick} key=${k} checked=${!!g("done:" + k)} onChange=${() => sv("done:" + k, !g("done:" + k))} label=${l} />`)}
+      <p className="note">Ticked items are listed on the invoice.</p>
+    <//>
+  <//></div>`;
+}
 function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, setHr, prov, toggleProv, survey, fixtures }) {
   const su = suiteOn(room, fixtures);
   const pc = React.useContext(PriceCtx);
@@ -3592,7 +3676,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
   const altSt = alt ? modeState(alt) : null, altList = alt ? room.fixtureKits[def.key][fixtureListName(altSt)] || [] : [];
   const altCost = alt ? survey.kitLines.filter((k) => k.o2 && k.group === def.label + O2_SFX).reduce((a, k) => a + (Number(k.cost) || 0), 0) : 0;
   const cost = sumGroups(survey, [def.label + tagSfx(tag)]);
-  const sub = active ? [fmtHrs(hrOf(hrs, hk, fxDefH(state))) + " hrs", cost > 0 ? fmtKit(cost) : pc.bulkOnly ? "in bulk buy" : "no prices yet", tag === "pv" ? "only if needed" : tag === "o2" ? "option 2" : "", nProv ? nProv + " provisional" : "", alt ? "or " + altName.toLowerCase() + " (option 2)" : ""].filter(Boolean).join(" · ") : "";
+  const sub = active ? [fmtHrs(hrOf(hrs, hk, fxDefH(state, def.key))) + " hrs", cost > 0 ? fmtKit(cost) : pc.bulkOnly ? "in bulk buy" : "no prices yet", tag === "pv" ? "only if needed" : tag === "o2" ? "option 2" : "", nProv ? nProv + " provisional" : "", alt ? "or " + altName.toLowerCase() + " (option 2)" : ""].filter(Boolean).join(" · ") : "";
   const modeName = (FIX_MODES.find((m) => m[0] === mode) || FIX_MODES[0])[1];
   const pick = (v) => (v === state.alt ? onChange({ ...modeState(v), alt: "" }) : v === "none" ? onChange({ remove: false, fit: false, repair: false })
     : v === "repair" ? onChange({ remove: false, fit: false, repair: true })
@@ -3603,7 +3687,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
   return html`<${ItemCard} title=${def.label} valueLabel=${modeName} active=${active} sub=${sub} options=${FIX_MODES} value=${mode} onPick=${pick} altValue=${alt} onAlt=${pickAlt}>
     ${false ? html`<p className="gla-hint">${GLA_HINTS[def.key]}</p>` : null}
     <${CheckTips} items=${ITEM_CHECKS[def.key]} />
-    <${HoursInput} label=${hrsLabel} value=${hrRaw(hrs, hk, fxDefH(state))} onChange=${(v) => setHr(hk, v)} />
+    <${HoursInput} label=${hrsLabel} value=${hrRaw(hrs, hk, fxDefH(state, def.key))} onChange=${(v) => setHr(hk, v)} />
     ${active && !alt ? html`<${PriceAs} value=${tag} onPick=${(v) => setTag(toggleProv, tag, v, "pv-fx-" + def.key, "o2-fx-" + def.key)} />` : null}
     ${su && active ? html`<${SuitePanel} def=${def} state=${state} onChange=${onChange} fixtures=${fixtures} tier=${tier} />` : null}
     ${!su && list.length > 0 ? html`<div>
@@ -3619,7 +3703,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
     <${ExtraBlock} group=${def.label} hint=${def.label.toLowerCase().replace(/ \(.*\)/, "")} title=${alt ? "Option 1 extra materials (" + modeName.toLowerCase() + ")" : ""} />
     ${alt ? html`<div className="alt-box">
       <div className="alt-head"><span><b>Option 2:</b> ${altName.toLowerCase()} instead</span><button type="button" className="linkbtn" onClick=${() => onChange({ alt: "" })}>Remove</button></div>
-      <${HoursInput} label=${"Time to " + altName.toLowerCase()} value=${hrRaw(hrs, "fxa-" + def.key, fxDefH(altSt))} onChange=${(v) => setHr("fxa-" + def.key, v)} />
+      <${HoursInput} label=${"Time to " + altName.toLowerCase()} value=${hrRaw(hrs, "fxa-" + def.key, fxDefH(altSt, def.key))} onChange=${(v) => setHr("fxa-" + def.key, v)} />
       ${altList.length ? html`<div className="kit-head">Option 2 kit — ${altName.toLowerCase()}</div>
         <${KitList} list=${altList} prefix=${def.key + "-" + fixtureListName(altSt)} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />` : null}
       <${ExtraBlock} group=${def.label + O2_SFX} title=${"Option 2 extra materials (" + altName.toLowerCase() + ")"} />
@@ -3890,6 +3974,7 @@ function SiteSurveyView(p) {
       <//>
     </div>
 
+    ${room === HEATING ? html`<${BoilerBlock} fixtures=${fixtures} structural=${structural} updateFixture=${updateFixture} updateStructural=${updateStructural} />` : null}
     <${Sec} n="2">${room.fixturesLabel}<//>
     ${room === BATHROOM && window.SUITE ? html`<${SuiteBar} fixtures=${fixtures} tier=${tier} onChange=${(patch) => updateFixture("_suite", patch)} />` : null}
     <div className="group" id="sv-fix">
@@ -4583,7 +4668,17 @@ function useRoom(room, tier) {
    SMALL JOB NOTES
    ===================================================================== */
 // [key, label, months until next check]. Scotland: EICR 5 yrs, Legionella risk assessment review 2 yrs, gas safety yearly; alarms have no fixed interval, yearly is a sensible reminder.
-const CHECKS = [["eicr", "EICR", 60, "every 5 years"], ["lra", "Legionella risk assessment (LRA)", 24, "review every 2 years"], ["gsc", "GSC", 12, "every 12 months"], ["smoke", "Smoke alarm checks", 12, "yearly reminder; test regularly"], ["co", "CO alarm check", 12, "yearly reminder; test regularly"], ["mould", "Mould / damp inspection", 12, "within 10 working days of a report; yearly check"]];
+const CHECK_SHORT = { eicr: "Electrics (EICR)", lra: "Legionella", gsc: "Gas safety", smoke: "Smoke alarms", co: "CO alarms", mould: "Damp / mould" };
+const OBS_PH = {
+  eicr: "e.g. Consumer unit has RCD protection; scorch marks on kitchen socket; last EICR seen dated 2023",
+  gsc: "e.g. Boiler running, no visible issues; gas safety record on file dated 03/2026; no CO alarm in the boiler cupboard",
+  smoke: "e.g. Alarms in living room and hall, linked; no heat alarm in kitchen; landing alarm out of date",
+  co: "e.g. CO alarm by the boiler, tested OK, expires 2029",
+  lra: "e.g. Hot water at the tap 52°C; cold tank in loft has no lid; spare room shower rarely used",
+  mould: "e.g. Black mould on bedroom ceiling corner (about 0.5 m²); window frames wet; bathroom fan not working",
+};
+/* EICR and gas safety records are left out: they are legal paperwork for registered electricians and Gas Safe engineers */
+const CHECKS = [["lra", "Legionella risk assessment (LRA)", 24, "review every 2 years"], ["smoke", "Smoke alarm checks", 12, "yearly reminder; test regularly"], ["co", "CO alarm check", 12, "yearly reminder; test regularly"], ["mould", "Mould / damp inspection", 12, "within 10 working days of a report; yearly check"]];
 /* How-to run-downs for the property checks, for Scottish private rented homes. Guide only: rules change, so each sheet says where to confirm. */
 const CHECK_GUIDE = {
   eicr: { title: "EICR: electrical safety inspection", src: ["Repairing Standard guidance, electrical installations (gov.scot)", "https://www.gov.scot/publications/repairing-standard-statutory-guidance-private-landlords/pages/16/"], blocks: [
@@ -4731,17 +4826,17 @@ const REPORT_FORMS = {
   job: { title: "Job report", short: "Job report",
     intro: "A plain-English report for the customer, landlord or agent: what was found, what is causing it, what was done and what still needs doing.",
     sections: [] },
-  smoke: { title: "Smoke and heat alarm report", short: "Alarm report",
-    intro: "A check of the fire alarms against the Scottish standard: linked alarms, a smoke alarm in the living room and every hall and landing, and a heat alarm in the kitchen.",
+  smoke: { title: "Smoke and heat alarms: what we found", short: "Alarm write-up",
+    intro: "What we saw of the smoke and heat alarms on this visit.",
     sections: [["What we checked", [RQ("s1", "Smoke alarm in the living room (or the room used most)", "no"), RQ("s2", "Smoke alarm in every hall and on every landing", "no"), RQ("s4", "Heat alarm in the kitchen", "no"), RQ("s5", "Alarms linked (they all sound when one is tested)", "no"), RQ("s8", "Every alarm in date and sounding when tested", "no")]]] },
-  co: { title: "Carbon monoxide alarm report", short: "CO alarm report",
-    intro: "A check of the carbon monoxide alarms. One is needed in every room with a boiler, fire or stove that burns fuel.",
+  co: { title: "Carbon monoxide alarms: what we found", short: "CO alarm write-up",
+    intro: "What we saw of the carbon monoxide alarms on this visit.",
     sections: [["What we checked", [RQ("c1", "CO alarm in every room with a boiler, fire or stove", "no"), RQ("c4", "Every CO alarm in date and sounding when tested", "no"), RQ("c2", "Alarms in the right place and not covered", "no")]]] },
-  lra: { title: "Legionella check report", short: "Legionella report",
-    intro: "A check of the water system for conditions that let Legionella bacteria grow: warm standing water, dirty tanks and pipes that are rarely used.",
+  lra: { title: "Water system (Legionella): what we found", short: "Water system write-up",
+    intro: "What we saw of the water system on this visit: temperatures, tanks and little-used outlets.",
     sections: [["What we checked", [RQ("l1", "Hot water stored at 60°C or more", "no"), RX("t1", "Temperature measured at the cylinder or tap (°C)"), RQ("l2", "Hot runs hot and cold runs cold at the taps", "no"), RQ("l3", "Cold water tank clean, lidded and insulated (N/A if none)", "no"), RQ("l4", "No dead legs or unused pipework", "no"), RQ("l5", "Shower heads clean and free of limescale", "no"), RQ("l7", "Little-used taps and showers flushed regularly", "no"), RS("risk", "Overall risk", [["low", "Low"], ["medium", "Medium"], ["high", "High"]])]]] },
-  mould: { title: "Damp and mould report", short: "Damp report",
-    intro: "A look at damp and mould in the home: where it is, what is likely causing it, and what will fix it.",
+  mould: { title: "Damp and mould: what we found", short: "Damp write-up",
+    intro: "What we saw of damp and mould on this visit: where it is, what is likely causing it, and what would fix it.",
     sections: [["Where it is", [RB("areas", "Area", [["room", "Room or area", "tx", 1.2], ["seen", "What you can see", "tx", 1.6], ["cause", "Likely cause", "tx", 1.6]])]],
       ["What we checked", [RQ("m1", "Mould visible", "yes"), RQ("m3", "Condensation on windows or walls", "yes"), RQ("m4", "Leaking pipes, wastes or radiators", "yes"), RQ("m5", "Failed seals around the bath, shower or basin", "yes"), RQ("m7", "Water getting in from outside (roof, gutters, walls)", "yes"), RQ("m9", "Extractor fans working and venting outside", "no"), RQ("m10", "Heating enough to keep the home warm", "no"), RQ("m11", "Enough ventilation (windows, trickle vents)", "no")]]] }
 };
@@ -4936,7 +5031,7 @@ async function makeReportPdf(id, job, biz) {
   if (v.next) textRow("Next check due", v.next, true);
   if (v.signed || v.by || v.company) textRow("Report by", v.signed || v.by || v.company, false);
   y += 4;
-  font("italic", 8.5, SOFT); wrap(id === "job" ? "This report describes what was seen and done on the day." : "This report describes what was seen on the day. It is not a certificate. Rules change, so confirm against current Scottish Government guidance.", W).forEach((ln) => { need(11); doc.text(ln, M, y); y += 11; });
+  font("italic", 8.5, SOFT); wrap(id === "job" ? "This report describes what was seen and done on the day." : "These are observations made during the visit on the date shown, to keep everyone informed.", W).forEach((ln) => { need(11); doc.text(ln, M, y); y += 11; });
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) { doc.setPage(i); font("normal", 8.5, SOFT); stroke(RULE); doc.setLineWidth(0.5); doc.line(M, PH - 40, M + W, PH - 40); doc.text(def.title + (v.site ? " · " + v.site : ""), M, PH - 26); doc.text("Page " + i + " of " + pages, M + W, PH - 26, { align: "right" }); }
   const safe = (v.site || "property").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -5069,11 +5164,13 @@ function jobNoteText(j) {
   if (j.tradeNeeded) L.push("Another trade required to attend: " + ((j.trade || "").trim() || "trade not stated") + ((j.tradeNote || "").trim() ? " — " + j.tradeNote.trim() : ""));
   const req = CHECKS.filter((c) => j.checks && j.checks[c[0]]);
   if (req.length) {
-    L.push("Checks required at this property:");
+    L.push("Property checks:");
     req.forEach((c) => {
       const done = j.done && j.done[c[0]], due = dueOf(j, c);
       const rp = reportStarted(j, c[0]) ? (REPORT_FORMS[c[0]].title + (reportVals(j, c[0], "").outcome ? ": " + optLabel({ t: "sg", o: OUTCOME_OPTS }, reportVals(j, c[0], "").outcome) : "")) : "";
-      L.push("- " + c[1] + (done ? " — completed " + fmtDate(done) : " — not yet completed") + (due ? ", next due " + fmtDate(due) : "") + (rp ? " — report: " + rp : ""));
+      L.push("- " + c[1] + (done ? " — checked " + fmtDate(done) : "") + (due ? ", next due " + fmtDate(due) : "") + (rp ? " — write-up: " + rp : ""));
+      const ob = String((j.x || {})["obs:" + c[0]] || "").trim();
+      if (ob) L.push("  Found: " + ob.replace(/\n/g, " "));
     });
   }
   return L.join("\n");
@@ -5193,7 +5290,28 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <div className="link-row" style=${{ marginTop: 8 }}><button type="button" className="btn" onClick=${() => setReportId("job")}>${reportStarted(job, "job") ? "Open the job report" : "Write a report for the customer"}</button></div>
     </div>
 
-    <${Sec} n="3">Materials<//>
+    <${Sec} n="3">Property checks<//>
+    <div className="card">
+      <p className="note" style=${{ marginTop: 0 }}>Tap any check you looked at on this visit. Write down what you saw so the customer, landlord or agent knows the state of things.</p>
+      <div className="chk-chips" role="group" aria-label="Property checks">
+        ${CHECKS.map((c) => html`<button type="button" key=${c[0]} aria-pressed=${!!job.checks[c[0]]} className=${"chk-chip" + (job.checks[c[0]] ? " on" : "")} onClick=${() => setJob((pp) => ({ ...pp, checks: { ...pp.checks, [c[0]]: !pp.checks[c[0]] } }))}>${CHECK_SHORT[c[0]] || c[1]}</button>`)}
+      </div>
+      ${CHECKS.filter((c) => job.checks[c[0]]).map((c) => html`<div key=${c[0]} className="chk-card">
+        <div className="chk-top"><b>${c[1]}</b><${Pill} tone=${checkState(job, c).tone}>${checkState(job, c).label}<//></div>
+        <div className="field"><label className="field-label" htmlFor=${"obs-" + c[0]}>What did you see?</label>
+          <textarea id=${"obs-" + c[0]} className="manual note-ta" placeholder=${OBS_PH[c[0]] || "What you found, anything that needs attention"} value=${(job.x || {})["obs:" + c[0]] || ""} onChange=${(e) => sx("obs:" + c[0], e.target.value)}></textarea></div>
+        <div className="mat-grid">
+          <${Lbl} label="Date checked"><input className="text-in" type="date" value=${job.done[c[0]] || ""} onChange=${(e) => { const v = e.target.value; setJob((pp) => ({ ...pp, done: { ...pp.done, [c[0]]: v }, due: { ...pp.due, [c[0]]: "" } })); }} /><//>
+          <${Lbl} label="Next due (optional)"><input className="text-in" type="date" value=${dueOf(job, c)} onChange=${(e) => { const v = e.target.value; setJob((pp) => ({ ...pp, due: { ...pp.due, [c[0]]: v } })); }} /><//>
+        </div>
+        <div className="link-row" style=${{ marginTop: 6 }}>
+          ${CHECK_GUIDE[c[0]] ? html`<button type="button" className="btn" onClick=${() => setGuideId(c[0])}>What to look at</button>` : null}
+          ${REPORT_FORMS[c[0]] ? html`<button type="button" className="btn" onClick=${() => setReportId(c[0])}>${reportStarted(job, c[0]) ? "Open write-up" : "Write-up with photos"}</button>` : null}
+        </div>
+      </div>`)}
+    </div>
+
+    <${Sec} n="4">Materials<//>
     <div className="card">
       ${job.mats.map((m) => html`<${MatEditor} key=${m.id} item=${m.item} onItem=${(v) => setMat(m.id, { item: v })} itemPh="What (e.g. cartridge, washers)" startOpen=${!m.item && !m.cost}
         price=${m.cost} onPrice=${(v) => setMat(m.id, { cost: v })} qty=${m.qty || ""} onQty=${(v) => setMat(m.id, { qty: v })} unk=${!!m.unk} onUnk=${(v) => setMat(m.id, { unk: v })} code=${m.code || ""} onCode=${(v) => setMat(m.id, { code: v })} where=${m.where} onWhere=${(v) => setMat(m.id, { where: v })}
@@ -5220,7 +5338,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <p className="note" style=${{ margin: "10px 0 0" }}>Total materials: <b>${fmtKit(matTotal)}</b></p>
     </div>
 
-    <${Sec} n="4">${biz ? "Price" : "Labour"}<//>
+    <${Sec} n="5">${biz ? "Price" : "Labour"}<//>
     <div className="card">
       <${RateBox} on=${effOn} rate=${effRate} onOn=${(v) => setJob((p) => ({ ...p, rateOn: v, x: { ...(p.x || {}), "rate:off": !v } }))} onRate=${(v) => setJob((p) => ({ ...p, rate: v }))} hours=${jh} />
       ${biz ? html`<${ChargeBlock} get=${gx} set=${sx} />
@@ -5228,7 +5346,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <${WasteBlock} get=${gx} set=${sx} />` : null}
     </div>
 
-    <${Sec} n="5">Finish<//>
+    <${Sec} n="6">Finish<//>
     <div className="card">
       <div className="field"><div className="field-label">Where is this job at?</div>
         <${Segmented} options=${biz ? JOB_STATUS : [["progress", "In progress"], ["complete", "Complete"]]} value=${biz ? gx("jobstatus") || "" : job.complete ? "complete" : gx("jobstatus") === "progress" ? "progress" : ""}
@@ -5253,7 +5371,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <//>` : null}
     </div>
 
-    <${Sec} n="6">Orders, property checks and notes<//>
+    <${Sec} n="7">Orders and notes<//>
     <div className="group">
       <${Drop} open=${(job.orders || []).length > 0} title="Orders placed" sub=${(job.orders || []).length ? (job.orders || []).length + " placed" : "supplier, reference, address"}>
       <p className="note">Anything ordered from a supplier for this job, with the order reference and where it is going.</p>
@@ -5264,20 +5382,6 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
         <${Lbl} label="What was ordered" wide=${true}><input className="text-in" type="text" placeholder="e.g. 2 x 15mm ballofix, cartridge" value=${o.items || ""} onChange=${(e) => setOrd(o.id, { items: e.target.value })} /><//>
       <//>`)}
       <${AddBtn} onClick=${() => setJob((p) => ({ ...p, orders: [...(p.orders || []), { id: newId(), from: "", ref: "", address: p.where || "", items: "" }] }))}>Add order<//>
-      <//>
-      <${Drop} open=${nChecks > 0} title="Checks required at this property" sub=${nChecks ? nChecks + " ticked" : "tick any that apply"}>
-        <p className="note">Tick the ones that apply, as a reminder for the customer or landlord.</p>
-        ${CHECKS.map((c) => html`<div key=${c[0]}>
-          <${Tick} checked=${!!job.checks[c[0]]} onChange=${() => setJob((pp) => ({ ...pp, checks: { ...pp.checks, [c[0]]: !pp.checks[c[0]] } }))} label=${c[1]} sub=${"(" + c[3] + ")"} />
-          ${job.checks[c[0]] ? html`<div className="chk-pill"><${Pill} tone=${checkState(job, c).tone}>${checkState(job, c).label}<//></div>` : null}
-          ${job.checks[c[0]] && CHECK_GUIDE[c[0]] ? html`<div className="indent" style=${{ margin: "2px 0 6px" }}><div className="link-row"><button type="button" className="btn" onClick=${() => setGuideId(c[0])}>How to carry out this check</button>
-            ${REPORT_FORMS[c[0]] ? html`<button type="button" className="btn btn-accent" onClick=${() => setReportId(c[0])}>${reportStarted(job, c[0]) ? "Open report" : "Fill in report"}</button>` : null}</div></div>` : null}
-          ${job.checks[c[0]] ? html`<div className="mat-grid indent">
-            <${Lbl} label="Date completed"><input className="text-in" type="date" value=${job.done[c[0]] || ""} onChange=${(e) => { const v = e.target.value; setJob((pp) => ({ ...pp, done: { ...pp.done, [c[0]]: v }, due: { ...pp.due, [c[0]]: "" } })); }} /><//>
-            <${Lbl} label="Next due"><input className="text-in" type="date" value=${dueOf(job, c)} onChange=${(e) => { const v = e.target.value; setJob((pp) => ({ ...pp, due: { ...pp.due, [c[0]]: v } })); }} /><//>
-          </div>` : null}
-        </div>`)}
-        <p className="note">Next due is worked out from the date completed using the usual Scottish intervals (EICR 5 years, Legionella risk assessment 2 years, gas safety 12 months, mould and damp a yearly check). You can overtype it. Confirm against current regulations. For a damp or mould report, write down the date the landlord was told: the guide counts 10 working days from then.</p>
       <//>
       ${guideId ? html`<${CheckGuideSheet} id=${guideId} onClose=${() => setGuideId(null)} />` : null}
       ${reportId ? html`<${ReportSheet} id=${reportId} job=${job} setJob=${setJob} biz=${bizName || ""} onClose=${() => setReportId(null)} />` : null}
@@ -5710,7 +5814,7 @@ function App() {
       survey=${hr.survey} calc=${hcalc} isExample=${false} onClear=${withUndo("heating", () => { hr.clearAll(); setJobId("heating", null); })} hrs=${hr.hrs} setHr=${hr.setHr} prov=${hr.prov} toggleProv=${hr.toggleProv}
       onViewQuote=${() => setHview("quote")} /><//>`}
 
-    ${mode === "heating" && hview === "quote" && html`<${QuoteView} calc=${hcalc} survey=${hr.survey} markup=${markup} tier=${tier} scopeItems=${hr.survey.scope} sizeLabel="Heating"
+    ${mode === "heating" && hview === "quote" && html`<${QuoteView} calc=${hcalc} survey=${hr.survey} markup=${markup} tier=${tier} scopeItems=${boilerScope(hr.ctx.prices, hr.fixtures, "head").concat(hr.survey.scope, boilerScope(hr.ctx.prices, hr.fixtures, "tail"))} sizeLabel="Heating"
       businessName=${businessName} setBusinessName=${setBusinessName} customerName=${hCustomer} setCustomerName=${setHCustomer}
       siteAddress=${hSite} setSiteAddress=${setHSite} officeNotes=${hNotes} setOfficeNotes=${setHNotes}
       todayStr=${todayStr} ticks=${hr.ctx.prices} setTick=${hr.ctx.setPrice} onBack=${() => setHview("form")} />`}
