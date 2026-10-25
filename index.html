@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610250952"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610251027"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -1740,12 +1740,14 @@ const fmt = (n) => "£" + Math.round(n).toLocaleString("en-GB");
 const fmtKit = (n) => "£" + (Number.isInteger(n) ? n : n.toFixed(2));
 const fmtDays = (d) => Number(d.toFixed(2));
 const fixtureListName = (st) => (st.repair ? "repair" : st.fit ? (st.condition === "old" ? "fitOld" : "fitNew") : "removedOnly");
+/* the customer supplies the item itself (or it comes in their kitchen pack): the first line of the "fit new" kit is the item, so it is left out */
+const custSkip = (cust, lname, i) => !!cust && lname === "fitNew" && i === 0;
 
 function fixtureScope(label, st) {
   const name = label.replace(/ \(.*\)/, "").toLowerCase();
   if (st.repair) return "Repair / service existing " + name + " (no removal or refit)";
-  if (st.remove && st.fit) return st.condition === "old" ? "Remove and refit existing " + name : "Remove existing " + name + "; supply and fit new";
-  if (st.fit) return st.condition === "old" ? "Refit existing " + name : "Supply and fit new " + name;
+  if (st.remove && st.fit) return st.condition === "old" ? "Remove and refit existing " + name : st.cust ? "Remove existing " + name + "; fit new " + name + " supplied by the customer" : "Remove existing " + name + "; supply and fit new";
+  if (st.fit) return st.condition === "old" ? "Refit existing " + name : st.cust ? "Fit new " + name + " supplied by the customer" : "Supply and fit new " + name;
   return "Remove existing " + name;
 }
 
@@ -1836,7 +1838,7 @@ function suiteItems(fixtures, tier, key) {
   const f = res.fixtures.find((x) => x.key === key);
   if (!f) return [];
   const out = [];
-  f.lines.filter((l) => l.group === "product" && l.qty.typical > 0).forEach((l) => out.push({ id: "su-" + key + "-" + l.id, label: l.label, unit: l.unitPrice, q: l.qty.typical * l.weight.typical, kind: "prod", src: l.unitSource, source: sup(l.catalogue), usual: l.weight.typical < 1, unpriced: l.unpriced }));
+  f.lines.filter((l) => l.group === "product" && l.qty.typical > 0 && !(fixtures[key] && fixtures[key].cust)).forEach((l) => out.push({ id: "su-" + key + "-" + l.id, label: l.label, unit: l.unitPrice, q: l.qty.typical * l.weight.typical, kind: "prod", src: l.unitSource, source: sup(l.catalogue), usual: l.weight.typical < 1, unpriced: l.unpriced }));
   const fl = f.lines.filter((l) => l.group !== "product" && l.qty.typical > 0 && !l.pool);
   out.push({ id: "su-" + key + "-fit", label: "Fittings allowance (suggested)", unit: su2(f.subtotal.typical + f.consumablesShare.typical), q: 1, kind: "fit", src: "estimate", source: "", detail: fl.map((l) => ({ label: l.label, amt: l.amount.typical, flag: l.unitSource === "assumption" })) });
   return out;
@@ -1892,7 +1894,7 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
     });
     (suiteOn(room, fixtures) ? [] : (room.fixtureKits[f.key][lname] || [])).forEach((it, i) => {
       const id = f.key + "-" + lname + "-" + i;
-      if (!kitOn(kit, id, it)) return;
+      if (!kitOn(kit, id, it) || custSkip(st.cust, lname, i)) return;
       const cov = !!(prices && prices["cov:" + id]);
       const cost = cov ? 0 : costOf(prices, id, it, tier) * qtyOf(prices, id, it, size);
       fm += cost;
@@ -1917,11 +1919,11 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
     const am = tag === "in" && st.alt && st.alt !== stateMode(st) ? st.alt : "";
     if (am) {
       /* a second price for option 2 (for example replace instead of repair): option 2 swaps this item's work for the other */
-      const as = modeState(am), an = fixtureListName(as);
+      const as = { ...modeState(am), cust: st.cust }, an = fixtureListName(as);
       let ah = hrOf(hrs, "fxa-" + f.key, fxDefH(as, f.key)), amt = 0;
       (room.fixtureKits[f.key][an] || []).forEach((it, i) => {
         const id = f.key + "-" + an + "-" + i;
-        if (!kitOn(kit, id, it)) return;
+        if (!kitOn(kit, id, it) || custSkip(st.cust, an, i)) return;
         const cov = !!(prices && prices["cov:" + id]);
         const cost = cov ? 0 : costOf(prices, id, it, tier) * qtyOf(prices, id, it, size);
         amt += cost;
@@ -2030,9 +2032,9 @@ const sampleFixtures = () => {
 function missingPrices(room, fixtures, structural, kit, tier, prov, prices, bulkOnly) {
   const out = [];
   if (bulkOnly) return out;
-  const chk = (group, list, prefix) => list.forEach((it, i) => {
+  const chk = (group, list, prefix, cust) => list.forEach((it, i) => {
     const id = prefix + "-" + i;
-    if (!kitOn(kit, id, it)) return;
+    if (!kitOn(kit, id, it) || (cust && i === 0)) return;
     if (!(priceOf(it.p, tier) > 0 || (prices && id in prices))) return;
     if (prices && prices["cov:" + id]) return;
     if (costOf(prices, id, it, tier) > 0) return;
@@ -2041,7 +2043,7 @@ function missingPrices(room, fixtures, structural, kit, tier, prov, prices, bulk
   });
   room.fixtures.forEach((f) => { const st = fixtures[f.key]; if (!st || (!st.remove && !st.fit && !st.repair)) return;
     if (suiteOn(room, fixtures)) { suiteItems(fixtures, tier, f.key).filter((it) => it.unit == null && suiteVal(prices, it.id) === null).forEach((it) => out.push({ group: f.label, label: nameOf(prices, it.id, it.label) })); return; }
-    const ln = fixtureListName(st); chk(f.label, room.fixtureKits[f.key][ln] || [], f.key + "-" + ln); });
+    const ln = fixtureListName(st); chk(f.label, room.fixtureKits[f.key][ln] || [], f.key + "-" + ln, custSkip(st.cust, ln, 0)); });
   room.structural.forEach((s) => { const v = structural[s.key]; if (!v || v === "none" || (prov && prov["st-" + s.key]) || Number(prices && prices["stlump:" + s.key]) > 0) return; chk(s.label, room.structuralKits[s.key][v] || [], s.key + "-" + v); });
   return out;
 }
@@ -3183,9 +3185,10 @@ function PriceBookView({ auth }) {
   </div>`;
 }
 
-function KitList({ list, prefix, tier, kit, onToggle, hrs, setHr }) {
+function KitList({ list, prefix, tier, kit, onToggle, hrs, setHr, skip0 }) {
   const pc = React.useContext(PriceCtx);
   return html`${list.map((it, i) => {
+    if (skip0 && i === 0) return null;
     const id = prefix + "-" + i;
     const on = kitOn(kit, id, it);
     const j = it.alt ? list.findIndex((x) => x.l === it.alt) : -1;
@@ -3615,7 +3618,6 @@ function CheckTips({ items, title }) {
 /* boiler survey: quick questions that set the priced items below, plus the commissioning checklist */
 const BLR_NOW = [["combi", "Combi"], ["system", "System"], ["regular", "Regular"], ["back", "Back boiler"], ["gravity", "Gravity-fed"], ["none", "None"]];
 const BLR_NEW = [["combi", "Combi"], ["system", "System"], ["regular", "Regular"]];
-const BLR_DONE = [["inhib", "Inhibitor added"], ["filter", "Magnetic filter fitted or cleaned"], ["flush", "System cleaned or flushed"], ["comm", "Boiler commissioned (Benchmark completed)"], ["gsafe", "Gas Safe notified"], ["warranty", "Warranty registered"], ["handover", "Controls shown to the customer"]];
 const bLabel = (list, v) => { const o = list.find((x) => x[0] === v); return o ? o[1] : ""; };
 function boilerScope(prices, fixtures, part) {
   const g = (k) => (prices || {})["blr:" + k], L = [];
@@ -3623,8 +3625,6 @@ function boilerScope(prices, fixtures, part) {
   const now = g("now"), nw = g("new"), mm = String(g("model") || "").trim();
   if (now || nw) L.push([now ? "Existing system: " + bLabel(BLR_NOW, now).toLowerCase() + (now === "none" ? "" : " boiler") : "", nw ? "New boiler: " + bLabel(BLR_NEW, nw).toLowerCase() + (mm ? " (" + mm + ")" : "") : ""].filter(Boolean).join(". ").replace("gravity-fed boiler", "gravity-fed system"));
   if (fitting) L.push("Commission the boiler, complete the Benchmark checklist, register the warranty and notify Gas Safe (gas work by a Gas Safe registered engineer)");
-  const done = BLR_DONE.filter(([k]) => g("done:" + k)).map((x) => x[1].toLowerCase());
-  if (done.length) L.push("Completed: " + done.join("; "));
   return part === "head" ? L.slice(0, now || nw ? 1 : 0) : part === "tail" ? L.slice(now || nw ? 1 : 0) : L;
 }
 function BoilerBlock({ fixtures, structural, updateFixture, updateStructural }) {
@@ -3635,7 +3635,6 @@ function BoilerBlock({ fixtures, structural, updateFixture, updateStructural }) 
   const conv = (now, nw) => { if (!now || !nw) return; const c = now === "back" ? "backb" : now === "gravity" && nw === "combi" ? "gravity" : (now === "system" || now === "regular") && nw === "combi" ? "sysToCombi" : (now === "combi" && nw === "system") ? "toSystem" : "none"; updateStructural("bConv", c); };
   const q = (label, inner) => html`<div className="field"><div className="field-label">${label}</div>${inner}</div>`;
   const yn = [["yes", "Yes"], ["no", "No"]];
-  const nDone = BLR_DONE.filter(([k]) => g("done:" + k)).length;
   const on = !!(g("on") || g("now") || g("new") || active);
   return html`<div className="card blr"><${TickSection} on=${on} onToggle=${(v) => sv("on", v)} title="Boiler install or replacement" hint=${TEAM ? "Quick questions for a boiler estimate" : "Quick questions for a boiler quote"}>
     <p className="note" style=${{ marginTop: 0 }}>Answer what you can. Your answers set the boiler, gas, pipework, flue and condensate items below, which you can still change.</p>
@@ -3652,10 +3651,6 @@ function BoilerBlock({ fixtures, structural, updateFixture, updateStructural }) 
     ${q("Magnetic filter already fitted?", seg("filter", yn, (v) => { if (v === "no") updateFixture("hfilt", modeState("fit")); if (v === "yes") updateFixture("hfilt", modeState("none")); }))}
     ${q("Inhibitor in the system?", seg("inhibNow", [["yes", "Yes"], ["no", "No"], ["unknown", "Not sure"]]))}
     <p className="note">Gas work and commissioning must be done by a Gas Safe registered engineer.</p>
-    <${Drop} bare=${true} title="When the job is done" sub=${nDone ? nDone + " of " + BLR_DONE.length + " ticked" : "commissioning checklist"}>
-      ${BLR_DONE.map(([k, l]) => html`<${Tick} key=${k} checked=${!!g("done:" + k)} onChange=${() => sv("done:" + k, !g("done:" + k))} label=${l} />`)}
-      <p className="note">Ticked items are listed on the invoice.</p>
-    <//>
   <//></div>`;
 }
 function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, setHr, prov, toggleProv, survey, fixtures }) {
@@ -3688,11 +3683,13 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
     ${false ? html`<p className="gla-hint">${GLA_HINTS[def.key]}</p>` : null}
     <${CheckTips} items=${ITEM_CHECKS[def.key]} />
     <${HoursInput} label=${hrsLabel} value=${hrRaw(hrs, hk, fxDefH(state, def.key))} onChange=${(v) => setHr(hk, v)} />
+    ${(mode === "fit" || mode === "new") || (alt === "fit" || alt === "new") ? html`<${Tick} checked=${!!state.cust} onChange=${() => onChange({ cust: !state.cust })} label=${"Customer is supplying the " + def.label.toLowerCase().replace(/ \(.*\)/, "") + " (or it comes with their kitchen or bathroom pack)"} />
+      ${state.cust ? html`<p className="note" style=${{ margin: "0 0 6px" }}>The ${def.label.toLowerCase().replace(/ \(.*\)/, "")} itself is left out of the price and the quote says "supplied by the customer". Fittings to connect it are still included.</p>` : null}` : null}
     ${active && !alt ? html`<${PriceAs} value=${tag} onPick=${(v) => setTag(toggleProv, tag, v, "pv-fx-" + def.key, "o2-fx-" + def.key)} />` : null}
     ${su && active ? html`<${SuitePanel} def=${def} state=${state} onChange=${onChange} fixtures=${fixtures} tier=${tier} />` : null}
     ${!su && list.length > 0 ? html`<div>
       <div className="kit-head">${kitLabel}</div>
-      <${KitList} list=${list} prefix=${def.key + "-" + lname} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />
+      <${KitList} list=${list} prefix=${def.key + "-" + lname} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} skip0=${custSkip(state.cust, lname, 0)} />
     </div>` : null}
     ${extras.length > 0 ? html`<div className="kit-head">Provisional extras, only if needed once opened up</div>` : null}
     ${extras.map((e) => html`<div key=${e.key}>
@@ -3705,7 +3702,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
       <div className="alt-head"><span><b>Option 2:</b> ${altName.toLowerCase()} instead</span><button type="button" className="linkbtn" onClick=${() => onChange({ alt: "" })}>Remove</button></div>
       <${HoursInput} label=${"Time to " + altName.toLowerCase()} value=${hrRaw(hrs, "fxa-" + def.key, fxDefH(altSt, def.key))} onChange=${(v) => setHr("fxa-" + def.key, v)} />
       ${altList.length ? html`<div className="kit-head">Option 2 kit — ${altName.toLowerCase()}</div>
-        <${KitList} list=${altList} prefix=${def.key + "-" + fixtureListName(altSt)} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />` : null}
+        <${KitList} list=${altList} prefix=${def.key + "-" + fixtureListName(altSt)} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} skip0=${custSkip(state.cust, fixtureListName(altSt), 0)} />` : null}
       <${ExtraBlock} group=${def.label + O2_SFX} title=${"Option 2 extra materials (" + altName.toLowerCase() + ")"} />
       ${altCost > 0 ? html`<p className="note" style=${{ margin: "4px 0 0" }}>Option 2 materials for this item: ${fmtKit(altCost)}</p>` : null}
     </div>` : active ? html`<button type="button" className="linkbtn" style=${{ margin: "4px 0 6px" }} onClick=${() => pickAlt(mode === "repair" ? "new" : "repair")}>+ Also price ${mode === "repair" ? "replacing it" : "repairing it"} (Option 2)</button>` : null}
