@@ -9,7 +9,7 @@
 <script>window.PRICER_TEAM = true;</script>
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610251543"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610251636"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -586,7 +586,7 @@ h1 { font-family: var(--font-body); font-weight: 800; font-size: clamp(25px, 7vw
 .brand-mark { width: 38px; height: 38px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 8px rgba(242, 140, 40, 0.3); }
 .brand-mark .ico { width: 22px; height: 22px; stroke-width: 2.2; }
 .brand-txt { flex: 1; min-width: 0; line-height: 1.15; }
-.brand-name { font-weight: 800; font-size: 17px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand-name { font-weight: 800; font-size: 17px; letter-spacing: -0.01em; line-height: 1.15; overflow-wrap: anywhere; }
 .brand-sub { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .apphead .btn { min-height: 44px; padding: 8px 14px; font-size: 14px; flex-shrink: 0; }
 /* tab bar and action bar */
@@ -755,6 +755,7 @@ body.kb .undo { bottom: 12px; }
 .kind-tag.st-paid { background: var(--ok); color: #1A1B1D; }
 
 .usual-list { margin: 8px 0; }
+.blr-hrs { margin: -4px 0 10px; padding-left: 10px; border-left: 2px solid var(--accent); }
 .hub { background: var(--panel); border: 1.5px solid var(--accent); border-radius: 12px; padding: 12px; margin: 4px 0 14px; display: grid; gap: 10px; }
 .hub-search { display: flex; align-items: center; gap: 8px; background: var(--field); border: 1.5px solid var(--line2); border-radius: 10px; padding: 0 12px; min-height: 52px; }
 .hub-search:focus-within { border-color: var(--accent); }
@@ -1711,7 +1712,7 @@ const HEAT_STRUCTURAL_ITEMS = [
   { key: "bFlue", label: "Flue", verb: "Flue", group: "plumbing",
     options: [["none", "Standard kit, same position"], ["ext", "Flue extension"], ["vert", "Vertical flue"], ["plume", "Plume kit"], ["newpos", "New flue position (make good old hole)"]] },
   { key: "bCond", label: "Condensate Pipe", verb: "Condensate", group: "plumbing",
-    options: [["none", "Existing condensate is fine"], ["int", "New run to an internal waste"], ["ext", "New external run (32mm, insulated)"], ["soak", "Soakaway needed"]] },
+    options: [["none", "Existing condensate is fine"], ["int", "New run to an internal waste or the soil stack"], ["ext", "New external run (32mm, insulated)"], ["soak", "Soakaway needed"]] },
   { key: "bPump", label: "Condensate Pump", verb: "Condensate pump", group: "plumbing",
     options: [["none", "Not needed"], ["yes", "Fit a condensate pump"]] },
   { key: "hflush", label: "System Clean", verb: "Heating system clean", group: "plumbing",
@@ -1750,15 +1751,23 @@ const HEATING = { title: "Heating & Hot Water", fixturesLabel: "Radiators, Hot W
 const priceOf = (p, tier) => (typeof p === "number" ? p : p[tier]);
 const kitOn = (kit, id, item) => (id in kit ? kit[id] : !item.opt);
 const round50 = (n) => Math.round(n / 50) * 50;
-const fmt = (n) => "£" + Math.round(n).toLocaleString("en-GB");
-const fmtKit = (n) => "£" + (Number.isInteger(n) ? n : n.toFixed(2));
+/* one money format everywhere: pence and thousands commas (£1,234.50) */
+const fmt = (n) => "£" + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtKit = fmt;
 const fmtDays = (d) => Number(d.toFixed(2));
 const fixtureListName = (st) => (st.repair ? "repair" : st.fit ? (st.condition === "old" ? "fitOld" : "fitNew") : "removedOnly");
 /* the customer supplies the item itself (or it comes in their kitchen pack): the first line of the "fit new" kit is the item, so it is left out */
 const custSkip = (cust, lname, i) => !!cust && lname === "fitNew" && i === 0;
 
+/* items that are often done more than one at a time: a "How many?" box multiplies the time and the materials */
+const QTY_FX = { radiator: 1, hrad: 1, htowel: 1, hvalve: 1, otap: 1, toilet: 1, basin: 1 };
+const fxCount = (key, st) => (QTY_FX[key] && st ? Math.min(30, Math.max(1, parseInt(st.n, 10) || 1)) : 1);
 function fixtureScope(label, st) {
-  const name = label.replace(/ \(.*\)/, "").toLowerCase();
+  const nn = st && st.n && parseInt(st.n, 10) > 1 ? parseInt(st.n, 10) : 1;
+  return fixtureScope1(label, st) + (nn > 1 ? " (× " + nn + ")" : "");
+}
+function fixtureScope1(label, st) {
+  const name = label.replace(/ \(.*\)/, "").toLowerCase().replace(/\btrvs\b/, "TRVs");
   if (st.repair) return "Repair / service existing " + name + " (no removal or refit)";
   if (st.remove && st.fit) return st.condition === "old" ? "Remove and refit existing " + name : st.cust ? "Remove existing " + name + "; fit new " + name + " supplied by the customer" : "Remove existing " + name + "; supply and fit new";
   if (st.fit) return st.condition === "old" ? "Refit existing " + name : st.cust ? "Fit new " + name + " supplied by the customer" : "Supply and fit new " + name;
@@ -1904,7 +1913,8 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
     const tag = fxTag(prov, f.key);
     const grp = f.label + tagSfx(tag);
     const tf = tag === "in" ? {} : { prov: true, o2: tag === "o2" };
-    let fh = hrOf(hrs, "fx-" + f.key, fxDefH(st, f.key)), fm = 0;
+    const nQ = fxCount(f.key, st), nM = suiteOn(room, fixtures) ? 1 : nQ;
+    let fh = hrOf(hrs, "fx-" + f.key, fxDefH(st, f.key) * nQ), fm = 0;
     const lname = fixtureListName(st);
     if (suiteOn(room, fixtures)) suiteItems(fixtures, tier, f.key).forEach((it) => {
       const cov = !!(prices && prices["cov:" + it.id]);
@@ -1916,10 +1926,10 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
       const id = f.key + "-" + lname + "-" + i;
       if (!kitOn(kit, id, it) || custSkip(st.cust, lname, i)) return;
       const cov = !!(prices && prices["cov:" + id]);
-      const cost = cov ? 0 : costOf(prices, id, it, tier) * qtyOf(prices, id, it, size);
+      const cost = cov ? 0 : costOf(prices, id, it, tier) * qtyOf(prices, id, it, size) * nM;
       fm += cost;
       if (it.d) fh += hrOf(hrs, "kit-" + id, DEF_H);
-      kitLines.push({ ...tf, group: grp, label: nameOf(prices, id, it.l), cost, id, qty: qtyOf(prices, id, it, size), code: (prices && prices["code:" + id]) || "", source: srcs[id] || catSrc(it), covered: cov });
+      kitLines.push({ ...tf, group: grp, label: nameOf(prices, id, it.l), cost, id, qty: qtyOf(prices, id, it, size) * nM, code: (prices && prices["code:" + id]) || "", source: srcs[id] || catSrc(it), covered: cov });
     });
     (st.repair ? [] : room.extras[f.key] || []).forEach((e) => {
       if (!prov["bx-" + e.key]) return;
@@ -1939,19 +1949,19 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
     const am = tag === "in" && st.alt && st.alt !== stateMode(st) ? st.alt : "";
     if (am) {
       /* a second price for option 2 (for example replace instead of repair): option 2 swaps this item's work for the other */
-      const as = { ...modeState(am), cust: st.cust }, an = fixtureListName(as);
-      let ah = hrOf(hrs, "fxa-" + f.key, fxDefH(as, f.key)), amt = 0;
+      const as = { ...modeState(am), cust: st.cust, n: st.n }, an = fixtureListName(as);
+      let ah = hrOf(hrs, "fxa-" + f.key, fxDefH(as, f.key) * nQ), amt = 0;
       (room.fixtureKits[f.key][an] || []).forEach((it, i) => {
         const id = f.key + "-" + an + "-" + i;
         if (!kitOn(kit, id, it) || custSkip(st.cust, an, i)) return;
         const cov = !!(prices && prices["cov:" + id]);
-        const cost = cov ? 0 : costOf(prices, id, it, tier) * qtyOf(prices, id, it, size);
+        const cost = cov ? 0 : costOf(prices, id, it, tier) * qtyOf(prices, id, it, size) * nM;
         amt += cost;
         if (it.d) ah += hrOf(hrs, "kit-" + id, DEF_H);
-        kitLines.push({ prov: true, o2: true, group: f.label + O2_SFX, label: nameOf(prices, id, it.l), cost, id, qty: qtyOf(prices, id, it, size), code: (prices && prices["code:" + id]) || "", source: srcs[id] || catSrc(it), covered: cov });
+        kitLines.push({ prov: true, o2: true, group: f.label + O2_SFX, label: nameOf(prices, id, it.l), cost, id, qty: qtyOf(prices, id, it, size) * nM, code: (prices && prices["code:" + id]) || "", source: srcs[id] || catSrc(it), covered: cov });
       });
       o2.hours += ah - fh; o2.materials += amt - fm;
-      o2.items.push({ label: fixtureScope(f.label, as) + " (instead of: " + fixtureScope(f.label, st).replace(/^./, (c) => c.toLowerCase()) + ")", hours: ah - fh, materials: amt - fm, swap: true, fullH: ah, fullM: amt, base: fl });
+      o2.items.push({ label: fixtureScope(f.label, as) + " (instead of: " + fixtureScope(f.label, st).replace(/^./, (c) => c.toLowerCase()) + ")", hours: ah - fh, materials: amt - fm, swap: true, fullH: ah, fullM: amt, base: fl, m1: stateMode(st), m2: am, what: f.label.replace(/ \(.*\)/, "").replace(/ \/ TRVs/i, "") });
     }
     if (tag === "in") { hours.plumbing += fh; materials += fm; scope.push(fl); route[f.label] = { tag: "in", swap: am ? o2.items[o2.items.length - 1] : null }; if (am) route[f.label + O2_SFX] = { tag: "alt", item: o2.items[o2.items.length - 1] }; }
     else { const b = tag === "o2" ? o2 : pv; const itm = { label: fl, hours: fh, materials: fm }; b.hours += fh; b.materials += fm; b.items.push(itm); route[f.label] = { tag, b, item: itm, group: grp }; }
@@ -2012,7 +2022,12 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
   kitLines.forEach((k) => { if (!(k.cost > 0) && !k.covered && ((prices && prices["unk:" + k.id]) || k.unkFlag)) k.tbc = true; });
   const tbc = bulkOnly ? [] : kitLines.filter((k) => k.tbc).map((k) => ({ group: k.group, label: k.label }));
   const lines = bulkOnly ? kitLines.map((k) => (k.prov || k.group === "Bulk orders" ? k : { ...k, cost: 0, covered: true })) : kitLines;
-  return { hours, materials: (bulkOnly ? 0 : materials) + bulkTotal, kitLines: lines, scope, prov: pv, o2, bulkTotal, tbc };
+  /* things to sort before sending: gas run hours not set, lines with no price */
+  const warn = [];
+  if (structural && structural.bGas && structural.bGas !== "none" && !(hrOf(hrs, "st-bGas-" + structural.bGas, 0) > 0)) warn.push("put in the hours for the gas run");
+  const unpriced = bulkOnly ? 0 : lines.filter((k) => !k.prov && !(Number(k.cost) > 0) && !k.covered && !k.tbc && !k.unkFlag && !NOT_ORDER(k)).length;
+  if (unpriced) warn.push(unpriced + (unpriced === 1 ? " material has" : " materials have") + " no price");
+  return { hours, materials: (bulkOnly ? 0 : materials) + bulkTotal, kitLines: lines, scope, prov: pv, o2, bulkTotal, tbc, warn, unpriced };
 }
 /* how an item is priced: "in" the main price, "pv" only if needed (provisional), "o2" only in option 2 (e.g. full renovation) */
 const O2_SFX = " — option 2";
@@ -2030,9 +2045,19 @@ function setTag(toggleProv, cur, next, pvKey, o2Key) {
 }
 const heldMaterials = (survey) => survey.prov.materials + (survey.o2 ? survey.o2.materials : 0);
 /* default option names: "repair / replace" when every option 2 item is a swap, otherwise "repairs needed / full renovation" */
+/* default option names say what each option actually does ("Option 1 — replace toilet", "Option 2 — repair toilet") */
+const MODE_WORD = { repair: "repair", new: "replace", fit: "fit new", old: "refit", remove: "remove" };
 const optNames = (ticks, calc) => {
-  const sw = !!(calc && (calc.o2Items || []).length && calc.o2Items.every((i) => i.swap));
-  return [String((ticks && ticks["opt:n1"]) || "").trim() || (sw ? "Option 1 — repair" : "Option 1 — repairs needed"), String((ticks && ticks["opt:n2"]) || "").trim() || (sw ? "Option 2 — replace" : "Option 2 — full renovation")];
+  const its = (calc && calc.o2Items) || [], sw = its.length > 0 && its.every((i) => i.swap);
+  let d1 = "Option 1 — repairs needed", d2 = "Option 2 — full renovation";
+  if (sw) {
+    const w1 = Array.from(new Set(its.map((i) => MODE_WORD[i.m1] || ""))), w2 = Array.from(new Set(its.map((i) => MODE_WORD[i.m2] || "")));
+    const names = Array.from(new Set(its.map((i) => String(i.what || "").toLowerCase()))).filter(Boolean);
+    const what = names.length && names.length <= 2 ? " " + names.join(" and ") : "";
+    d1 = w1.length === 1 && w1[0] ? "Option 1 — " + w1[0] + what : "Option 1";
+    d2 = w2.length === 1 && w2[0] ? "Option 2 — " + w2[0] + what : "Option 2";
+  }
+  return [String((ticks && ticks["opt:n1"]) || "").trim() || d1, String((ticks && ticks["opt:n2"]) || "").trim() || d2];
 };
 /* a fixture mode name ("repair", "remove", "fit", "new", "old") as fixture state, and back */
 const modeState = (m) => (m === "repair" ? { remove: false, fit: false, repair: true } : m === "remove" ? { remove: true, fit: false, repair: false } : m === "fit" ? { remove: false, fit: true, repair: false, condition: "new" } : m === "new" || m === "old" ? { remove: true, fit: true, repair: false, condition: m } : { remove: false, fit: false, repair: false });
@@ -2096,10 +2121,16 @@ function kitGroups(survey, wantProv) {
 
 function bulkLines(survey) { return survey.kitLines.filter((k) => k.group === "Bulk orders"); }
 /* what the estimate is quoting for in money (not quantities): each group with its amount, each material with its amount */
+/* materials by item for the customer: sundries are spread over the items instead of shown as a percentage */
+function matByItem(survey, calc) {
+  const mb = matBreakdown(survey, calc), sund = mb.find((x) => /^Sundries/.test(x.group)), rest = mb.filter((x) => x !== sund);
+  const base = rest.reduce((a, x) => a + x.total, 0), f = sund && base > 0 ? 1 + sund.total / base : 1;
+  return rest.map((x) => ({ group: x.group, total: Math.round(x.total * f * 100) / 100 }));
+}
 function matBreakdown(survey, calc) {
   const out = [];
   kitGroups(survey, false).forEach(([g, lines]) => {
-    const rows = lines.filter((l) => l.cost > 0 || l.tbc || l.covered).map((l) => ({ label: l.label, cost: Number(l.cost) || 0, note: l.tbc ? "price TBC" : l.covered ? "in bulk buy" : "" }));
+    const rows = lines.map((l) => ({ label: l.label + (l.qty > 1 ? " × " + l.qty : ""), cost: Number(l.cost) || 0, note: l.tbc ? "price TBC" : l.covered ? "in bulk buy" : !(l.cost > 0) ? "price to add" : "" }));
     if (rows.length) out.push({ group: g, rows, total: rows.reduce((a, r) => a + r.cost, 0) });
   });
   const bl = bulkLines(survey).filter((l) => l.cost > 0).map((l) => ({ label: l.label, cost: Number(l.cost) || 0, note: "" }));
@@ -2153,7 +2184,7 @@ function orderStats(groups, ticks) {
 const ORDER_BY_KEY = "pricer-order-group-v1";
 function loadOrderBy() { try { return localStorage.getItem(ORDER_BY_KEY) === "supplier" ? "supplier" : "fixture"; } catch (e) { return "fixture"; } }
 function saveOrderBy(v) { try { localStorage.setItem(ORDER_BY_KEY, v); } catch (e) { /* storage unavailable */ } }
-const rowText = (r, mode) => r.name + (r.qty > 1 ? " × " + r.qty : "") + (r.code ? " · code " + r.code : "") + (r.covered ? " — in bulk buy" : r.detail ? " (" + r.detail + ")" : "") + (r.tbc ? " — price TBC" : "") + (r.hasCost ? " — " + fmtKit(r.cost) : "");
+const rowText = (r, mode) => r.name + (r.qty > 1 ? " × " + r.qty : "") + (r.code ? " · code " + r.code : "") + (r.covered ? " — in bulk buy" : r.detail ? " (" + r.detail + ")" : "") + (r.tbc ? " — price TBC" : "") + (r.hasCost ? " — " + fmtKit(r.cost) : !r.covered && !r.tbc && !r.bulk ? " — price to add" : "");
 function buildOrderText(q) {
   const L = [];
   const c = q.calc;
@@ -2171,7 +2202,7 @@ function buildOrderText(q) {
     r2.forEach((r) => L.push("  " + tk(r.id) + " " + rowText(r, mode)));
   });
   dump(orderGroups(q.survey, c, false, mode));
-  L.push("Total at cost: " + fmt(c.materialsBase));
+  L.push((c.sundries > 0 ? "Total incl. sundries: " : "Total at cost: ") + fmt(c.materialsBase));
   if (c.supply > 0) L.push(c.supplyLabel + " (ordered separately) — " + fmt(c.supply));
   const pr = orderGroups(q.survey, c, true, mode);
   if (pr.length) {
@@ -2193,8 +2224,8 @@ function buildQuoteText(q) {
   const M = D ? fmtP : fmt;
   L.push(D ? "QUOTATION — FIXED PRICE FOR THE WORK BELOW" : "PROVISIONAL ESTIMATE — FOR OFFICE TO PREPARE THE QUOTE (not a customer quote)");
   L.push("");
-  L.push("Customer: " + (q.customerName || "[Customer name]"));
-  L.push("Site: " + (q.siteAddress || "[Site address]"));
+  if (String(q.customerName || "").trim()) L.push("Customer: " + q.customerName);
+  if (String(q.siteAddress || "").trim()) L.push("Site: " + q.siteAddress);
   (q.clientLines || []).forEach((x) => L.push(x));
   L.push(D ? "Date: " + q.todayStr : "Surveyed: " + q.todayStr + " · " + q.sizeLabel + " · " + q.tier + " tier");
   if (D) L.push("Quote ref: " + (q.quoteRef || defQuoteNo()));
@@ -2234,7 +2265,7 @@ function buildQuoteText(q) {
   const vatL = (tot, lbl) => { if (VR > 0) { L.push("VAT at " + VR + "%: " + M(tot * VR / 100)); L.push(lbl + " including VAT: " + M(tot * (1 + VR / 100))); } };
   if (!o2i.length && (q.rate > 0 || tr.length)) { const tt = c.materialsBase + (c.supply > 0 ? c.supply : 0) + (q.rate > 0 ? c.totalHours * q.rate : 0) + tr.reduce((a, x) => a + x.cost, 0); L.push((D ? (VR > 0 ? "Total before VAT" : "Total quote price") : totalLabel(q.rate > 0, tr.length > 0)) + ": " + M(tt)); vatL(tt, "Total quote price"); }
   if (D && q.matItems && q.survey && q.survey.kitLines) {
-    const mb = matBreakdown(q.survey, c);
+    const mb = matByItem(q.survey, c);
     if (mb.length) { L.push(""); L.push("MATERIALS INCLUDED (by item):"); mb.forEach((g) => L.push(g.group + ": " + M(g.total))); }
   }
   const extraSup0 = (c.supply > 0 ? c.supply : 0) + tr.reduce((x, t) => x + t.cost, 0);
@@ -2879,7 +2910,7 @@ function OrderList({ survey, calc, ticks, setTick, customerName, siteAddress, to
     <p className="note" hidden style=${{ margin: "0 0 10px" }}>Delivering to a flat? Give the merchant the floor, the close entry or buzzer, and where the van can stop. Check the stair and door width for baths and cylinders.</p>
     ${hideDone && st.total > 0 && st.left === 0 ? html`<p className="note" style=${{ margin: "4px 0 10px" }}>Everything to order is ticked off. Untick "Hide ticked" to see it all.</p>` : null}
     ${renderGroups(main, false)}
-    <div className="ord-total"><span>Total at cost</span><b>${fmt(calc.materialsBase)}</b></div>
+    <div className="ord-total"><span>${calc.sundries > 0 ? "Total incl. sundries" : "Total at cost"}</span><b>${fmt(calc.materialsBase)}</b></div>
     ${calc.supply > 0 && html`<div className="ord-total ord-total2"><span>${calc.supplyLabel} (ordered separately)</span><b>${fmt(calc.supply)}</b></div>`}
     ${prov.length > 0 && html`<div style=${{ marginTop: 16 }}>
       <div className="mini-label">Only if needed or if option 2 is chosen — don't order until confirmed</div>
@@ -3165,14 +3196,14 @@ function PriceBookView({ auth }) {
     <div className="title-row"><h1>Price Book</h1></div>
     <p className="lead">Every price you type into a survey is saved here against the item, so you build up what you actually pay.${auth && auth.user ? " It is also saved to your account." : " Sign in at My Jobs to keep it across devices."}</p>
     <div className="hub">
-      <label className="hub-search"><${Icon} name="search" /><input type="search" enterKeyHint="search" placeholder="Search the supplier catalogue" aria-label="Search the supplier catalogue" value=${cq} onChange=${(e) => { setCq(e.target.value); if (e.target.value) setPanel(""); }} /></label>
+      <label className="hub-search"><${Icon} name="search" /><input type="search" enterKeyHint="search" placeholder="Search your prices and the catalogue" aria-label="Search the supplier catalogue" value=${cq} onChange=${(e) => { setCq(e.target.value); if (e.target.value) setPanel(""); }} /></label>
       ${cq.trim() ? html`<div className="hub-res">
         ${names.length ? html`<div className="kit-head" style=${{ marginTop: 0 }}>Your prices</div>
-          ${names.slice(0, 6).map((n) => { const last = groups[n][groups[n].length - 1]; return html`<div key=${"m" + n} className="mat"><div className="cat-name">${n}<span className="muted"> · ${supName(last.supplier) || "paid"} ${last.date}${last.code ? " · code " + last.code : ""}</span></div><div className="mat-act cat-act"><b className="cat-price">${fmtP(last.price)}</b></div></div>`; })}
+          ${names.slice(0, 6).map((n) => { const last = groups[n][groups[n].length - 1]; return html`<div key=${"m" + n} className="mat"><div className="cat-name">${n}<span className="muted"> · ${supName(last.supplier) || "paid"} ${ymdGB(last.date)}${last.code ? " · code " + last.code : ""}</span></div><div className="mat-act cat-act"><b className="cat-price">${fmtP(last.price)}</b></div></div>`; })}
           ${names.length > 6 ? html`<p className="note" style=${{ margin: 0 }}>${names.length - 6} more in "Prices I have paid" below.</p>` : null}
           <div className="kit-head">Supplier catalogue</div>` : null}
         ${hits.map((c, i) => { const cd = codeFromUrl(c[3]); const inBook = bookData.some((e) => e.item === c[0] && e.price === c[1]); return html`<div key=${i} className="mat">
-          <div className="cat-name">${c[0]}<span className="muted"> · ${SUP_NAME[c[2]]}${cd ? " · code " + cd : ""}</span>${c[3] ? html` <a href=${c[3]} target="_blank" rel="noopener noreferrer">view</a>` : null}</div>
+          <div className="cat-name">${c[0]}<span className="muted"> · ${SUP_NAME[c[2]]}${cd ? " · code " + cd.toUpperCase() : ""}</span>${c[3] ? html` <a href=${c[3]} target="_blank" rel="noopener noreferrer">view</a>` : null}</div>
           <div className="mat-act cat-act"><b className="cat-price">${fmtP(c[1])}</b>
             <button type="button" className="btn" disabled=${inBook} onClick=${() => bookAdd(c[0], c[1], SUP_NAME[c[2]], "", cd)}>${inBook ? "Added" : "Add to price book"}</button>
             ${kits.length > 0 ? html`<select className="text-in" aria-label="Add to a kit" value="" onChange=${(e) => { const k = kits.find((x) => x.id === e.target.value); if (k) kitUpdate(k.id, (kk) => ({ ...kk, items: [...kk.items.filter((x) => (x.item || "").trim()), { item: c[0], code: cd, where: SUP_NAME[c[2]], price: String(c[1]) }] })); }}>
@@ -3212,7 +3243,7 @@ function PriceBookView({ auth }) {
       ${names.map((n) => { const g = groups[n]; const last = g[g.length - 1]; return html`<details key=${n} className="pb">
         <summary><span>${n}${last.code ? html`<span className="muted-s"> · code ${last.code}</span>` : null}</span><span><b className="mono">${fmtP(last.price)}</b>${ageDays(last.date) > 180 ? html` <span className="muted-s age-old">check price</span>` : null}</span></summary>
         ${g.slice().reverse().map((e, i) => html`<div key=${i} className="pb-hist">
-          <span>${e.date}${e.supplier ? " · " + supName(e.supplier) : ""}${e.product ? " · " + e.product : ""}${e.code ? " · code " + e.code : ""}</span>
+          <span>${ymdGB(e.date)}${e.supplier ? " · " + supName(e.supplier) : ""}${e.product ? " · " + e.product : ""}${e.code ? " · code " + e.code : ""}</span>
           <span><b className="mono">${fmtP(e.price)}</b> <${RemoveBtn} label="Remove this price" onClick=${() => bookRemove(e)} /></span></div>`)}
       </details>`; })}
     </div>
@@ -3417,7 +3448,7 @@ function buildInvoiceText({ businessName, customerName, siteAddress, get, work, 
   L.push("Payment due: " + ymdGB(mt.due));
   if (terms && vatRate(terms) > 0 && String(terms.vatNo || "").trim()) L.push("VAT number: " + String(terms.vatNo).trim());
   if (String(customerName || "").trim()) L.push("Customer: " + customerName);
-  L.push("Site: " + (siteAddress || "[Site address]"));
+  if (String(siteAddress || "").trim()) L.push("Site: " + siteAddress);
   clientLines(get).forEach((x) => L.push(x));
   L.push("");
   L.push(optName ? "WORK CARRIED OUT (" + optName.toUpperCase() + "):" : "WORK CARRIED OUT:");
@@ -3567,7 +3598,7 @@ function buildSmallQuote({ businessName, customerName, siteAddress, get, work, c
   L.push("QUOTATION — FIXED PRICE FOR THE WORK BELOW");
   L.push("");
   if (String(customerName || "").trim()) L.push("Customer: " + customerName);
-  L.push("Site: " + (siteAddress || "[Site address]"));
+  if (String(siteAddress || "").trim()) L.push("Site: " + siteAddress);
   clientLines(get).forEach((x) => L.push(x));
   L.push("Date: " + gb(d));
   L.push("Quote ref: " + (String(get("q:ref") || "").trim() || defQuoteNo()));
@@ -3667,7 +3698,7 @@ function boilerScope(prices, fixtures, part) {
   if (fitting) L.push("Commission the boiler, complete the Benchmark checklist, register the warranty and notify Gas Safe (gas work by a Gas Safe registered engineer)");
   return part === "head" ? L.slice(0, now || nw ? 1 : 0) : part === "tail" ? L.slice(now || nw ? 1 : 0) : L;
 }
-function BoilerBlock({ fixtures, structural, updateFixture, updateStructural }) {
+function BoilerBlock({ fixtures, structural, updateFixture, updateStructural, hrs, setHr }) {
   const pc = React.useContext(PriceCtx);
   const g = (k) => pc.prices["blr:" + k], sv = (k, v) => pc.setPrice("blr:" + k, v);
   const st = fixtures.boiler || {}, active = !!(st.remove || st.fit || st.repair);
@@ -3676,20 +3707,32 @@ function BoilerBlock({ fixtures, structural, updateFixture, updateStructural }) 
   const q = (label, inner) => html`<div className="field"><div className="field-label">${label}</div>${inner}</div>`;
   const yn = [["yes", "Yes"], ["no", "No"]];
   const on = !!(g("on") || g("now") || g("new") || active);
+  /* hours for each extra, right under its question, so they can be set to suit the job */
+  const hrsFor = (key, label) => { const v = structural[key]; if (!v || v === "none" || !setHr) return null; const hk = "st-" + key + "-" + v;
+    return html`<div className="blr-hrs"><${HoursInput} label=${label} value=${hrRaw(hrs || {}, hk, stDefH(key, v))} onChange=${(x) => setHr(hk, x)} />${ST_NOTE[key + ":" + v] ? html`<p className=${"note" + (key === "bGas" && !(hrOf(hrs || {}, hk, 0) > 0) ? " warn-t" : "")} style=${{ margin: "0 0 4px" }}>${ST_NOTE[key + ":" + v]}</p>` : null}</div>`; };
+  const bHk = "fx-boiler", bSt = fixtures.boiler || {};
   return html`<div className="card blr"><${TickSection} on=${on} onToggle=${(v) => sv("on", v)} title="Boiler install or replacement" hint=${TEAM ? "Quick questions for a boiler estimate" : "Quick questions for a boiler quote"}>
     <p className="note" style=${{ marginTop: 0 }}>Answer what you can. Your answers set the boiler, gas, pipework, flue and condensate items below, which you can still change.</p>
     ${q("What is there now?", seg("now", BLR_NOW, (v) => conv(v, g("new"))))}
     ${q("New boiler", seg("new", BLR_NEW, (v) => { conv(g("now"), v); if (v && !active) updateFixture("boiler", modeState(g("now") && g("now") !== "none" ? "new" : "fit")); }))}
     <${Lbl} label="Make and model (optional)" wide=${true}><input className="text-in" type="text" placeholder="e.g. Worcester Bosch 4000 30kW" value=${g("model") || ""} onChange=${(e) => sv("model", e.target.value)} /><//>
     <${Lbl} label="Where is the boiler now? (and where is it going)" wide=${true}><input className="text-in" type="text" placeholder="e.g. Kitchen cupboard, staying the same" value=${g("where") || ""} onChange=${(e) => sv("where", e.target.value)} /><//>
+    ${active && setHr ? html`<div className="blr-hrs"><${HoursInput} label=${st.remove ? "Time for the boiler swap" : "Time to fit the boiler"} value=${hrRaw(hrs || {}, bHk, fxDefH(bSt, "boiler"))} onChange=${(x) => setHr(bHk, x)} /></div>` : null}
+    ${structural.bConv && structural.bConv !== "none" ? hrsFor("bConv", "Time for the system conversion") : null}
     ${q("Gas pipe to the boiler", html`<${Segmented} options=${[["none", "Like for like"], ["up22", "Upgrade to 22mm"], ["newrun", "New run"]]} value=${structural.bGas || "none"} onChange=${(v) => updateStructural("bGas", v)} />`)}
+    ${hrsFor("bGas", "Time for the gas run")}
     ${q("Boiler pipework", html`<${Segmented} options=${[["none", "Exact same"], ["alter", "Needs altered"], ["move", "Moving"]]} value=${structural.bPipe || "none"} onChange=${(v) => updateStructural("bPipe", v)} />`)}
+    ${hrsFor("bPipe", "Time for the pipework")}
+    ${q("Flue", html`<${Segmented} options=${[["none", "Same position"], ["newpos", "Core a new hole"], ["ext", "Extension"], ["vert", "Vertical"]]} value=${structural.bFlue || "none"} onChange=${(v) => updateStructural("bFlue", v)} />`)}
+    ${hrsFor("bFlue", "Time for the flue")}
     ${q("Is there a condensate pipe already?", seg("condNow", yn, (v) => { if (v === "yes") updateStructural("bCond", "none"); }))}
-    ${g("condNow") === "yes" ? null : html`<div>    <${Lbl} label="Where can the condensate tie in?" wide=${true}><input className="text-in" type="text" placeholder="e.g. Kitchen sink waste, 2m away; or outside gully" value=${g("condTie") || ""} onChange=${(e) => sv("condTie", e.target.value)} /><//>
-    ${q("Is there a waste pipe nearby?", seg("waste", yn, (v) => { if (v === "yes" && g("condNow") === "no") updateStructural("bCond", "int"); if (v === "no" && g("condNow") === "no") updateStructural("bCond", "ext"); }))}
-    ${q("Condensate pump needed?", seg("pump", yn, (v) => updateStructural("bPump", v === "yes" ? "yes" : "none")))}</div>`}
+    ${g("condNow") !== "no" ? null : html`<div>    <${Lbl} label="Where can the condensate tie in?" wide=${true}><input className="text-in" type="text" placeholder="e.g. Kitchen sink waste, 2m away; or outside gully" value=${g("condTie") || ""} onChange=${(e) => sv("condTie", e.target.value)} /><//>
+    ${q("Is there a waste pipe nearby?", seg("waste", yn, (v) => { if (v === "yes" && g("condNow") === "no") updateStructural("bCond", "int"); if (v === "no" && g("condNow") === "no" && g("stack") !== "yes") updateStructural("bCond", "ext"); }))}
+    ${q("Is the soil stack nearby accessible to run a pipe to?", seg("stack", yn, (v) => { if (v === "yes" && g("condNow") === "no") updateStructural("bCond", "int"); if (v === "no" && g("condNow") === "no" && g("waste") !== "yes") updateStructural("bCond", "ext"); }))}
+    ${hrsFor("bCond", "Time for the new condensate run")}
+    ${q("Condensate pump needed?", seg("pump", yn, (v) => updateStructural("bPump", v === "yes" ? "yes" : "none")))}
+    ${hrsFor("bPump", "Time to fit the condensate pump")}</div>`}
     ${q("Magnetic filter already fitted?", seg("filter", yn, (v) => { if (v === "no") updateFixture("hfilt", modeState("fit")); if (v === "yes") updateFixture("hfilt", modeState("none")); }))}
-    ${q("Inhibitor in the system?", seg("inhibNow", [["yes", "Yes"], ["no", "No"], ["unknown", "Not sure"]]))}
     <p className="note">Gas work and commissioning must be done by a Gas Safe registered engineer.</p>
   <//></div>`;
 }
@@ -3711,25 +3754,33 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
   const altSt = alt ? modeState(alt) : null, altList = alt ? room.fixtureKits[def.key][fixtureListName(altSt)] || [] : [];
   const altCost = alt ? survey.kitLines.filter((k) => k.o2 && k.group === def.label + O2_SFX).reduce((a, k) => a + (Number(k.cost) || 0), 0) : 0;
   const cost = sumGroups(survey, [def.label + tagSfx(tag)]);
-  const sub = active ? [fmtHrs(hrOf(hrs, hk, fxDefH(state, def.key))) + " hrs", cost > 0 ? fmtKit(cost) : pc.bulkOnly ? "in bulk buy" : altCost > 0 ? "" : "no prices yet", tag === "pv" ? "only if needed" : tag === "o2" ? "option 2" : "", nProv ? nProv + " provisional" : "", alt ? "or " + altName.toLowerCase() + " (option 2" + (altCost > 0 ? ", " + fmtKit(altCost) : "") + ")" : ""].filter(Boolean).join(" · ") : "";
+  const nQ = fxCount(def.key, state);
+  const sub = active ? [(nQ > 1 ? nQ + " × · " : "") + fmtHrs(hrOf(hrs, hk, fxDefH(state, def.key) * nQ)) + " hrs", cost > 0 ? fmtKit(cost) : pc.bulkOnly ? "in bulk buy" : altCost > 0 ? "" : "no prices yet", tag === "pv" ? "only if needed" : tag === "o2" ? "option 2" : "", nProv ? nProv + " provisional" : "", alt ? "or " + altName.toLowerCase() + " (option 2" + (altCost > 0 ? ", " + fmtKit(altCost) : "") + ")" : ""].filter(Boolean).join(" · ") : "";
   const modeName = (FIX_MODES.find((m) => m[0] === mode) || FIX_MODES[0])[1];
   const pick = (v) => (v === state.alt ? onChange({ ...modeState(v), alt: "" }) : v === "none" ? onChange({ remove: false, fit: false, repair: false })
     : v === "repair" ? onChange({ remove: false, fit: false, repair: true })
     : v === "remove" ? onChange({ remove: true, fit: false, repair: false })
     : v === "fit" ? onChange({ remove: false, fit: true, repair: false, condition: "new" })
     : onChange({ remove: true, fit: true, repair: false, condition: v }));
-  const custTick = html`<${Tick} checked=${!!state.cust} onChange=${() => onChange({ cust: !state.cust })} label=${"Customer is supplying the " + def.label.toLowerCase().replace(/ \(.*\)/, "") + " (or it comes with their kitchen or bathroom pack)"} />
+  const custTick = html`<${Tick} checked=${!!state.cust} onChange=${() => onChange({ cust: !state.cust })} label=${"Customer is supplying the " + def.label.toLowerCase().replace(/ \(.*\)/, "").replace(/\btrvs\b/, "TRVs") + " (or it comes with their kitchen or bathroom pack)"} />
       ${state.cust ? html`<p className="note" style=${{ margin: "0 0 6px" }}>The ${def.label.toLowerCase().replace(/ \(.*\)/, "")} itself is left out of the price and the quote says "supplied by the customer". Fittings to connect it are still included.</p>` : null}`;
   const pickAlt = (v) => { onChange({ alt: v }); if (v && tag !== "in") setTag(toggleProv, tag, "in", "pv-fx-" + def.key, "o2-fx-" + def.key); };
   return html`<${ItemCard} title=${def.label} valueLabel=${modeName} active=${active} sub=${sub} options=${FIX_MODES} value=${mode} onPick=${pick} altValue=${alt} onAlt=${pickAlt}>
     ${false ? html`<p className="gla-hint">${GLA_HINTS[def.key]}</p>` : null}
     <${CheckTips} items=${ITEM_CHECKS[def.key]} />
-    <${HoursInput} label=${hrsLabel} value=${hrRaw(hrs, hk, fxDefH(state, def.key))} onChange=${(v) => setHr(hk, v)} />
+    ${QTY_FX[def.key] && active && !su ? html`<${Lbl} label=${"How many " + (def.key === "hvalve" ? "pairs of valves" : def.label.toLowerCase().replace(/ \(.*\)/, "") + (/s$/.test(def.label) ? "" : "s")) + "?"}><${NumStepper} value=${state.n === "" ? "" : String(nQ)} placeholder="1" onChange=${(v) => {
+      if (String(v).trim() === "") { onChange({ n: "" }); return; }
+      const nn = Math.min(30, Math.max(1, Math.floor(Number(v)) || 1));
+      /* hours typed for the old quantity are scaled to the new one */
+      [hk, "fxa-" + def.key].forEach((k) => { const old = hrs && hrs[k]; if (old !== undefined && old !== "" && !isNaN(Number(old)) && nQ > 0) setHr(k, String(Math.round(Number(old) / nQ * nn * 4) / 4)); });
+      onChange({ n: String(nn) }); }} step=${1} dp=${0} start=${1} max=${30} label=${"How many " + def.label} /><//>` : null}
+    <${HoursInput} label=${nQ > 1 ? hrsLabel + " (all " + nQ + ")" : hrsLabel} value=${hrRaw(hrs, hk, fxDefH(state, def.key) * nQ)} onChange=${(v) => setHr(hk, v)} />
     ${mode === "fit" || mode === "new" ? custTick : null}
     ${active && !alt ? html`<${PriceAs} value=${tag} onPick=${(v) => setTag(toggleProv, tag, v, "pv-fx-" + def.key, "o2-fx-" + def.key)} />` : null}
     ${su && active ? html`<${SuitePanel} def=${def} state=${state} onChange=${onChange} fixtures=${fixtures} tier=${tier} />` : null}
     ${!su && list.length > 0 ? html`<div>
       <div className="kit-head">${kitLabel}</div>
+      ${nQ > 1 ? html`<p className="note" style=${{ margin: "0 0 6px" }}>Prices are for one; they are multiplied by ${nQ} in the total.</p>` : null}
       <${KitList} list=${list} prefix=${def.key + "-" + lname} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} skip0=${custSkip(state.cust, lname, 0)} />
     </div>` : null}
     ${extras.length > 0 ? html`<div className="kit-head">Provisional extras, only if needed once opened up</div>` : null}
@@ -3742,7 +3793,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
     ${alt ? html`<div className="alt-box">
       <div className="alt-head"><span><b>Option 2:</b> ${altName.toLowerCase()} instead</span><button type="button" className="linkbtn" onClick=${() => onChange({ alt: "" })}>Remove</button></div>
       ${(alt === "fit" || alt === "new") && !(mode === "fit" || mode === "new") ? custTick : null}
-      <${HoursInput} label=${"Time to " + altName.toLowerCase()} value=${hrRaw(hrs, "fxa-" + def.key, fxDefH(altSt, def.key))} onChange=${(v) => setHr("fxa-" + def.key, v)} />
+      <${HoursInput} label=${"Time to " + altName.toLowerCase()} value=${hrRaw(hrs, "fxa-" + def.key, fxDefH(altSt, def.key) * nQ)} onChange=${(v) => setHr("fxa-" + def.key, v)} />
       ${altList.length ? html`<div className="kit-head">Option 2 kit — ${altName.toLowerCase()}</div>
         <${KitList} list=${altList} prefix=${def.key + "-" + fixtureListName(altSt)} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} skip0=${custSkip(state.cust, fixtureListName(altSt), 0)} />` : null}
       <${ExtraBlock} group=${def.label + O2_SFX} title=${"Option 2 extra materials (" + altName.toLowerCase() + ")"} />
@@ -4025,7 +4076,7 @@ function SiteSurveyView(p) {
   const supplyNum = Math.max(0, Number(supply) || 0);
   const miss = missingPrices(room, fixtures, structural, kit, tier, prov, pc.prices, pc.bulkOnly);
   const missGroups = Object.entries(miss.reduce((a, m) => { a[m.group] = (a[m.group] || 0) + 1; return a; }, {}));
-  const barSub = ["materials at cost", calc.supply > 0 ? "+ " + String(calc.supplyLabel).split(" — ")[0] + " " + fmt(calc.supply) : "", calc.provHours > 0 ? "if needed: +" + fmtHrs(calc.provHours) + " hrs, " + fmt(calc.provMaterials) : "", calc.o2Hours > 0 || calc.o2Materials > 0 ? "option 2: +" + fmtHrs(calc.o2Hours || 0) + " hrs, " + fmt(calc.o2Materials || 0) : ""].filter(Boolean).join(" · ");
+  const barSub = [calc.sundries > 0 ? "materials incl. sundries" : "materials at cost", calc.supply > 0 ? "+ " + String(calc.supplyLabel).split(" — ")[0] + " " + fmt(calc.supply) : "", calc.provHours > 0 ? "if needed: +" + fmtHrs(calc.provHours) + " hrs, " + fmt(calc.provMaterials) : "", calc.o2Hours > 0 || calc.o2Materials > 0 ? "option 2: +" + fmtHrs(calc.o2Hours || 0) + " hrs, " + fmt(calc.o2Materials || 0) : ""].filter(Boolean).join(" · ");
 
   return html`<div>
     <div className="title-row"><h1>${room.title}</h1></div>
@@ -4068,7 +4119,7 @@ function SiteSurveyView(p) {
       <//>
     </div>
 
-    ${room === HEATING ? html`<${BoilerBlock} fixtures=${fixtures} structural=${structural} updateFixture=${updateFixture} updateStructural=${updateStructural} />` : null}
+    ${room === HEATING ? html`<${BoilerBlock} fixtures=${fixtures} structural=${structural} updateFixture=${updateFixture} updateStructural=${updateStructural} hrs=${hrs} setHr=${setHr} />` : null}
     <${Sec} n="2">${room.fixturesLabel}<//>
     ${room === BATHROOM && window.SUITE ? html`<${SuiteBar} fixtures=${fixtures} tier=${tier} onChange=${(patch) => updateFixture("_suite", patch)} />` : null}
     <div className="group" id="sv-fix">
@@ -4203,7 +4254,7 @@ async function makeAndSharePdf(sections, filename) {
   const lab = (mm) => mm[1] + (mm[3] ? " (" + mm[3] + ")" : "");
 
   const header = (title, sub) => {
-    const bz = loadBiz(), contact = [bz.phone, bz.email].map((x) => String(x || "").trim()).filter(Boolean), addr = String(bz.addr || "").trim();
+    const bz = loadUse() === "biz" ? loadBiz() : {}, contact = [bz.phone, bz.email].map((x) => String(x || "").trim()).filter(Boolean), addr = String(bz.addr || "").trim();
     const right = contact.concat(addr ? wrap(addr, 200).slice(0, 2) : []);
     fill(ACC); doc.rect(0, 0, PW, 88, "F");
     const tl = wrap(title, right.length ? W - 200 : W);
@@ -4424,7 +4475,8 @@ function QuoteView(p) {
     calc.supply > 0 ? [[calc.supplyLabel, calc.supply]] : [], trades0.map((x) => [x.label + (x.tag ? " " + x.tag : ""), x.cost]));
   const swapped = invOpt === 2 ? calc.o2Items.filter((i) => i.swap).map((i) => i.base) : [];
   const invWork = scopeItems.filter((x) => swapped.indexOf(x) < 0).concat(invOpt === 2 ? calc.o2Items.map((i) => (i.swap ? i.label.replace(/ \(instead of: .*\)$/, "") : i.label)) : [], pvUsed.map((i) => i.label + " (found to be needed)"));
-  const invMat = matBreakdown(survey, calc).map((x) => [x.group, x.total]);
+  /* by item only when asked for, and only when it matches the invoice (option 1, nothing extra) */
+  const invMat = g("mat:items") && invOpt === 1 && !pvUsed.length ? matByItem(survey, calc).map((x) => [x.group, x.total]) : [];
   const invText = buildInvoiceText({ businessName, customerName, siteAddress, get: g, optName: hasO2 ? ONq[invOpt - 1] : "", matItems: invMat, work: invWork, charges: invCharges, minCharge: chg.min, pay, terms });
   const invProfit = (() => { const all = invCharges.reduce((a, c) => a + (c[1] > 0 ? c[1] : 0), 0); const costs = invCharges.filter((c) => /^Materials/.test(c[0]) || (calc.supply > 0 && c[0] === calc.supplyLabel) || /\(subcontract\)/.test(c[0])).reduce((a, c) => a + (c[1] > 0 ? c[1] : 0), 0); return Math.max(all, chg.min) - costs; })();
   const invName = "Invoice-" + invMeta(g).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf";
@@ -4449,9 +4501,10 @@ function QuoteView(p) {
 
     ${tab === "estimate" ? (() => {
       const hasC = !!String(customerName || "").trim(), hasA = !!String(siteAddress || "").trim();
-      const ok = hasC && hasA;
+      const sw = (survey && survey.warn) || [];
+      const ok = hasC && hasA && !sw.length;
       return html`<${StatusCard} title=${ok ? (direct ? "Quote ready to send" : "Estimate ready to send") : "Check before you send"} tone=${ok ? "ok" : "warn"}
-        next=${ok ? (direct ? "Copy it or make the PDF. The customer signs the acceptance block at the bottom." : (TEAM ? "Copy it or make the PDF for the office." : "Copy it or make the PDF for the office. Tick 'This is my own work' if it is a direct quote to the customer.")) : "Add " + [hasC ? "" : "the customer name", hasA ? "" : "the site address"].filter(Boolean).join(" and ") + " in the box below so the PDF and the saved job are named properly."}
+        next=${ok ? (direct ? "Copy it or make the PDF. The customer signs the acceptance block at the bottom." : (TEAM ? "Copy it or make the PDF for the office." : "Copy it or make the PDF for the office. Tick 'This is my own work' if it is a direct quote to the customer.")) : [hasC && hasA ? "" : "Add " + [hasC ? "" : "the customer name", hasA ? "" : "the site address"].filter(Boolean).join(" and ") + " in the box below so the PDF and the saved job are named properly.", sw.length ? "On the survey: " + sw.join("; ") + "." : ""].filter(Boolean).join(" ")}
         pills=${[[direct ? "Direct quote" : "For the office", direct ? "ok" : ""], [rateOn ? "Labour included in total" : (direct ? "No labour rate set" : "Hours only"), rateOn || !direct ? "" : "warn"], ...(ost.total > 0 ? [[ost.left === 0 ? "Order list done" : ost.left + " to order", ost.left === 0 ? "ok" : ""]] : [])]} />`;
     })() : null}
 
@@ -4484,7 +4537,7 @@ function QuoteView(p) {
           ${direct ? (rateOn ? html`<tr><td>Labour</td><td>${fmtP(labourCost)}</td></tr>` : null) : html`<tr><td>Labour (estimated)</td><td>${fmtHrs(calc.totalHours)} hrs</td></tr>`}
           ${calc.sundries > 0 && html`<tr><td>Materials (listed)</td><td>${fmtP(calc.materialsBase - calc.sundries)}</td></tr>`}
           ${calc.sundries > 0 && html`<tr><td>Sundries (${SUNDRIES_PCT}% of materials)</td><td>${fmtP(calc.sundries)}</td></tr>`}
-          <tr className="total"><td>${direct ? "Materials" : "Materials at cost"}</td><td>${calc.materialsBase > 0 ? fmt(calc.materialsBase) : "not priced"}</td></tr>
+          <tr className="total"><td>${direct ? "Materials" : calc.sundries > 0 ? "Materials incl. sundries" : "Materials at cost"}</td><td>${calc.materialsBase > 0 ? fmt(calc.materialsBase) : "not priced"}</td></tr>
           ${calc.supply > 0 && html`<tr><td>${calc.supplyLabel}</td><td>${fmtP(calc.supply)}</td></tr>`}
           ${trades.map((x) => html`<tr key=${x.key}><td>${x.label}${x.tag ? " " + x.tag : ""}</td><td>${fmtP(x.cost)}</td></tr>`)}
           ${(rateOn || trades.length > 0) && html`<tr className="total"><td>${direct ? (VRq > 0 ? "Total before VAT" : "Total quote price") : totalLabel(rateOn, trades.length > 0)}</td><td>${fmtP(calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + tradeTotal)}</td></tr>`}
@@ -4511,7 +4564,7 @@ function QuoteView(p) {
         </tbody></table>
       </div>`; })()}
       ${calc.provItems.length > 0 && html`<div>
-        <div className="mini-label" style=${{ marginTop: 16 }}>Provisional items — only if needed once work starts (extra to the totals above)</div>
+        <div className="mini-label" style=${{ marginTop: 16 }}>Provisional tasks — only if needed once work starts (extra to the totals above)</div>
         <table className="q-table">
           <thead><tr><th>Item</th>${direct ? null : html`<th>Est. hours</th>`}<th>${direct ? "Price" : "Materials"}</th></tr></thead>
           <tbody>${calc.provItems.map((i, k) => html`<tr key=${k}><td>${i.label}</td>${direct ? null : html`<td>${fmtHrs(i.hours)}</td>`}<td>${fmtP(direct ? i.materials * (calc.sundriesNeeded ? 1 + SUNDRIES_PCT / 100 : 1) + (rateOn ? i.hours * rateVal : 0) : i.materials * (calc.sundriesNeeded ? 1 + SUNDRIES_PCT / 100 : 1))}</td></tr>`)}</tbody>
@@ -4561,8 +4614,11 @@ function QuoteView(p) {
     </div>`}
 
     <div className="actionbar"><div className="bar-in">
+      ${direct && setTick && g("inv:on") && tab !== "order" ? html`
+      <${CopyQuote} cls="grow" btnCls="btn btn-dark" text=${invText} label="Copy invoice" onSend=${claimNo(g, sv, "inv:no", "pricer-invno", defInvNo)} />
+      <${SharePdf} cls="grow" sections=${[invText]} filename=${"Invoice-" + invMeta(g).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf"} label="Send invoice PDF" onSend=${claimNo(g, sv, "inv:no", "pricer-invno", defInvNo)} />` : html`
       <${CopyQuote} cls="grow" btnCls="btn btn-dark" text=${tab === "order" ? orderText : text} label=${tab === "order" ? "Copy order list" : direct ? "Copy quote" : "Copy estimate"} onSend=${direct && tab !== "order" && setTick ? claimNo(g, sv, "q:ref", "pricer-qno", defQuoteNo) : null} />
-      <${SharePdf} cls="grow" sections=${direct ? [text] : [text, orderText]} filename=${pdfName} label="Send PDF" onSend=${direct && setTick ? claimNo(g, sv, "q:ref", "pricer-qno", defQuoteNo) : null} />
+      <${SharePdf} cls="grow" sections=${[tab === "order" ? orderText : text]} filename=${pdfName} label="Send PDF" onSend=${direct && tab !== "order" && setTick ? claimNo(g, sv, "q:ref", "pricer-qno", defQuoteNo) : null} />`}
     </div></div>
   </div>`;
 }
@@ -5016,7 +5072,7 @@ const MAX_PHOTOS = 8;
 
 function reportText(id, job, biz) {
   const def = REPORT_FORMS[id], v = reportVals(job, id, biz), L = [];
-  L.push((v.company || "[Company]") + " — " + def.title.toUpperCase());
+  L.push((v.company ? v.company + " — " : "") + def.title.toUpperCase());
   L.push("Property: " + (v.site || "[address]"));
   L.push("Date: " + fmtDate(v.date));
   if (v.tenant) L.push("Customer or tenant: " + v.tenant);
@@ -5039,7 +5095,7 @@ function reportText(id, job, biz) {
   });
   { const ph = reportPhotos(job, id); if (ph.length) { L.push("PHOTOS: " + ph.length + " (in the PDF)." + ph.filter((x) => x.cap).map((x, i) => " " + (i + 1) + ". " + x.cap).join("")); L.push(""); } }
   if (v.next) L.push("Next check due: " + fmtDate(v.next));
-  L.push("Report by: " + (v.signed || v.by || v.company || "-"));
+  if (v.signed || v.by || v.company) L.push("Report by: " + (v.signed || v.by || v.company));
   return L.join("\n");
 }
 
@@ -5113,7 +5169,7 @@ async function makeReportPdf(id, job, biz) {
   font("normal", 11, [220, 230, 245]); doc.text(v.company || v.site || "", M, 62);
   y = 84 + 24;
   /* details grid */
-  const cells = [["Property", v.site], ["Date", v.date ? fmtDate(v.date) : ""], ["Customer or tenant", v.tenant], ["Landlord or agent", v.landlord], ["Carried out by", v.by], ["Company", v.company]].filter((c) => c[1]);
+  const cells = [["Property", v.site], ["Date", v.date ? fmtDate(v.date) : ""], ["Customer or tenant", v.tenant], ["Landlord or agent", v.landlord], ["Carried out by", v.by], ["Company", v.company && v.company !== (v.signed || v.by) ? v.company : ""]].filter((c) => c[1]);
   const rowsN = Math.ceil(cells.length / 2);
   fill(TINT); doc.roundedRect(M, y - 6, W, rowsN * 34 + 8, 4, 4, "F");
   cells.forEach(([k, val], i) => { const cx = M + 12 + (i % 2) * (W / 2), cy = y + 8 + Math.floor(i / 2) * 34; font("bold", 8, SOFT); doc.text(String(k).toUpperCase(), cx, cy - 2); font("normal", 10.5, INK); doc.text(wrap(val || "", W / 2 - 24)[0] || "", cx, cy + 12); });
@@ -5518,8 +5574,10 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
     </div>
 
 
+    ${use === "biz" ? html`<${VatNoWarn} />` : null}
+    ${use === "biz" && (() => { const n = (job.mats || []).filter((x) => (x.item || "").trim() && !(Number(x.cost) > 0) && !x.unk).length; return n ? html`<p className="note warn-t" style=${{ margin: "4px 0 6px" }}>${n} ${n === 1 ? "material has" : "materials have"} no price yet. Add the prices in Materials before sending the quote or invoice.</p>` : null; })()}
     <div className="actionbar"><div className="bar-in">
-      ${use === "biz" ? html`<${VatNoWarn} /><div className="bar-two">
+      ${use === "biz" ? html`<div className="bar-two">
           <${SharePdf} sections=${[qText]} filename=${"Quote-" + ((job.where || job.jobType || "repair").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "repair") + ".pdf"} label="Quote PDF" cls="grow" onSend=${claimNo(gx, sx, "q:ref", "pricer-qno", defQuoteNo)} />
           <${SharePdf} sections=${[invText]} filename=${"Invoice-" + invMeta(gx).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf"} label="Invoice PDF" cls="grow" onSend=${jh * jr + matTotal + extraLines(gx).reduce((a, c) => a + c[1], 0) > 0 ? claimNo(gx, sx, "inv:no", "pricer-invno", defInvNo) : null} />
         </div>`
