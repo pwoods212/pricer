@@ -5,11 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<script>window.PRICER_TEAM = true;</script>
+<meta http-equiv="Expires" content="0"><script>window.PRICER_TEAM = true;</script>
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610251733"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610252027"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -5485,7 +5484,6 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
         <${Segmented} options=${[["yes", "Yes"], ["partly", "Partly"], ["no", "No"]]} value=${job.resolved || ""} onChange=${(v) => setJob((p) => ({ ...p, resolved: p.resolved === v ? "" : v }))} /></div>
       ${job.resolved === "partly" || job.resolved === "no" ? area("resolvedNote", "e.g. Still dripping, new part needed", "What is still wrong?", "mj-resnote") : null}
       <${HoursInput} quick=${true} label="How long did it take?" value=${job.hours} onChange=${(v) => setJob((p) => ({ ...p, hours: v }))} />
-      <div className="link-row" style=${{ marginTop: 8 }}><button type="button" className="btn" onClick=${() => setReportId("job")}>${reportStarted(job, "job") ? "Open the job report" : "Write a report for the customer"}</button></div>
     </div>
 
     <${Sec} n="3">Property checks<//>
@@ -5507,6 +5505,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
           ${REPORT_FORMS[c[0]] ? html`<button type="button" className="btn" onClick=${() => setReportId(c[0])}>${reportStarted(job, c[0]) ? "Open write-up" : "Write-up with photos"}</button>` : null}
         </div>
       </div>`)}
+      <div className="link-row" style=${{ marginTop: 12 }}><button type="button" className="btn" onClick=${() => setReportId("job")}>${reportStarted(job, "job") ? "Open the job report" : "Write a report for the customer"}</button></div>
     </div>
 
     <${Sec} n="4">Materials<//>
