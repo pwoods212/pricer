@@ -9,7 +9,7 @@
 <script>window.PRICER_TEAM = true;</script>
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610251239"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610251502"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -755,6 +755,19 @@ body.kb .undo { bottom: 12px; }
 .kind-tag.st-paid { background: var(--ok); color: #1A1B1D; }
 
 .usual-list { margin: 8px 0; }
+.hub { background: var(--panel); border: 1.5px solid var(--accent); border-radius: 12px; padding: 12px; margin: 4px 0 14px; display: grid; gap: 10px; }
+.hub-search { display: flex; align-items: center; gap: 8px; background: var(--field); border: 1.5px solid var(--line2); border-radius: 10px; padding: 0 12px; min-height: 52px; }
+.hub-search:focus-within { border-color: var(--accent); }
+.hub-search .ico { width: 20px; height: 20px; color: var(--accent); flex: none; }
+.hub-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; padding: 12px 0; outline: none; }
+.hub-res { display: grid; gap: 6px; max-height: 60vh; overflow-y: auto; }
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tile { display: grid; justify-items: center; gap: 2px; text-align: center; min-height: 84px; padding: 10px 6px; border-radius: 10px; border: 1.5px solid var(--line2); background: var(--panel2); color: var(--ink); font: inherit; cursor: pointer; }
+.tile .ico { width: 24px; height: 24px; color: var(--accent); margin-bottom: 2px; }
+.tile b { font-size: 14px; font-weight: 700; }
+.tile span { font-size: 11.5px; color: var(--muted); line-height: 1.2; }
+.tile.on { border-color: var(--accent); background: var(--field); box-shadow: inset 0 -3px 0 var(--accent); }
+.hub-panel { border-top: 1px solid var(--line); padding-top: 10px; }
 .paste-prev { margin: 8px 0 0; border-top: 1px solid var(--line, #444); padding-top: 6px; }
 .paste-row { padding: 3px 0; font-size: 13px; }
 .usual-h { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
@@ -3126,6 +3139,7 @@ function PriceBookView({ auth }) {
   const kits = useKits();
   const [q, setQ] = useState("");
   const [cq, setCq] = useState("");
+  const [panel, setPanel] = useState(() => (book.length === 0 ? "add" : ""));
   const [nItem, setNItem] = useState(""); const [nPrice, setNPrice] = useState(""); const [nSup, setNSup] = useState(""); const [nCode, setNCode] = useState("");
   const [supF, setSupF] = useState("");
   const groups = {};
@@ -3138,6 +3152,35 @@ function PriceBookView({ auth }) {
   return html`<div>
     <div className="title-row"><h1>Price Book</h1></div>
     <p className="lead">Every price you type into a survey is saved here against the item, so you build up what you actually pay.${auth && auth.user ? " It is also saved to your account." : " Sign in at My Jobs to keep it across devices."}</p>
+    <div className="hub">
+      <label className="hub-search"><${Icon} name="search" /><input type="search" enterKeyHint="search" placeholder="Search the supplier catalogue" aria-label="Search the supplier catalogue" value=${cq} onChange=${(e) => { setCq(e.target.value); if (e.target.value) setPanel(""); }} /></label>
+      ${cq.trim() ? html`<div className="hub-res">
+        ${hits.map((c, i) => { const cd = codeFromUrl(c[3]); const inBook = bookData.some((e) => e.item === c[0] && e.price === c[1]); return html`<div key=${i} className="mat">
+          <div className="cat-name">${c[0]}<span className="muted"> · ${SUP_NAME[c[2]]}${cd ? " · code " + cd : ""}</span>${c[3] ? html` <a href=${c[3]} target="_blank" rel="noopener noreferrer">view</a>` : null}</div>
+          <div className="mat-act cat-act"><b className="cat-price">${fmtKit(c[1])}</b>
+            <button type="button" className="btn" disabled=${inBook} onClick=${() => bookAdd(c[0], c[1], SUP_NAME[c[2]], "", cd)}>${inBook ? "Added" : "Add to price book"}</button>
+            ${kits.length > 0 ? html`<select className="text-in" aria-label="Add to a kit" value="" onChange=${(e) => { const k = kits.find((x) => x.id === e.target.value); if (k) kitUpdate(k.id, (kk) => ({ ...kk, items: [...kk.items.filter((x) => (x.item || "").trim()), { item: c[0], code: cd, where: SUP_NAME[c[2]], price: String(c[1]) }] })); }}>
+              <option value="">Add to kit…</option>${kits.map((k) => html`<option key=${k.id} value=${k.id}>${k.name}</option>`)}</select>` : null}</div></div>`; })}
+        ${cq.trim() && hits.length === 0 ? html`<p className="note">No match. Try fewer words.</p>` : null}
+        <p className="note" style=${{ margin: "6px 0 0" }}>${CATALOG.length} products, prices seen ${CATALOG_DATE}. Check the price when you buy.</p>
+      </div>` : null}
+      <div className="tiles" role="group" aria-label="Add to your Price Book">
+        <button type="button" className=${"tile" + (panel === "add" ? " on" : "")} aria-pressed=${panel === "add"} onClick=${() => setPanel(panel === "add" ? "" : "add")}><${Icon} name="tag" /><b>Add a price</b><span>item, price, code</span></button>
+        <button type="button" className=${"tile" + (panel === "kits" ? " on" : "")} aria-pressed=${panel === "kits"} onClick=${() => setPanel(panel === "kits" ? "" : "kits")}><${Icon} name="clipboard" /><b>My kits</b><span>${kits.length ? kits.length + " saved" : "reusable lists"}</span></button>
+        <button type="button" className=${"tile" + (panel === "scan" ? " on" : "")} aria-pressed=${panel === "scan"} onClick=${() => setPanel(panel === "scan" ? "" : "scan")}><${Icon} name="file" /><b>Scan receipt</b><span>from a photo</span></button>
+      </div>
+      ${panel === "add" ? html`<div className="hub-panel">
+        <div className="mat-grid">
+          <${Lbl} label="Item" wide=${true}><input className="text-in" type="text" placeholder="e.g. Bath 1700" value=${nItem} onChange=${(e) => setNItem(e.target.value)} /><//>
+          <${Lbl} label="Price (£)"><input className="text-in" type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value=${nPrice} onChange=${(e) => setNPrice(e.target.value)} /><//>
+          <${Lbl} label="Product code"><input className="text-in" type="text" autoCapitalize="none" value=${nCode} onChange=${(e) => setNCode(e.target.value)} /><//>
+          <${Lbl} label="Supplier" wide=${true}><input className="text-in" type="text" placeholder="e.g. Screwfix, or quote ref" value=${nSup} onChange=${(e) => setNSup(e.target.value)} /><${QuickChips} items=${SUPPLIER_CHIPS} value=${nSup} label="Common suppliers" onPick=${(v) => setNSup(v)} /><//>
+        </div>
+        <button type="button" className="btn btn-accent" onClick=${() => { if (nItem.trim() && Number(nPrice) > 0) { bookAdd(nItem.trim(), nPrice, nSup, "", nCode); setNItem(""); setNPrice(""); setNSup(""); setNCode(""); } }}>Save price</button>
+      </div>` : null}
+      ${panel === "kits" ? html`<div className="hub-panel"><${KitsManager} /></div>` : null}
+      ${panel === "scan" ? html`<div className="hub-panel"><${ReceiptImport} /></div>` : null}
+    </div>
     <${StatusCard} title=${allNames.length ? "Your price book" : "Price book is empty"} tone=${allNames.length ? (staleN ? "warn" : "ok") : ""}
       next=${allNames.length ? (staleN ? staleN + (staleN === 1 ? " item was last priced" : " items were last priced") + " over 6 months ago. Check those before you quote." : "Prices are up to date. The newest price paid is used next time you add the item.") : "Add a price below, scan a receipt, or just type prices into a survey. They collect here."}>
       <div className="stat-row"><div className="stat"><b>${allNames.length}</b><span>items</span></div><div className="stat"><b>${supList.length}</b><span>suppliers</span></div><div className="stat"><b>${kits.length}</b><span>kits</span></div></div>
@@ -3157,34 +3200,6 @@ function PriceBookView({ auth }) {
           <span>${e.date}${e.supplier ? " · " + e.supplier : ""}${e.product ? " · " + e.product : ""}${e.code ? " · code " + e.code : ""}</span>
           <span><b className="mono">${fmtKit(e.price)}</b> <${RemoveBtn} label="Remove this price" onClick=${() => bookRemove(e)} /></span></div>`)}
       </details>`; })}
-    </div>
-    <${Sec}>Add, kits and catalogue<//>
-    <div className="group">
-      <${Fold} title="Import from a receipt" sub="scan a photo of a receipt">
-        <${ReceiptImport} />
-      <//>
-      <${Fold} title="Add a price I paid" sub="item, price, supplier" defaultOpen=${book.length === 0}>
-        <div className="mat-grid">
-          <${Lbl} label="Item" wide=${true}><input className="text-in" type="text" placeholder="e.g. Bath 1700" value=${nItem} onChange=${(e) => setNItem(e.target.value)} /><//>
-          <${Lbl} label="Price (£)"><input className="text-in" type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value=${nPrice} onChange=${(e) => setNPrice(e.target.value)} /><//>
-          <${Lbl} label="Product code"><input className="text-in" type="text" autoCapitalize="none" value=${nCode} onChange=${(e) => setNCode(e.target.value)} /><//>
-          <${Lbl} label="Supplier" wide=${true}><input className="text-in" type="text" placeholder="e.g. Screwfix, or quote ref" value=${nSup} onChange=${(e) => setNSup(e.target.value)} /><${QuickChips} items=${SUPPLIER_CHIPS} value=${nSup} label="Common suppliers" onPick=${(v) => setNSup(v)} /><//>
-        </div>
-        <button type="button" className="btn btn-accent" onClick=${() => { if (nItem.trim() && Number(nPrice) > 0) { bookAdd(nItem.trim(), nPrice, nSup, "", nCode); setNItem(""); setNPrice(""); setNSup(""); setNCode(""); } }}>Save price</button>
-      <//>
-      <${Fold} title="My kits" sub=${kits.length ? kits.length + " saved" : "reusable material lists"}>
-        <${KitsManager} />
-      <//>
-      <${Fold} title="Supplier catalogue" sub=${CATALOG.length + " products, seen " + CATALOG_DATE}>
-        <input className="text-in" style=${{ marginBottom: 6 }} type="text" enterKeyHint="search" placeholder="e.g. basin waste, close coupled toilet, 22mm elbow" aria-label="Search catalogue" value=${cq} onChange=${(e) => setCq(e.target.value)} />
-        ${hits.map((c, i) => { const cd = codeFromUrl(c[3]); const inBook = bookData.some((e) => e.item === c[0] && e.price === c[1]); return html`<div key=${i} className="mat">
-          <div className="cat-name">${c[0]}<span className="muted"> · ${SUP_NAME[c[2]]}${cd ? " · code " + cd : ""}</span>${c[3] ? html` <a href=${c[3]} target="_blank" rel="noopener noreferrer">view</a>` : null}</div>
-          <div className="mat-act cat-act"><b className="cat-price">${fmtKit(c[1])}</b>
-            <button type="button" className="btn" disabled=${inBook} onClick=${() => bookAdd(c[0], c[1], SUP_NAME[c[2]], "", cd)}>${inBook ? "Added" : "Add to price book"}</button>
-            ${kits.length > 0 ? html`<select className="text-in" aria-label="Add to a kit" value="" onChange=${(e) => { const k = kits.find((x) => x.id === e.target.value); if (k) kitUpdate(k.id, (kk) => ({ ...kk, items: [...kk.items.filter((x) => (x.item || "").trim()), { item: c[0], code: cd, where: SUP_NAME[c[2]], price: String(c[1]) }] })); }}>
-              <option value="">Add to kit…</option>${kits.map((k) => html`<option key=${k.id} value=${k.id}>${k.name}</option>`)}</select>` : null}</div></div>`; })}
-        ${cq.trim() && hits.length === 0 ? html`<p className="note">No match. Try fewer words.</p>` : null}
-      <//>
     </div>
   </div>`;
 }
@@ -3216,7 +3231,6 @@ function KitList({ list, prefix, tier, kit, onToggle, hrs, setHr, skip0 }) {
           <input className="text-in" type="text" placeholder=${it.l} value=${pc.prices["name:" + id] || ""} onChange=${(e) => pc.setPrice("name:" + id, e.target.value)} /><//>
         ${pc.bulk.length > 0 || cov ? html`<${Tick} checked=${cov} onChange=${() => pc.setPrice("cov:" + id, !cov)} label="Already bought in a bulk buy (don't add this price)" />` : null}
       <//>
-      ${on && !cov && !(id in pc.prices) && !pc.prices["name:" + id] ? (() => { const u = usualTop("kit:" + id, 1)[0]; return u ? html`<button type="button" className="usual-btn" onClick=${() => { pc.setPrice(id, String(u.price || "")); if (u.name !== it.l) pc.setPrice("name:" + id, u.name); if (u.sup) pc.setSrc(id, u.sup); if (u.code) pc.setPrice("code:" + id, u.code); usualAdd("kit:" + id, u.name, u.price, u.sup, u.code); }}>Your usual: <b>${u.name}</b>${u.price ? " · " + fmtKit(u.price) : ""}${u.sup ? " · " + u.sup.split(" — ")[0] : ""} <span className="usual-go">Use it</span></button>` : null; })() : null}
       ${on && it.d ? html`<${HoursInput} label=${"Extra time: " + shown} value=${hrRaw(hrs, "kit-" + id, DEF_H)} onChange=${(v) => setHr("kit-" + id, v)} />` : null}
     </div>`;
   })}`;
@@ -3806,8 +3820,6 @@ function ExtraBlock({ group, hint, title }) {
   return html`<div style=${{ marginTop: 8 }}>
     ${group ? html`<div className="kit-head">${title || "Extra materials for this " + (hint || "item")}</div>` : null}
     ${mine.map((x) => html`<${ExtraRow} key=${x.id} x=${x} pc=${pc} />`)}
-    ${(() => { const have = new Set(mine.map((x) => (x.item || "").trim())); const us = usualTop("grp:" + String(group || "").replace(O2_SFX, ""), 6).filter((u) => !have.has(u.name)); return us.length ? html`<div className="usual-list"><div className="usual-h">Your usual for this ${hint || "item"}</div>
-      ${us.map((u) => html`<button type="button" key=${u.name} className="usual-btn" onClick=${() => { pc.addExtra({ item: u.name, price: u.price ? String(u.price) : "", where: u.sup || "", code: u.code || "", group }); usualAdd("grp:" + String(group || "").replace(O2_SFX, ""), u.name, u.price, u.sup, u.code); }}>+ <b>${u.name}</b>${u.price ? " · " + fmtKit(u.price) : ""}${u.sup ? " · " + u.sup : ""}</button>`)}</div>` : null; })()}
     <${AddBtn} onClick=${() => pc.addExtra({ item: "", group })}>Add new material<//>
   </div>`;
 }
@@ -5405,8 +5417,6 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
           setMat(m.id, { item: itemName || name || m.item, where: sup || m.where, cost: String(pr), code: cd || m.code || "" });
         }}
         onRemove=${() => setJob((p) => ({ ...p, mats: p.mats.filter((x) => x.id !== m.id) }))} removeLabel="Remove this material" />`)}
-      ${(() => { const have = new Set(job.mats.map((x) => (x.item || "").trim())); const us = usualTop("grp:Maintenance", 6).filter((u) => !have.has(u.name)); return us.length ? html`<div className="usual-list"><div className="usual-h">Your usual materials</div>
-        ${us.map((u) => html`<button type="button" key=${u.name} className="usual-btn" onClick=${() => { setJob((p) => ({ ...p, mats: [...p.mats, { id: newId(), item: u.name, where: u.sup || "", cost: u.price ? String(u.price) : "", code: u.code || "" }] })); usualAdd("grp:Maintenance", u.name, u.price, u.sup, u.code); }}>+ <b>${u.name}</b>${u.price ? " · " + fmtKit(u.price) : ""}${u.sup ? " · " + u.sup : ""}</button>`)}</div>` : null; })()}
       <${AddBtn} onClick=${() => setJob((p) => ({ ...p, mats: [...p.mats, { id: newId(), item: "", where: "", cost: "" }] }))}>Add new material<//>
       <${PasteList} onAdd=${(rows) => setJob((p) => ({ ...p, mats: [...p.mats, ...rows.map((r) => ({ id: newId(), item: r.item, qty: r.qty, code: r.code, where: r.where, cost: r.price }))] }))} />
       <${VanUsed} job=${job} setJob=${setJob} gx=${gx} sx=${sx} />
