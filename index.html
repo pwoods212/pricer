@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610251502"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610251506"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -2715,11 +2715,14 @@ function usualAdd(ctx, name, price, sup, code) {
   try { localStorage.setItem(USUAL_KEY, JSON.stringify(all)); } catch (e) { /* storage unavailable */ }
 }
 const usualTop = (ctx, k) => Object.entries(usualAll()[ctx] || {}).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.n - a.n || b.last - a.last).slice(0, k || 5);
+/* one name per supplier: "Screwfix — Flomasta fill valve" is Screwfix, and short forms (SF, WD, CPS) are spelled out */
+const SUP_ALIAS = { sf: "Screwfix", screwfix: "Screwfix", ts: "Toolstation", toolstation: "Toolstation", wd: "Wholesale Domestic", cps: "City Plumbing", "city plumbing": "City Plumbing", pc: "Plumb Center", "plumb center": "Plumb Center", "b&q": "B&Q", bq: "B&Q" };
+function supName(s) { const t = String(s || "").split(" — ")[0].trim(); return SUP_ALIAS[t.toLowerCase()] || t; }
 function bookAdd(item, price, supplier, product, code) {
   const pr = Number(price);
   if (!item || !(pr > 0)) return;
   const today = new Date().toISOString().slice(0, 10);
-  const sup = (supplier || "").trim();
+  const sup = supName(supplier);
   const cd = (code || "").trim();
   const last = bookData.filter((e) => e.item === item).slice(-1)[0];
   if (last && last.price === pr && last.date === today && (last.supplier === sup || !sup) && (last.code || "") === cd) return;
@@ -2737,13 +2740,14 @@ function bookRemove(e) { bookData = bookData.filter((x) => x !== e); bookSave();
 async function bookSync() {
   if (!sb) return;
   try {
+    if (bookData.some((e) => e.supplier && supName(e.supplier) !== e.supplier)) { bookData = bookData.map((e) => ({ ...e, supplier: supName(e.supplier) })); bookSave(); }
     const r = await sb.from("price_log").select("item,product,code,supplier,price,paid_on").order("paid_on", { ascending: true }).limit(5000);
     if (!r || !r.data) return;
     const key = (e) => [e.item, e.price, e.supplier, e.date, e.code || ""].join("|");
     const have = new Set(bookData.map(key));
-    const add = r.data.map((d) => ({ item: d.item, price: Number(d.price), supplier: d.supplier || "", product: d.product || "", code: d.code || "", date: d.paid_on })).filter((e) => !have.has(key(e)));
+    const add = r.data.map((d) => ({ item: d.item, price: Number(d.price), supplier: supName(d.supplier), product: d.product || "", code: d.code || "", date: d.paid_on })).filter((e) => !have.has(key(e)));
     if (add.length) { bookData = [...bookData, ...add].filter((e, _i, all) => e.code || !all.some((o) => o.code && o.item === e.item && o.price === e.price && o.supplier === e.supplier && o.date === e.date)).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)); bookSave(); }
-    const mine = new Set(r.data.map((d) => [d.item, Number(d.price), d.supplier || "", d.paid_on, d.code || ""].join("|")));
+    const mine = new Set(r.data.map((d) => [d.item, Number(d.price), supName(d.supplier), d.paid_on, d.code || ""].join("|")));
     const u = (await sb.auth.getUser()).data.user;
     const up = bookData.filter((e) => !mine.has(key(e)));
     if (u && up.length) await sb.from("price_log").insert(up.map((e) => ({ user_id: u.id, item: e.item, product: e.product, code: e.code || "", supplier: e.supplier, price: e.price, paid_on: e.date })));
@@ -3144,8 +3148,8 @@ function PriceBookView({ auth }) {
   const groups = {};
   book.forEach((e) => { (groups[e.item] = groups[e.item] || []).push(e); });
   const allNames = Object.keys(groups);
-  const supList = Array.from(new Set(book.map((e) => (e.supplier || "").trim()).filter(Boolean))).sort();
-  const names = allNames.filter((n) => n.toLowerCase().includes(q.toLowerCase()) && (!supF || groups[n].some((e) => (e.supplier || "").trim() === supF))).sort();
+  const supList = Array.from(new Set(book.map((e) => supName(e.supplier)).filter(Boolean))).sort();
+  const names = allNames.filter((n) => n.toLowerCase().includes(q.toLowerCase()) && (!supF || groups[n].some((e) => supName(e.supplier) === supF))).sort();
   const staleN = allNames.filter((n) => ageDays(groups[n][groups[n].length - 1].date) > 180).length;
   const hits = cq.trim() ? searchCatalog(cq, 30) : [];
   return html`<div>
@@ -3196,7 +3200,7 @@ function PriceBookView({ auth }) {
       ${names.map((n) => { const g = groups[n]; const last = g[g.length - 1]; return html`<details key=${n} className="pb">
         <summary><span>${n}${last.code ? html`<span className="muted-s"> · code ${last.code}</span>` : null}</span><span><b className="mono">${fmtKit(last.price)}</b>${ageDays(last.date) > 180 ? html` <span className="muted-s age-old">check price</span>` : null}</span></summary>
         ${g.slice().reverse().map((e, i) => html`<div key=${i} className="pb-hist">
-          <span>${e.date}${e.supplier ? " · " + e.supplier : ""}${e.product ? " · " + e.product : ""}${e.code ? " · code " + e.code : ""}</span>
+          <span>${e.date}${e.supplier ? " · " + supName(e.supplier) : ""}${e.product ? " · " + e.product : ""}${e.code ? " · code " + e.code : ""}</span>
           <span><b className="mono">${fmtKit(e.price)}</b> <${RemoveBtn} label="Remove this price" onClick=${() => bookRemove(e)} /></span></div>`)}
       </details>`; })}
     </div>
