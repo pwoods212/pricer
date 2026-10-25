@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610251027"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610251220"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -3141,6 +3141,9 @@ function PriceBookView({ auth }) {
       next=${allNames.length ? (staleN ? staleN + (staleN === 1 ? " item was last priced" : " items were last priced") + " over 6 months ago. Check those before you quote." : "Prices are up to date. The newest price paid is used next time you add the item.") : "Add a price below, scan a receipt, or just type prices into a survey. They collect here."}>
       <div className="stat-row"><div className="stat"><b>${allNames.length}</b><span>items</span></div><div className="stat"><b>${supList.length}</b><span>suppliers</span></div><div className="stat"><b>${kits.length}</b><span>kits</span></div></div>
     <//>
+    ${TEAM ? null : html`<div className="card"><div className="kit-head" style=${{ marginTop: 0 }}>Screwfix orders</div>
+      <p className="note" style=${{ margin: "0 0 8px" }}>Your Screwfix order emails are read every Sunday night. Each item's code and price is added to this Price Book when you are signed in, and the full order list, spend by job and price changes are in your Materials Log.</p>
+      <a className="btn" href="https://claude.ai/artifact/LptugytkSZdwZHLRgtvAJ3" target="_blank" rel="noopener">Open Materials Log</a></div>`}
     <${RestockPanel} />
     <${Sec}>Prices I have paid<//>
     <div className="card">
