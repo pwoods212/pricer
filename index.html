@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610251220"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610251239"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -4530,6 +4530,44 @@ function QuoteView(p) {
 const SB_URL = "https://fcvhsuiafwjlaffouakb.supabase.co";
 const SB_KEY = "sb_publishable_kPjkE2JbRmazFnfXEjh5Cg_Q31i4gvR"; // publishable key, safe in the browser. Row-level security keeps each user's jobs private.
 let sb = null;
+
+/* TIME TRACKER: active time on a quote or job report, from the first tap to the first time it is sent
+   (PDF or copied text). Gaps over 5 minutes are breaks and are not counted. Saved on this phone and,
+   when signed in, to the account (app_time_log) so the Materials Log can show time saved. */
+const TM_KEY = "pricer-timer-v1", TQ_KEY = "pricer-timeq-v1";
+const TM_KIND = { small: "Maintenance job", survey: "Bathroom quote", kitchen: "Kitchen quote", heating: "Heating quote" };
+let tmMode = "small";
+const tmGet = (k) => { try { return JSON.parse(localStorage.getItem(k)) || (k === TQ_KEY ? [] : {}); } catch (e) { return k === TQ_KEY ? [] : {}; } };
+const tmPut = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } };
+function tmTick() {
+  if (!TM_KIND[tmMode]) return;
+  const a = tmGet(TM_KEY), t = a[tmMode] || { ms: 0, last: 0, logged: false }, now = Date.now();
+  if (t.logged) return;
+  if (t.last && now - t.last < 300000) t.ms += now - t.last;
+  t.last = now; a[tmMode] = t; tmPut(TM_KEY, a);
+}
+function tmReset(mode) { const a = tmGet(TM_KEY); delete a[mode]; tmPut(TM_KEY, a); }
+function tmFlush() {
+  const q = tmGet(TQ_KEY).filter((r) => !r.synced);
+  if (!q.length || !sb) return;
+  try {
+    sb.auth.getUser().then((r) => {
+      const u = r && r.data && r.data.user; if (!u) return;
+      sb.from("app_time_log").insert(q.map((x) => ({ kind: x.kind, minutes: x.minutes, ref: x.ref || "", done_at: x.at }))).then((res) => {
+        if (res && !res.error) { const all = tmGet(TQ_KEY); all.forEach((x) => { if (q.some((y) => y.at === x.at)) x.synced = true; }); tmPut(TQ_KEY, all.slice(-200)); }
+      }, () => {});
+    }).catch(() => {});
+  } catch (e) { /* offline */ }
+}
+function tmSent() {
+  if (!TM_KIND[tmMode]) return;
+  const a = tmGet(TM_KEY), t = a[tmMode];
+  if (!t || t.logged || t.ms < 60000) return;
+  t.logged = true; a[tmMode] = t; tmPut(TM_KEY, a);
+  const q = tmGet(TQ_KEY); q.push({ kind: TM_KIND[tmMode], minutes: Math.round(t.ms / 6000) / 10, at: new Date().toISOString(), synced: false }); tmPut(TQ_KEY, q.slice(-200));
+  tmFlush();
+}
+try { document.addEventListener("input", tmTick, true); document.addEventListener("click", tmTick, true); window.addEventListener("jobpricer:sent", tmSent); } catch (e) { /* no document */ }
 /* stay signed in: keep the login in this browser, renew it automatically, and ask the browser not to clear it */
 try { if (window.supabase && window.supabase.createClient) sb = window.supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }); } catch (e) { sb = null; }
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* not supported */ }
@@ -5568,10 +5606,11 @@ const TABS = [["small", "wrench", "Maintenance"], ["survey", "bath", "Bathroom"]
 function App() {
   const prefs = useMemo(loadPrefs, []);
   const [mode, setMode] = useState("small");
+  useEffect(() => { tmMode = mode; }, [mode]);
   const [view, setView] = useState("form");
   const [sjob, setSjob] = useState(emptyJob);
   const auth = useAuth();
-  useEffect(() => { if (auth.user) bookSync(); }, [auth.user && auth.user.id]);
+  useEffect(() => { if (auth.user) { bookSync(); tmFlush(); } }, [auth.user && auth.user.id]);
   const [jobIds, setJobIds] = useState({ bathroom: null, kitchen: null, heating: null, small: null });
   const setJobId = (kind, id) => setJobIds((p) => ({ ...p, [kind]: id }));
 
@@ -5680,6 +5719,7 @@ function App() {
   const [undo, setUndo] = useState(null);
   useEffect(() => { if (!undo) return undefined; const t = setTimeout(() => setUndo(null), 20000); return () => clearTimeout(t); }, [undo]);
   const withUndo = (kind, fn) => () => {
+    tmReset(mode);
     setUndo({ kind, data: JSON.parse(snapJ(kind)), id: jobIds[kind] || null, mode });
     fn();
   };
