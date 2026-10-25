@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610250501"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610250544"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -2135,7 +2135,8 @@ function buildQuoteText(q) {
   L.push("Site: " + (q.siteAddress || "[Site address]"));
   (q.clientLines || []).forEach((x) => L.push(x));
   L.push(D ? "Date: " + q.todayStr : "Surveyed: " + q.todayStr + " · " + q.sizeLabel + " · " + q.tier + " tier");
-  if (D) L.push("Quote ref: Q-" + q.todayStr.split("/").reverse().join("").slice(2) + "-" + String(q.siteAddress || q.customerName || "").replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase());
+  if (D) L.push("Quote ref: " + (q.quoteRef || defQuoteNo()));
+  if (D && q.vatNo) L.push("VAT number: " + q.vatNo);
   if (D) L.push("Valid until: " + q.validUntil);
   L.push("");
   const o2i = c.o2Items || [];
@@ -2169,7 +2170,7 @@ function buildQuoteText(q) {
   const VR = D ? q.vat || 0 : 0;
   const vatL = (tot, lbl) => { if (VR > 0) { L.push("VAT at " + VR + "%: " + M(tot * VR / 100)); L.push(lbl + " including VAT: " + M(tot * (1 + VR / 100))); } };
   if (!o2i.length && (q.rate > 0 || tr.length)) { const tt = c.materialsBase + (c.supply > 0 ? c.supply : 0) + (q.rate > 0 ? c.totalHours * q.rate : 0) + tr.reduce((a, x) => a + x.cost, 0); L.push((D ? (VR > 0 ? "Total before VAT" : "Total quote price") : totalLabel(q.rate > 0, tr.length > 0)) + ": " + M(tt)); vatL(tt, "Total quote price"); }
-  if (D && q.survey && q.survey.kitLines) {
+  if (D && q.matItems && q.survey && q.survey.kitLines) {
     const mb = matBreakdown(q.survey, c);
     if (mb.length) { L.push(""); L.push("MATERIALS INCLUDED (by item):"); mb.forEach((g) => L.push(g.group + ": " + M(g.total))); }
   }
@@ -2179,7 +2180,7 @@ function buildQuoteText(q) {
     L.push(title);
     if (!D) L.push(LAB + ": " + fmtHrs(hrs) + " hours");
     else if (q.rate > 0) L.push("Labour: " + M(hrs * q.rate));
-    L.push("Materials at cost: " + M(mat) + (note || ""));
+    L.push((D ? "Materials: " : "Materials at cost: ") + M(mat) + (note || ""));
     if (extraSup0 > 0) L.push("Trades and supplied items: " + M(extraSup0));
     const tot = mat + extraSup0 + (q.rate > 0 ? hrs * q.rate : 0);
     L.push("Total for " + short + (q.rate > 0 ? "" : " (no labour price)") + (VR > 0 ? " before VAT" : "") + ": " + M(tot));
@@ -2188,11 +2189,15 @@ function buildQuoteText(q) {
   };
   if (o2i.length) {
     L.push("");
-    L.push(ON[1].toUpperCase() + " — SAME AS " + ON[0].split(" — ")[0].toUpperCase() + (o2i.every((i) => i.swap) ? ", EXCEPT:" : ", WITH THESE CHANGES:"));
-    o2i.forEach((i) => { const sh = o2Show(i); L.push(D ? "- " + i.label + ": " + M(sh.materials + (q.rate > 0 ? sh.hours * q.rate : 0)) : "- " + i.label + ": approx " + fmtHrs(sh.hours) + " hours + materials " + M(sh.materials)); });
+    if (D) {
+      const swappedB = o2i.filter((i) => i.swap).map((i) => i.base);
+      L.push("SCOPE — " + ON[1].toUpperCase() + ":");
+      q.scopeItems.filter((x) => swappedB.indexOf(x) < 0).concat(o2i.map((i) => (i.swap ? i.label.replace(/ \(instead of: .*\)$/, "") : i.label))).forEach((x) => L.push("- " + String(x).replace(/\n/g, "\n  ")));
+    } else L.push(ON[1].toUpperCase() + " — SAME AS " + ON[0].split(" — ")[0].toUpperCase() + (o2i.every((i) => i.swap) ? ", EXCEPT:" : ", WITH THESE CHANGES:"));
+    if (!D) o2i.forEach((i) => { const sh = o2Show(i); L.push(D ? "- " + i.label + ": " + M(sh.materials + (q.rate > 0 ? sh.hours * q.rate : 0)) : "- " + i.label + ": approx " + fmtHrs(sh.hours) + " hours + materials " + M(sh.materials)); });
     const sund2 = c.sundriesNeeded ? Math.round(c.o2Materials * SUNDRIES_PCT) / 100 : 0;
     const sn = (v) => (v > 0 ? " (includes sundries at " + SUNDRIES_PCT + "%: " + M(v) + ")" : "");
-    { const og = {}; (q.survey ? q.survey.kitLines : []).filter((k) => k.o2 && (Number(k.cost) > 0 || k.tbc)).forEach((k) => { const g = k.group.replace(O2_SFX, ""); (og[g] = og[g] || []).push(k); });
+    if (!D) { const og = {}; (q.survey ? q.survey.kitLines : []).filter((k) => k.o2 && (Number(k.cost) > 0 || k.tbc)).forEach((k) => { const g = k.group.replace(O2_SFX, ""); (og[g] = og[g] || []).push(k); });
       const ogs = Object.entries(og);
       if (ogs.length) { L.push(""); L.push(ON[1].toUpperCase() + " MATERIALS (amounts):"); ogs.forEach(([g, rows]) => { L.push(g + ": " + M(rows.reduce((a, k) => a + (Number(k.cost) || 0), 0))); rows.forEach((k) => L.push("  - " + k.label + " — " + (k.tbc ? "price TBC" : M(k.cost)))); }); } }
     L.push("");
@@ -2200,13 +2205,13 @@ function buildQuoteText(q) {
     const t1 = optBlock(ON[0].toUpperCase() + ":", ON[0], c.totalHours, c.materialsBase, sn(c.sundries));
     const t2 = optBlock(ON[1].toUpperCase() + ":", ON[1], c.totalHours + c.o2Hours, c.materialsBase + c.o2Materials + sund2, sn(c.sundries + sund2));
     L.push("");
-    L.push("Difference between the options" + (D ? "" : " (+" + fmtHrs(c.o2Hours) + " hours)") + ": " + M(t2 - t1));
+    if (!D) L.push("Difference between the options (+" + fmtHrs(c.o2Hours) + " hours): " + M(t2 - t1));
     L.push(D ? "Choose one option when you accept this quote." : "Please quote both options so the customer can choose.");
   }
   if (c.provItems.length) {
     L.push("");
-    L.push(o2i.length ? "PROVISIONAL TASKS (only if needed once work starts, extra to either option):" : "PROVISIONAL TASKS (only if needed once work starts, priced in Option B below):");
-    c.provItems.forEach((i) => L.push(D ? "- " + i.label + ": " + M(i.materials + (q.rate > 0 ? i.hours * q.rate : 0)) : "- " + i.label + ": approx " + fmtHrs(i.hours) + " hours + materials " + M(i.materials)));
+    L.push(o2i.length ? "PROVISIONAL TASKS (only if needed once work starts, extra to either option):" : "PROVISIONAL TASKS (only if needed once work starts, priced separately below):");
+    c.provItems.forEach((i) => L.push(D ? "- " + i.label + ": " + M(i.materials * (c.sundriesNeeded ? 1 + SUNDRIES_PCT / 100 : 1) + (q.rate > 0 ? i.hours * q.rate : 0)) : "- " + i.label + ": approx " + fmtHrs(i.hours) + " hours + materials " + M(i.materials)));
     L.push(D ? "These tasks are only charged if they are needed once the work starts, and will be agreed with you before they are done." : "Please quote for these provisional items and have them accepted by the customer before any of this work starts.");
     /* both options side by side: as surveyed, and with every "if needed" item */
     const extraSup = (c.supply > 0 ? c.supply : 0) + tr.reduce((x, t) => x + t.cost, 0);
@@ -2217,7 +2222,7 @@ function buildQuoteText(q) {
       L.push(title);
       if (!D) L.push(LAB + ": " + fmtHrs(hrs) + " hours");
       else if (q.rate > 0) L.push("Labour: " + M(hrs * q.rate));
-      L.push("Materials at cost: " + M(mat) + (note || ""));
+      L.push((D ? "Materials: " : "Materials at cost: ") + M(mat) + (note || ""));
       if (extraSup > 0) L.push("Trades and supplied items: " + M(extraSup));
       const tot = mat + extraSup + (q.rate > 0 ? hrs * q.rate : 0);
       L.push("Total for " + title.split(" — ")[0].replace(/^OPTION /, "Option ") + (q.rate > 0 ? "" : " (no labour price)") + ": " + M(tot));
@@ -2399,7 +2404,7 @@ function ConfirmBtn({ label, armedLabel, onConfirm, cls }) {
   return html`<button type="button" className=${(cls || "btn") + (armed ? " btn-armed" : "")} onClick=${() => { if (!armed) { setArmed(true); return; } setArmed(false); onConfirm(); }}>${armed ? armedLabel : label}</button>`;
 }
 
-const DISCLAIMER_DEFAULT = "This is a provisional estimate based on what could be seen and the information available at the time of the survey. It is not a fixed-price quote, a contract or a guarantee of cost or time. Hidden problems (for example rot, damp, concealed pipework, asbestos or unsuitable structure) may only be found once work starts and could change the price and the time needed. Material prices are as entered on the date shown and may change. Provisional tasks are priced separately as Option B and are only charged if they turn out to be needed once the work is opened up. A written quote must be agreed and accepted by the customer before any work starts, and the final price may be different from this estimate.";
+const DISCLAIMER_DEFAULT = "This is a provisional estimate based on what could be seen and the information available at the time of the survey. It is not a fixed-price quote, a contract or a guarantee of cost or time. Hidden problems (for example rot, damp, concealed pipework, asbestos or unsuitable structure) may only be found once work starts and could change the price and the time needed. Material prices are as entered on the date shown and may change. Provisional tasks are priced separately and are only charged if they turn out to be needed once the work is opened up. A written quote must be agreed and accepted by the customer before any work starts, and the final price may be different from this estimate.";
 const DISCLAIMER_DIRECT = "This quote is for the work described in the scope above, based on what could be seen at the survey. If hidden problems are found once the work is opened up (for example rot, damp, concealed pipework or an unsuitable structure), I will tell you and agree any extra cost with you before doing the extra work. Provisional tasks are listed separately and are only charged if they turn out to be needed. The price is fixed for the work listed and the date it is valid until is shown above.";
 /* what the app is being used for on this phone: employed work (job notes, estimates for the office) or my own business (quotes and invoices) */
 const USE_KEY = "pricer-use-v1";
@@ -2429,7 +2434,8 @@ const tradeList = (prices) => TRADES.map(([k, l, s]) => ({ key: k, tag: "(subcon
 const GAS_WORK = { fit: "Fit new", replace: "Replace (remove and fit new)", remove: "Remove, disconnect and cap", service: "Service", repair: "Repair", move: "Move" };
 const GAS_APPLIANCES = ["Boiler", "Hob", "Cooker", "Gas fire", "Water heater", "Gas meter", "Gas pipework", "Tumble dryer"];
 const SUNDRIES_PCT = 20; // sundries (silicone, fixings, consumables) are 20% of the listed materials unless switched off on the estimate
-const sundriesOf = (listed, prices) => (prices && prices["sund:off"] ? 0 : Math.round(Math.max(0, listed) * SUNDRIES_PCT) / 100);
+const sundOff = (prices) => (prices && prices["sund:off"] !== undefined ? !!prices["sund:off"] : !!loadBiz().noSund);
+const sundriesOf = (listed, prices) => (sundOff(prices) ? 0 : Math.round(Math.max(0, listed) * SUNDRIES_PCT) / 100);
 const totalLabel = (hasRate, hasTrades) => (hasRate && hasTrades ? "Materials, labour and trades" : hasRate ? "Materials and labour" : "Materials and trades");
 function TradesBlock() {
   const pc = React.useContext(PriceCtx);
@@ -2480,7 +2486,7 @@ function GasBlock() {
 function RateBox({ on, rate, onOn, onRate, hours }) {
   const r = Math.min(100, Math.max(0, Number(rate) || 0));
   return html`<div className="rate-box">
-    <label className="kit-row"><input type="checkbox" checked=${!!on} onChange=${() => onOn(!on)} /><span className="name">Add an hourly rate (counted in the total, not shown on the quote)</span></label>
+    <label className="kit-row"><input type="checkbox" checked=${!!on} onChange=${() => onOn(!on)} /><span className="name">Charge labour at an hourly rate</span></label>
     ${on ? html`<div className="rate-row">
       <input type="range" min="0" max="100" step="1" value=${r} aria-label="Hourly rate in pounds" onChange=${(e) => onRate(e.target.value)} />
       <b className="rate-val">£${r}/hr</b>
@@ -2569,7 +2575,10 @@ function Drop({ title, sub, open, bare, cls, children }) {
 /* one row per survey item: tap it to choose what it needs (sheet), open it for hours, prices and extras */
 function ItemCard({ title, valueLabel, active, sub, options, value, onPick, altValue, onAlt, children }) {
   const [pick, setPick] = useState(false);
-  const [foldOpen, setFoldOpen] = useState(false);
+  const [foldOpen, setFoldRaw] = useState(false);
+  const me = useRef(Math.random());
+  useEffect(() => { const f = (e) => { if (e.detail !== me.current) setFoldRaw(false); }; window.addEventListener("jobpricer:itemopen", f); return () => window.removeEventListener("jobpricer:itemopen", f); }, []);
+  const setFoldOpen = (v) => { setFoldRaw(v); if (v) { try { window.dispatchEvent(new CustomEvent("jobpricer:itemopen", { detail: me.current })); } catch (e) { /* ignore */ } } };
   return html`<div className=${"item" + (active ? " active" : "")}>
     <button type="button" className="item-head" aria-haspopup="dialog" onClick=${() => setPick(true)}>
       <span className="item-main"><span className="item-title">${title}</span>${sub ? html`<span className="item-sub">${sub}</span>` : null}</span>
@@ -3238,7 +3247,7 @@ function SuiteBar({ fixtures, tier, onChange }) {
   </div>`;
 }
 
-const PRICE_AS = [["in", "In the price"], ["pv", "Only if needed"], ["o2", "Option 2"]];
+const PRICE_AS = [["in", "In the price"], ["pv", "Only if needed"], ["o2", "Option 2 only"]];
 function PriceAs({ value, onPick, noPv }) {
   return html`<div className="price-as">
     <div className="pa-label">How to price it</div>
@@ -3303,15 +3312,25 @@ function ChargeBlock({ get, set }) {
 /* invoices */
 const PAY_KEY = "pricer-pay-v1";
 const loadPay = () => { try { return localStorage.getItem(PAY_KEY) || ""; } catch (e) { return ""; } };
+/* settings changed anywhere are picked up straight away by every screen */
+const settingsChanged = () => { try { window.dispatchEvent(new Event("jobpricer:settings")); } catch (e) { /* ignore */ } };
+function useSettingsTick() { const [, setN] = useState(0); useEffect(() => { const f = () => setN((n) => n + 1); window.addEventListener("jobpricer:settings", f); return () => window.removeEventListener("jobpricer:settings", f); }, []); }
 function usePay() {
-  const [pay, setPayRaw] = useState(loadPay);
-  return [pay, (v) => { setPayRaw(v); try { localStorage.setItem(PAY_KEY, v); } catch (e) { /* storage unavailable */ } }];
+  useSettingsTick();
+  const pay = loadPay();
+  return [pay, (v) => { try { localStorage.setItem(PAY_KEY, v); } catch (e) { /* storage unavailable */ } settingsChanged(); }];
 }
 const ymdGB = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || "")); return m ? m[3] + "/" + m[2] + "/" + m[1] : String(s || ""); };
 const addDaysYmd = (s, n) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || "")); const d = m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
-const defInvNo = () => "INV-" + localYmd().replace(/-/g, "").slice(2);
+/* sequential invoice and quote numbers, kept on this phone. The next number is shown, and taken when the document is first sent or copied. */
+const peekNo = (k, pre) => { let n = 1; try { n = Math.max(1, Math.floor(Number(localStorage.getItem(k))) || 1); } catch (e) { /* ignore */ } return pre + String(n).padStart(4, "0"); };
+const takeNo = (k) => { try { const n = Math.max(1, Math.floor(Number(localStorage.getItem(k))) || 1); localStorage.setItem(k, String(n + 1)); } catch (e) { /* ignore */ } };
+const defInvNo = () => peekNo("pricer-invno", "INV-");
+const defQuoteNo = () => peekNo("pricer-qno", "Q-");
+/* call before a document goes out: fixes the number on this job and moves the counter on */
+const claimNo = (get, set, key, cnt, def) => () => { if (!String(get(key) || "").trim()) { set(key, def()); takeNo(cnt); } };
 const invMeta = (get) => { const date = get("inv:date") || localYmd(); const days = Math.max(0, Math.floor(Number(get("inv:days"))) || 14); return { no: String(get("inv:no") || "").trim() || defInvNo(), date, due: addDaysYmd(date, days) }; };
-function buildInvoiceText({ businessName, customerName, siteAddress, get, work, charges, minCharge, pay, terms }) {
+function buildInvoiceText({ businessName, customerName, siteAddress, get, work, charges, minCharge, pay, terms, optName, matItems }) {
   const L = [], mt = invMeta(get);
   L.push(businessName || "[Your business name]");
   L.push("INVOICE");
@@ -3324,7 +3343,7 @@ function buildInvoiceText({ businessName, customerName, siteAddress, get, work, 
   L.push("Site: " + (siteAddress || "[Site address]"));
   clientLines(get).forEach((x) => L.push(x));
   L.push("");
-  L.push("WORK CARRIED OUT:");
+  L.push(optName ? "WORK CARRIED OUT (" + optName.toUpperCase() + "):" : "WORK CARRIED OUT:");
   work.filter((w) => String(w || "").trim()).forEach((w) => L.push("- " + String(w).trim().replace(/\n/g, "\n  ")));
   L.push("");
   L.push("CHARGES:");
@@ -3340,6 +3359,7 @@ function buildInvoiceText({ businessName, customerName, siteAddress, get, work, 
     L.push("Less excess paid by the customer: " + fmtP(Math.min(ex, tot)));
   }
   L.push("Total due: " + fmtP(Math.max(0, tot - ex)));
+  if (matItems && matItems.length > 1) { L.push(""); L.push("MATERIALS INCLUDED (by item):"); matItems.forEach((m) => L.push(m[0] + ": " + fmtP(m[1]))); }
   const note = String(get("inv:note") || "").trim();
   if (note) { L.push(""); L.push(note); }
   if (terms && !get("terms:off")) { L.push(""); L.push("TERMS:"); termsLines(terms, "invoice").forEach((x) => L.push("- " + x)); }
@@ -3349,21 +3369,23 @@ function buildInvoiceText({ businessName, customerName, siteAddress, get, work, 
   L.push("Thank you for your business.");
   return L.join("\n");
 }
-function InvoiceBlock({ get, set, text, filename, pay, setPay, profit, children }) {
+function InvoiceBlock({ get, set, text, filename, pay, setPay, profit, fold, children }) {
   const mt = invMeta(get);
-  return html`<${TickSection} on=${!!get("inv:on")} onToggle=${(v) => set("inv:on", v)} title="Job done: make an invoice" hint="Turns this into an invoice for the customer">
+  const Wrap = fold ? Drop : TickSection;
+  const wp = fold ? { bare: true, title: "Invoice details", sub: mt.no + " · due " + ymdGB(mt.due) } : { on: !!get("inv:on"), onToggle: (v) => set("inv:on", v), title: "Job done: make an invoice", hint: "Turns this into an invoice for the customer" };
+  return html`<${Wrap} ...${wp}>
     <div className="mat-grid">
       <${Lbl} label="Invoice number"><input className="text-in" type="text" placeholder=${defInvNo()} value=${get("inv:no") || ""} onChange=${(e) => set("inv:no", e.target.value)} /><//>
       <${Lbl} label="Invoice date"><input className="text-in" type="date" value=${mt.date} onChange=${(e) => set("inv:date", e.target.value)} /><//>
       <${Lbl} label="Pay within (days)"><input className="text-in" type="number" inputMode="numeric" min="0" placeholder="14" value=${get("inv:days") || ""} onChange=${(e) => set("inv:days", e.target.value)} /><//>
     </div>
     ${children}
-    <${Lbl} label="Your payment details (saved on this phone)" wide=${true}><textarea className="manual note-ta" placeholder=${"e.g. Bank transfer to: Business name\nSort code and account number"} value=${pay} onChange=${(e) => setPay(e.target.value)}></textarea><//>
+    <p className="note">${String(pay || "").trim() ? "Your payment details from Settings are printed on the invoice." : "No payment details yet: add them in Settings so the customer knows how to pay."}</p>
     <${Lbl} label="Note on the invoice (optional)" wide=${true}><input className="text-in" type="text" placeholder="e.g. Thank you for your custom" value=${get("inv:note") || ""} onChange=${(e) => set("inv:note", e.target.value)} /><//>
     ${profit !== undefined ? html`<${TaxAside} profit=${profit} />` : null}
     <div className="link-row" style=${{ marginTop: 8 }}>
-      <${CopyQuote} text=${text} label="Copy invoice" btnCls="btn" />
-      <${SharePdf} sections=${[text]} filename=${filename} label="Send invoice PDF" />
+      <${CopyQuote} text=${text} label="Copy invoice" btnCls="btn" onSend=${claimNo(get, set, "inv:no", "pricer-invno", defInvNo)} />
+      ${fold ? null : html`<${SharePdf} sections=${[text]} filename=${filename} label="Send invoice PDF" onSend=${claimNo(get, set, "inv:no", "pricer-invno", defInvNo)} />`}
     </div>
   <//>`;
 }
@@ -3415,17 +3437,18 @@ const loadTerms = () => { try {
   return old && typeof old === "object" ? { ...termsDefault(), ...old, guar: "3" } : termsDefault();
 } catch (e) { return termsDefault(); } };
 function useTerms() {
-  const [t, setT] = useState(loadTerms);
-  return [t, (patch) => { const n = { ...loadTerms(), ...patch }; setT(n); try { localStorage.setItem(TERMS_KEY, JSON.stringify(n)); } catch (e) { /* storage unavailable */ } }];
+  useSettingsTick();
+  const t = loadTerms();
+  return [t, (patch) => { const n = { ...loadTerms(), ...patch }; try { localStorage.setItem(TERMS_KEY, JSON.stringify(n)); } catch (e) { /* storage unavailable */ } settingsChanged(); }];
 }
 const vatRate = (t) => (t && t.vat ? Math.max(0, Number(t.vatRate) || 0) : 0);
 function termsLines(t, kind) {
   const L = [];
   const pd = Math.max(0, Math.floor(Number(t.payDays)) || 0), gm = Math.max(0, Math.floor(Number(t.guar)) || 0);
   if (kind === "quote") TERMS_EXCL.forEach(([k, txt]) => { if (t.excl && t.excl[k]) L.push(txt); });
-  if (gm > 0) L.push("Workmanship is guaranteed for " + gm + " months. Parts carry the manufacturer's guarantee.");
-  if (pd > 0) L.push("Payment is due within " + pd + " days of the invoice.");
-  L.push(vatRate(t) > 0 ? "Prices include VAT at " + vatRate(t) + "% where shown." + (String(t.vatNo || "").trim() ? " VAT number " + String(t.vatNo).trim() + "." : "") : "Not VAT registered: no VAT is charged.");
+  L.push(gm > 0 ? "Workmanship is guaranteed for " + gm + (gm === 1 ? " month" : " months") + ". Parts carry the manufacturer's guarantee." : "Parts carry the manufacturer's guarantee.");
+  if (pd > 0 && kind === "invoice") L.push("Payment is due within " + pd + " days of the invoice date.");
+  L.push(vatRate(t) > 0 ? "VAT at " + vatRate(t) + "% is added to the prices shown." : "Not VAT registered: no VAT is charged.");
   String(t.extra || "").split("\n").map((x) => x.trim()).filter(Boolean).forEach((x) => L.push(x));
   return L;
 }
@@ -3468,6 +3491,8 @@ function buildSmallQuote({ businessName, customerName, siteAddress, get, work, c
   L.push("Site: " + (siteAddress || "[Site address]"));
   clientLines(get).forEach((x) => L.push(x));
   L.push("Date: " + gb(d));
+  L.push("Quote ref: " + (String(get("q:ref") || "").trim() || defQuoteNo()));
+  if (vr > 0 && String(t.vatNo || "").trim()) L.push("VAT number: " + String(t.vatNo).trim());
   L.push("Valid until: " + gb(v));
   L.push("");
   L.push("WORK TO BE DONE:");
@@ -3599,7 +3624,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
         <${KitList} list=${altList} prefix=${def.key + "-" + fixtureListName(altSt)} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />` : null}
       <${ExtraBlock} group=${def.label + O2_SFX} title=${"Option 2 extra materials (" + altName.toLowerCase() + ")"} />
       ${altCost > 0 ? html`<p className="note" style=${{ margin: "4px 0 0" }}>Option 2 materials for this item: ${fmtKit(altCost)}</p>` : null}
-    </div>` : active ? html`<button type="button" className="linkbtn" style=${{ margin: "4px 0 6px" }} onClick=${() => pickAlt(mode === "repair" ? "new" : "repair")}>+ Give a second price (${mode === "repair" ? "replace" : "repair"} as Option 2)</button>` : null}
+    </div>` : active ? html`<button type="button" className="linkbtn" style=${{ margin: "4px 0 6px" }} onClick=${() => pickAlt(mode === "repair" ? "new" : "repair")}>+ Also price ${mode === "repair" ? "replacing it" : "repairing it"} (Option 2)</button>` : null}
     <${DescField} id=${"fx-" + def.key} />
   <//>`;
 }
@@ -3950,7 +3975,7 @@ function SiteSurveyView(p) {
 /* =====================================================================
    QUOTE
    ===================================================================== */
-function CopyQuote({ text, label, cls, btnCls }) {
+function CopyQuote({ text, label, cls, btnCls, onSend }) {
   const [state, setState] = useState("idle"); // idle | copied | manual
   const areaRef = useRef(null);
   useEffect(() => {
@@ -3959,6 +3984,7 @@ function CopyQuote({ text, label, cls, btnCls }) {
     return undefined;
   }, [state]);
   const doCopy = () => {
+    if (onSend) { try { onSend(); } catch (e) { /* ignore */ } }
     const fallback = () => setState("manual");
     const sent = () => { setState("copied"); try { window.dispatchEvent(new Event("jobpricer:sent")); } catch (e) { /* ignore */ } };
     try {
@@ -4008,7 +4034,7 @@ async function makeAndSharePdf(sections, filename) {
     y = 88 + 22;
   };
   const heading = (t) => {
-    need(70); gap(10);
+    need(110); gap(10);
     const cut = t.indexOf(" ("), note = cut > 0 && t.length > 42 ? t.slice(cut + 2).replace(/\)?:$/, "") : "";
     const main = (note ? t.slice(0, cut) : t).replace(/:$/, "");
     font("bold", 11.5, ACC); doc.text(main.toUpperCase(), M, y);
@@ -4168,11 +4194,12 @@ async function deliverPdf(doc, filename) {
   return "downloaded";
 }
 
-function SharePdf({ sections, filename, label, cls }) {
+function SharePdf({ sections, filename, label, cls, onSend, warn }) {
   const [state, setState] = useState("idle");
   const [msg, setMsg] = useState("");
   const go = async () => {
     setState("working"); setMsg("");
+    if (onSend) { try { onSend(); } catch (e) { /* ignore */ } }
     try {
       const r = await makeAndSharePdf(sections, filename);
       setState(r === "downloaded" ? "downloaded" : "idle");
@@ -4217,10 +4244,11 @@ function QuoteView(p) {
     calc.supply > 0 ? [[calc.supplyLabel, calc.supply]] : [], trades0.map((x) => [x.label + (x.tag ? " " + x.tag : ""), x.cost]));
   const swapped = invOpt === 2 ? calc.o2Items.filter((i) => i.swap).map((i) => i.base) : [];
   const invWork = scopeItems.filter((x) => swapped.indexOf(x) < 0).concat(invOpt === 2 ? calc.o2Items.map((i) => (i.swap ? i.label.replace(/ \(instead of: .*\)$/, "") : i.label)) : [], pvUsed.map((i) => i.label + " (found to be needed)"));
-  const invText = buildInvoiceText({ businessName, customerName, siteAddress, get: g, work: invWork, charges: invCharges, minCharge: chg.min, pay, terms });
+  const invMat = matBreakdown(survey, calc).map((x) => [x.group, x.total]);
+  const invText = buildInvoiceText({ businessName, customerName, siteAddress, get: g, optName: hasO2 ? ONq[invOpt - 1] : "", matItems: invMat, work: invWork, charges: invCharges, minCharge: chg.min, pay, terms });
   const invProfit = (() => { const all = invCharges.reduce((a, c) => a + (c[1] > 0 ? c[1] : 0), 0); const costs = invCharges.filter((c) => /^Materials/.test(c[0]) || (calc.supply > 0 && c[0] === calc.supplyLabel) || /\(subcontract\)/.test(c[0])).reduce((a, c) => a + (c[1] > 0 ? c[1] : 0), 0); return Math.max(all, chg.min) - costs; })();
   const invName = "Invoice-" + invMeta(g).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf";
-  const text = buildQuoteText({ businessName, customerName, siteAddress, todayStr, scopeItems, sizeLabel, calc, tier, survey, markup, officeNotes, rate: rateOn ? rateVal : 0, trades, disclaimer: direct ? "" : disclaimerOf(ticks), direct: direct, validUntil: validUntil, optNames: optNames(ticks, calc), vat: VRq, terms: g("terms:off") ? [] : termsLines(terms, "quote"), clientLines: clientLines(g).concat(clExcess(g) > 0 ? ["Policy excess (paid by the customer): " + fmt(clExcess(g))] : []) });
+  const text = buildQuoteText({ businessName, customerName, siteAddress, todayStr, scopeItems, sizeLabel, calc, tier, survey, markup, officeNotes, rate: rateOn ? rateVal : 0, trades, disclaimer: direct ? "" : disclaimerOf(ticks), direct: direct, validUntil: validUntil, optNames: optNames(ticks, calc), quoteRef: g("q:ref") || defQuoteNo(), vatNo: VRq > 0 ? String(terms.vatNo || "").trim() : "", matItems: !!g("mat:items"), vat: VRq, terms: g("terms:off") ? [] : termsLines(terms, "quote"), clientLines: clientLines(g).concat(clExcess(g) > 0 ? ["Policy excess (paid by the customer): " + fmt(clExcess(g))] : []) });
   const [orderBy, setOrderByRaw] = useState(loadOrderBy);
   const setOrderBy = (v) => { setOrderByRaw(v); saveOrderBy(v); };
   const orderText = buildOrderText({ customerName, siteAddress, todayStr, calc, tier, survey, ticks, groupBy: orderBy });
@@ -4253,7 +4281,7 @@ function QuoteView(p) {
       : html`<div className="sheet">
       <div className="biz-show">${(businessName || "").trim() || html`<span className="mute">Add your business name in Settings</span>`}</div>
       <div className="sheet-sub">${direct ? "Quotation · fixed price for the customer" : "Provisional estimate for the office · not a customer quote"}</div>
-      ${setTick ? html`<div className="rate-box"><label className="kit-row"><input type="checkbox" checked=${direct} onChange=${() => setTick("direct:on", !direct)} /><span className="name">This is my own work: make this a direct quote for the customer</span></label>
+      ${setTick && loadUse() !== "biz" ? html`<div className="rate-box"><label className="kit-row"><input type="checkbox" checked=${direct} onChange=${() => setTick("direct:on", !direct)} /><span className="name">This is my own work: make this a direct quote for the customer</span></label>
         <p className="note" style=${{ margin: "4px 0 0" }}>${direct ? "The PDF and copied text become a fixed-price quotation with a valid-until date, a customer signature block and no notes for the office." + (rateOn ? "" : " Turn on the hourly rate below, or the total will leave out your labour.") : "Tick this when the job is yours, not one for the office to price."}</p></div>` : null}
 
       <div className="sheet-top">
@@ -4312,7 +4340,7 @@ function QuoteView(p) {
         <div className="mini-label" style=${{ marginTop: 16 }}>Provisional items — only if needed once work starts (extra to the totals above)</div>
         <table className="q-table">
           <thead><tr><th>Item</th>${direct ? null : html`<th>Est. hours</th>`}<th>${direct ? "Price" : "Materials"}</th></tr></thead>
-          <tbody>${calc.provItems.map((i, k) => html`<tr key=${k}><td>${i.label}</td>${direct ? null : html`<td>${fmtHrs(i.hours)}</td>`}<td>${fmt(direct ? i.materials + (rateOn ? i.hours * rateVal : 0) : i.materials)}</td></tr>`)}</tbody>
+          <tbody>${calc.provItems.map((i, k) => html`<tr key=${k}><td>${i.label}</td>${direct ? null : html`<td>${fmtHrs(i.hours)}</td>`}<td>${fmt(direct ? i.materials * (calc.sundriesNeeded ? 1 + SUNDRIES_PCT / 100 : 1) + (rateOn ? i.hours * rateVal : 0) : i.materials)}</td></tr>`)}</tbody>
         </table>
         <p style=${{ fontSize: 13.5, fontWeight: 700, margin: "8px 0 0" }}>${direct ? "These are only charged if needed once the work starts, and will be agreed with the customer first." : "Please quote for these provisional items and have them accepted before any of this work starts."}</p>
       </div>`}
@@ -4330,17 +4358,18 @@ function QuoteView(p) {
         <//>`)}</tbody></table><//>
       </div>` : null; })()}
 
-      ${setTick ? html`<div className="mini-label" style=${{ marginTop: 22 }}>Charges</div>` : null}
-      ${setTick ? html`<div className="rate-box"><label className="kit-row"><input type="checkbox" checked=${!(ticks && ticks["sund:off"])} onChange=${() => setTick("sund:off", !(ticks && ticks["sund:off"]))} /><span className="name">Add sundries at ${SUNDRIES_PCT}% of the materials</span></label></div>` : null}
-      ${setTick ? html`<${RateBox} on=${rateOn} rate=${rateVal} onOn=${(v) => setTick("rate:on", v)} onRate=${(v) => setTick("rate:val", v)} />` : null}
-      ${setTick ? html`<${ChargeBlock} get=${g} set=${sv} />` : null}
-      ${setTick ? html`<${DayRateBlock} get=${g} set=${sv} />` : null}
-      ${setTick ? html`<${WasteBlock} get=${g} set=${sv} />` : null}
+      ${setTick && direct ? html`<div className="mini-label" style=${{ marginTop: 22 }}>Charges</div>` : null}
+      ${setTick ? html`<div className="rate-box"><label className="kit-row"><input type="checkbox" checked=${!sundOff(ticks)} onChange=${() => setTick("sund:off", !sundOff(ticks))} /><span className="name">Add sundries at ${SUNDRIES_PCT}% of the materials</span></label></div>` : null}
+      ${setTick && direct ? html`<${RateBox} on=${rateOn} rate=${rateVal} onOn=${(v) => setTick("rate:on", v)} onRate=${(v) => setTick("rate:val", v)} />` : null}
+      ${setTick && direct ? html`<${ChargeBlock} get=${g} set=${sv} />` : null}
+      ${setTick && direct ? html`<${DayRateBlock} get=${g} set=${sv} />` : null}
+      ${setTick && direct ? html`<${WasteBlock} get=${g} set=${sv} />` : null}
+      ${setTick && direct ? html`<${Tick} checked=${!!g("mat:items")} onChange=${() => sv("mat:items", !g("mat:items"))} label="Show materials by item on the quote" />` : null}
       ${topUp > 0 ? html`<p className="note">The total is under your minimum charge, so a top-up of ${fmt(topUp)} is added.</p>` : chg.min > 0 && hasO2 ? html`<p className="note">The minimum charge is not applied when the quote has two options.</p>` : null}
 
       ${setTick ? html`<div className="mini-label" style=${{ marginTop: 22 }}>Paperwork</div>` : null}
       ${setTick ? html`<${ClientBlock} get=${g} set=${sv} />` : null}
-      ${direct && setTick ? html`<p className="note">Your terms, guarantee and payment details from Settings are printed on the quote and invoice.</p>` : null}
+      ${direct && setTick ? html`<p className=${"note" + (String(businessName || "").trim() ? "" : " warn-t")}>${String(businessName || "").trim() ? "Your terms, guarantee and payment details from Settings are printed on the quote and invoice." : "Add your business name and details in Settings before sending: the quote will say [Your business name]."}</p>` : null}
       ${direct ? null : html`<div>${setTick ? html`<${DisclaimerEdit} ticks=${ticks} setTick=${setTick} />` : (disclaimerOf(ticks) ? html`<div className="disclaimer"><div className="mini-label">Disclaimer</div><p>${disclaimerOf(ticks)}</p></div>` : null)}</div>`}
       ${direct ? null : html`<div><div className="mini-label" style=${{ marginTop: 20 }}>Notes for office</div>
       <textarea className="manual note-ta" style=${{ minHeight: 90, marginBottom: 14 }} aria-label="Notes for office" value=${officeNotes}
@@ -4357,8 +4386,8 @@ function QuoteView(p) {
     </div>`}
 
     <div className="actionbar"><div className="bar-in">
-      <${CopyQuote} cls="grow" btnCls="btn btn-dark" text=${tab === "order" ? orderText : text} label=${tab === "order" ? "Copy order list" : direct ? "Copy quote" : "Copy estimate"} />
-      <${SharePdf} cls="grow" sections=${direct ? [text] : [text, orderText]} filename=${pdfName} label="Send PDF" />
+      <${CopyQuote} cls="grow" btnCls="btn btn-dark" text=${tab === "order" ? orderText : text} label=${tab === "order" ? "Copy order list" : direct ? "Copy quote" : "Copy estimate"} onSend=${direct && tab !== "order" && setTick ? claimNo(g, sv, "q:ref", "pricer-qno", defQuoteNo) : null} />
+      <${SharePdf} cls="grow" sections=${direct ? [text] : [text, orderText]} filename=${pdfName} label="Send PDF" onSend=${direct && setTick ? claimNo(g, sv, "q:ref", "pricer-qno", defQuoteNo) : null} />
     </div></div>
   </div>`;
 }
@@ -4455,8 +4484,8 @@ function SavePanel({ kind, auth, defaultTitle, autoTitle, address, setAddress, g
   }, []);
   return html`<div className="card link-row" style=${{ margin: "18px 0 0" }}>
     ${autoTitle && setAddress ? html`<input className="text-in grow" type="text" aria-label="Job address (also the saved job name)" placeholder="Job address (saved as the job name)" value=${address} onChange=${(e) => setAddress(e.target.value)} />` : autoTitle ? html`<span className="note grow">${shown ? "Saves as: " + shown : "Saves under the job address"}</span>` : html`<input className="text-in grow" type="text" aria-label="Job name" placeholder="Job name (customer or address)" value=${shown} onChange=${(e) => setTitle(e.target.value)} />`}
-    <button type="button" className="btn" onClick=${() => save()} disabled=${busy}>${busy ? "Saving…" : currentId ? "Save changes" : "Save job"}</button>
-    ${!auth.user && auth.ready && html`<span className="note" style=${{ margin: 0 }}>Sign in to save</span>`}
+    <button type="button" className="btn" onClick=${() => save()} disabled=${busy}>${busy ? "Saving…" : !auth.user ? "Sign in to save" : currentId ? "Save changes" : "Save job"}</button>
+    ${!auth.user && auth.ready ? html`<span className="note" style=${{ margin: 0 }}>Your work is kept on this phone until you sign in.</span>` : null}
     ${status && html`<span className="note" role="status" style=${{ margin: 0 }}>${status}</span>`}
   </div>`;
 }
@@ -4990,7 +5019,7 @@ const emptyJob = () => ({ ...EMPTY_JOB, date: localYmd() });
 const EMPTY_JOB = { jobType: "", date: "", where: "", issue: "", issueWhere: "", work: "", hours: "", x: {}, mats: [], checks: {}, done: {}, due: {}, noAddr: false, orders: [], bulk: [], rateOn: false, rate: "", complete: false, reports: {}, resolved: "", resolvedNote: "", further: "", tradeNeeded: false, trade: "", tradeNote: "" };
 function jobNoteText(j) {
   const L = [];
-  const d = j.date || new Date().toLocaleDateString("en-GB");
+  const d = j.date ? ymdGB(j.date) : new Date().toLocaleDateString("en-GB");
   L.push("JOB NOTES — " + d);
   if (j.jobType.trim()) L.push("Job: " + j.jobType.trim());
   if (String((j.x || {})["inv:cust"] || "").trim()) L.push("Customer: " + String(j.x["inv:cust"]).trim());
@@ -5035,7 +5064,7 @@ function jobNoteText(j) {
       L.push("- " + ((o.from || "").trim() || "Supplier") + ((o.items || "").trim() ? ": " + o.items.trim() : "") + ((o.ref || "").trim() ? " — ref " + o.ref.trim() : "") + (!j.noAddr && (o.address || "").trim() ? " — for " + o.address.trim() : ""));
     });
   }
-  L.push("Work status: " + (j.complete ? "COMPLETE" : "NOT yet complete") + ((j.x || {}).jobstatus ? " · " + statusLabel(j.x.jobstatus) : ""));
+  { const js = (j.x || {}).jobstatus; L.push("Work status: " + (j.complete ? "COMPLETE" : "NOT yet complete") + (js && js !== "complete" && js !== "progress" ? " · " + statusLabel(js) : "")); }
   if ((j.further || "").trim()) L.push("Further work required: " + j.further.trim());
   if (j.tradeNeeded) L.push("Another trade required to attend: " + ((j.trade || "").trim() || "trade not stated") + ((j.tradeNote || "").trim() ? " — " + j.tradeNote.trim() : ""));
   const req = CHECKS.filter((c) => j.checks && j.checks[c[0]]);
@@ -5132,7 +5161,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
     work: [job.jobType, job.work], charges: [["Labour", jh * jr], ["Materials", matTotal]].concat(extraLines(gx)), minCharge: jc.min, pay, terms });
   const qFixed = Math.max(0, Number(gx("q:fixed")) || 0);
   const qText = buildSmallQuote({ businessName: bizName, customerName: gx("inv:cust") || "", siteAddress: job.noAddr ? "" : job.where, get: gx,
-    work: [String(gx("q:work") || "").trim() || [job.jobType, job.issue].filter((x) => String(x || "").trim()).join(": ")],
+    work: String(gx("q:work") || "").trim() ? [gx("q:work")] : [job.jobType, [job.issue, job.issueWhere ? "(" + job.issueWhere + ")" : ""].filter((x) => String(x || "").trim()).join(" ")],
     charges: (qFixed > 0 ? [["Price for the work", qFixed]] : [["Labour", jh * jr], ["Materials", matTotal]]).concat(extraLines(gx)), minCharge: jc.min, terms });
   return html`<div>
     <div className="title-row"><h1>Maintenance Jobs</h1></div>
@@ -5178,6 +5207,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       ${(() => { const have = new Set(job.mats.map((x) => (x.item || "").trim())); const us = usualTop("grp:Maintenance", 6).filter((u) => !have.has(u.name)); return us.length ? html`<div className="usual-list"><div className="usual-h">Your usual materials</div>
         ${us.map((u) => html`<button type="button" key=${u.name} className="usual-btn" onClick=${() => { setJob((p) => ({ ...p, mats: [...p.mats, { id: newId(), item: u.name, where: u.sup || "", cost: u.price ? String(u.price) : "", code: u.code || "" }] })); usualAdd("grp:Maintenance", u.name, u.price, u.sup, u.code); }}>+ <b>${u.name}</b>${u.price ? " · " + fmtKit(u.price) : ""}${u.sup ? " · " + u.sup : ""}</button>`)}</div>` : null; })()}
       <${AddBtn} onClick=${() => setJob((p) => ({ ...p, mats: [...p.mats, { id: newId(), item: "", where: "", cost: "" }] }))}>Add new material<//>
+      <${VanUsed} job=${job} setJob=${setJob} gx=${gx} sx=${sx} />
       <${Drop} bare=${true} open=${(job.bulk || []).length > 0} title="Materials already bought / bulk buy" sub=${(job.bulk || []).length ? (job.bulk || []).length + " · " + fmtKit(bulkTotal) : "stock or a lump sum"}>
       <p className="note">Quick way to add stock you already had or a bulk buy: just a short description and the amount, no need to list every item.</p>
       ${(job.bulk || []).map((x) => html`<${RepRow} key=${x.id} onRemove=${() => setJob((p) => ({ ...p, bulk: (p.bulk || []).filter((y) => y.id !== x.id) }))} removeLabel="Remove this bulk buy">
@@ -5187,7 +5217,6 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <//>`)}
       <${AddBtn} onClick=${() => setJob((p) => ({ ...p, bulk: [...(p.bulk || []), { id: newId(), what: "", where: "", cost: "" }] }))}>Add bulk buy<//>
       <//>
-      <${VanUsed} job=${job} setJob=${setJob} gx=${gx} sx=${sx} />
       <p className="note" style=${{ margin: "10px 0 0" }}>Total materials: <b>${fmtKit(matTotal)}</b></p>
     </div>
 
@@ -5212,17 +5241,15 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
         <${Lbl} label="Which trade"><input className="text-in" type="text" placeholder="e.g. Electrician, Plasterer" value=${job.trade || ""} onChange=${set("trade")} /><${QuickChips} items=${["Electrician", "Plasterer", "Tiler", "Joiner", "Gas Safe engineer", "Builder"]} value=${job.trade} label="Common trades" onPick=${(v) => setJob((p) => ({ ...p, trade: v }))} /><//>
         <${Lbl} label="What they need to do" wide=${true}><input className="text-in" type="text" placeholder="e.g. Move socket before tiling" value=${job.tradeNote || ""} onChange=${set("tradeNote")} /><//>
       </div>` : null}
+      ${biz && !String(bizName || "").trim() ? html`<p className="note warn-t">Add your business name, phone and payment details in Settings before sending a quote or invoice.</p>` : null}
       ${biz ? html`<${ClientBlock} get=${gx} set=${sx} />` : null}
-      ${biz ? html`<${TickSection} on=${!!gx("q:on")} onToggle=${(v) => sx("q:on", v)} title="Quote this repair before doing it" hint="A fixed price for the customer to accept">
+      ${biz ? html`<${Drop} bare=${true} title="Quote details" sub="optional: wording or a fixed price">
         <${Lbl} label="Work to be done" wide=${true}><textarea className="manual note-ta" placeholder=${[job.jobType, job.issue].filter((x) => String(x || "").trim()).join(": ") || "e.g. Replace the fill valve in the main bathroom toilet"} value=${gx("q:work") || ""} onChange=${(e) => sx("q:work", e.target.value)}></textarea><//>
         <${Lbl} label="Fixed price for the work (£, optional)"><input className="text-in" type="number" inputMode="decimal" min="0" placeholder="Leave blank to use hours and materials" value=${gx("q:fixed") || ""} onChange=${(e) => sx("q:fixed", e.target.value)} /><//>
-        <p className="note">Uses the hourly rate, materials, callout, day rate and waste charge above, unless you type a fixed price. Valid for 30 days.</p>
-        <div className="link-row" style=${{ marginTop: 8 }}>
-          <${CopyQuote} text=${qText} label="Copy quote" btnCls="btn" />
-          <${SharePdf} sections=${[qText]} filename=${"Quote-" + ((job.where || job.jobType || "repair").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "repair") + ".pdf"} label="Send quote PDF" />
-        </div>
+        <p className="note">The quote uses your labour, materials and charges above, unless you type a fixed price. Send it with Quote PDF at the bottom. Valid for 30 days.</p>
+        <div className="link-row" style=${{ marginTop: 8 }}><${CopyQuote} text=${qText} label="Copy quote as text" btnCls="btn" onSend=${claimNo(gx, sx, "q:ref", "pricer-qno", defQuoteNo)} /></div>
       <//>` : null}
-      ${biz ? html`<${InvoiceBlock} get=${gx} set=${sx} profit=${Math.max(jh * jr + extraLines(gx).reduce((a, c) => a + c[1], 0), jc.min - matTotal)} text=${invText} filename=${"Invoice-" + invMeta(gx).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf"} pay=${pay} setPay=${setPay}>
+      ${biz ? html`<${InvoiceBlock} fold=${true} get=${gx} set=${sx} profit=${Math.max(jh * jr + extraLines(gx).reduce((a, c) => a + c[1], 0), jc.min - matTotal)} text=${invText} filename=${"Invoice-" + invMeta(gx).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf"} pay=${pay} setPay=${setPay}>
       <//>` : null}
     </div>
 
@@ -5263,8 +5290,8 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
 
     <div className="actionbar"><div className="bar-in">
       ${use === "biz" ? html`<div className="bar-two">
-          <${SharePdf} sections=${[qText]} filename=${"Quote-" + ((job.where || job.jobType || "repair").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "repair") + ".pdf"} label="Quote PDF" cls="grow" />
-          <${SharePdf} sections=${[invText]} filename=${"Invoice-" + invMeta(gx).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf"} label="Invoice PDF" cls="grow" />
+          <${SharePdf} sections=${[qText]} filename=${"Quote-" + ((job.where || job.jobType || "repair").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "repair") + ".pdf"} label="Quote PDF" cls="grow" onSend=${claimNo(gx, sx, "q:ref", "pricer-qno", defQuoteNo)} />
+          <${SharePdf} sections=${[invText]} filename=${"Invoice-" + invMeta(gx).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf"} label="Invoice PDF" cls="grow" onSend=${claimNo(gx, sx, "inv:no", "pricer-invno", defInvNo)} />
         </div>`
         : html`<div className="bar-two">
           <${CopyQuote} text=${text} label="Copy notes" btnCls="btn btn-dark" cls="grow" />
@@ -5318,7 +5345,7 @@ function EmptyState({ icon, title, children }) {
 /* business details used on every quote, invoice and job notes PDF (kept on this phone) */
 const BIZ_KEY = "pricer-biz-v1";
 const loadBiz = () => { try { const v = JSON.parse(localStorage.getItem(BIZ_KEY)); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } };
-const saveBiz = (v) => { try { localStorage.setItem(BIZ_KEY, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } };
+const saveBiz = (v) => { try { localStorage.setItem(BIZ_KEY, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } settingsChanged(); };
 const defRate = () => Math.min(100, Math.max(0, Number(loadBiz().rate) || 0));
 function SettingsSheet({ businessName, setBusinessName, onClose }) {
   const [b, setB] = useState(loadBiz);
@@ -5329,7 +5356,7 @@ function SettingsSheet({ businessName, setBusinessName, onClose }) {
   const inp = (k, label, ph, type) => html`<${Lbl} label=${label} wide=${true}><input className="text-in" type=${type || "text"} placeholder=${ph} value=${b[k] || ""} onChange=${(e) => upd({ [k]: e.target.value })} /><//>`;
   return html`<${Sheet} title="Settings" onClose=${onClose} foot=${html`<button type="button" className="btn btn-accent" style=${{ width: "100%" }} onClick=${onClose}>Done</button>`}>
     <div className="mini-label">Using the app for</div>
-    <${Segmented} options=${[["emp", "Employed work"], ["biz", "My own business"]]} value=${use} onChange=${(v) => { setUseS(v); try { localStorage.setItem(USE_KEY, v); window.dispatchEvent(new Event("jobpricer:use")); } catch (e) { /* ignore */ } }} />
+    <${Segmented} options=${[["emp", "Employed work"], ["biz", "My own business"]]} value=${use} onChange=${(v) => { setUseS(v); try { localStorage.setItem(USE_KEY, v); window.dispatchEvent(new Event("jobpricer:use")); } catch (e) { /* ignore */ } settingsChanged(); }} />
     <p className="note">Employed work: job notes and provisional estimates for the office. My own business: quotes and invoices for your customers.</p>
     <div className="mini-label" style=${{ marginTop: 14 }}>Your business (printed on quotes and invoices)</div>
     <${Lbl} label="Business name" wide=${true}><input className="text-in" type="text" placeholder="e.g. Taylor Woods Plumbing & Heating" value=${businessName} onChange=${(e) => setBusinessName(e.target.value)} /><//>
@@ -5338,6 +5365,7 @@ function SettingsSheet({ businessName, setBusinessName, onClose }) {
     ${inp("addr", "Business address", "Street, town, postcode")}
     <${Lbl} label="Usual hourly rate (£)" wide=${true}><input className="text-in" type="number" inputMode="decimal" min="0" max="100" placeholder="e.g. 35" value=${b.rate || ""} onChange=${(e) => upd({ rate: e.target.value })} /><//>
     <p className="note">Filled in for you on new quotes. You can still change it on each job.</p>
+    <${Tick} checked=${!b.noSund} onChange=${() => upd({ noSund: !b.noSund })} label=${"Add sundries (" + SUNDRIES_PCT + "% of materials) to new quotes"} />
     <div className="mini-label" style=${{ marginTop: 14 }}>Payment details (printed on invoices)</div>
     <textarea className="manual note-ta" placeholder=${"e.g. Bank transfer to: Business name\nSort code and account number"} value=${pay} onChange=${(e) => setPay(e.target.value)}></textarea>
     <div className="mini-label" style=${{ marginTop: 14 }}>Terms on quotes and invoices</div>
@@ -5365,7 +5393,7 @@ function AppHeader({ businessName, setBusinessName, onNew }) {
   return html`<div className="apphead">
     <span className="brand-mark" aria-hidden="true"><${Icon} name="wrench" /></span>
     <div className="brand-txt"><div className="brand-name">${(businessName || "").trim() || "Job Pricer"}</div><div className="brand-sub">Surveys, quotes and invoices</div></div>
-    ${onNew ? html`<${ConfirmBtn} label="New job" armedLabel="Tap again: clear" onConfirm=${onNew} />` : null}
+    ${onNew ? html`<button type="button" className="btn" onClick=${onNew}>New job</button>` : null}
     <button type="button" className="btn" aria-label="Settings" aria-haspopup="dialog" onClick=${() => setSt(true)}>Settings</button>
     ${st ? html`<${SettingsSheet} businessName=${businessName} setBusinessName=${setBusinessName} onClose=${() => setSt(false)} />` : null}
   </div>`;
@@ -5495,6 +5523,9 @@ function App() {
     } catch (err) { /* ignore */ }
     if (isOld) setOldD(null); else setDraft(null);
   };
+  const [restored, setRestored] = useState(false);
+  useEffect(() => { if (draft && !isDirty()) { carryOn(draft, false); setRestored(true); setTimeout(() => setRestored(false), 15000); } }, []);
+  const startFresh = () => { try { localStorage.removeItem(DRAFT_KEY); localStorage.removeItem(OLD_KEY); } catch (e) { /* ignore */ } location.reload(); };
   /* undo for "clear all" / "new job": keeps what was on screen for a short while */
   const [undo, setUndo] = useState(null);
   useEffect(() => { if (!undo) return undefined; const t = setTimeout(() => setUndo(null), 20000); return () => clearTimeout(t); }, [undo]);
@@ -5567,7 +5598,7 @@ function App() {
     const plasterHours = mv("plaster", plastering ? hrOf(hrs, "x-plaster-" + tiling + "-" + size, DEF_H) : 0, "Plastering / making good");
     const totalHours = plumbHours + joinerHours + wetWallHours + flooringHours + tileHours + elecHours + plasterHours;
     const tileMaterials = 0; const tileNeeded = TILE_AREA[tiling][size] > 0;
-    const sundriesNeeded = totalHours > 0 && !bathCtx.prices["sund:off"]; const sundries = sundriesNeeded ? sundriesOf(survey.materials + tileMaterials, bathCtx.prices) : 0;
+    const sundriesNeeded = totalHours > 0 && !sundOff(bathCtx.prices); const sundries = sundriesNeeded ? sundriesOf(survey.materials + tileMaterials, bathCtx.prices) : 0;
     const materialsBase = survey.materials + tileMaterials + sundries;
     const materialsWithMarkup = materialsBase * (1 + markup / 100);
     return {
@@ -5585,7 +5616,7 @@ function App() {
   const kcalc = useMemo(() => {
     const h = k.survey.hours;
     const totalHours = h.plumbing + h.joinery + h.wetwall + h.flooring + h.tiling + (h.elec || 0);
-    const sundriesNeeded = totalHours > 0 && !k.ctx.prices["sund:off"]; const sundries = sundriesNeeded ? sundriesOf(k.survey.materials, k.ctx.prices) : 0;
+    const sundriesNeeded = totalHours > 0 && !sundOff(k.ctx.prices); const sundries = sundriesNeeded ? sundriesOf(k.survey.materials, k.ctx.prices) : 0;
     const materialsBase = k.survey.materials + sundries;
     const m = 1 + markup / 100;
     return {
@@ -5602,7 +5633,7 @@ function App() {
   const hcalc = useMemo(() => {
     const h = hr.survey.hours;
     const totalHours = h.plumbing + h.joinery + h.wetwall + h.flooring + h.tiling + (h.elec || 0);
-    const sundriesNeeded = totalHours > 0 && !hr.ctx.prices["sund:off"]; const sundries = sundriesNeeded ? sundriesOf(hr.survey.materials, hr.ctx.prices) : 0;
+    const sundriesNeeded = totalHours > 0 && !sundOff(hr.ctx.prices); const sundries = sundriesNeeded ? sundriesOf(hr.survey.materials, hr.ctx.prices) : 0;
     const materialsBase = hr.survey.materials + sundries;
     return {
       plumbHours: h.plumbing, joinerHours: h.joinery, wetWallHours: 0, flooringHours: h.flooring, tileHours: h.tiling, elecHours: h.elec || 0, plasterHours: 0,
@@ -5693,6 +5724,9 @@ function App() {
     ${mode === "small" && html`<${SavePanel} bottom=${true} kind="small" auth=${auth} autoTitle=${true} defaultTitle=${(sjob.where || "").trim() || (sjob.jobType || "").trim()} getData=${() => sjob}
       currentId=${jobIds.small} onSaved=${(id) => saved("small", id)} onNeedLogin=${() => setMode("jobs")} />`}
 
+    ${restored && !undo ? html`<div className="undo" role="status"><span>Carried on from where you left off.</span>
+      <button type="button" className="btn" onClick=${startFresh}>Start fresh</button>
+      <button type="button" className="btn" aria-label="Dismiss" onClick=${() => setRestored(false)}>OK</button></div>` : null}
     ${undo ? html`<div className="undo" role="status"><span>New job started.</span>
       <button type="button" className="btn go" onClick=${doUndo}>Undo</button>
       <button type="button" className="btn" aria-label="Dismiss" onClick=${() => setUndo(null)}>OK</button></div>` : null}
