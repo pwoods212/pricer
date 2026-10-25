@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610251506"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610251543"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -1671,7 +1671,7 @@ const H_INHIB = { l: "Inhibitor top-up", p: 15, opt: true };
 const H_CAPS = [{ l: "Caps / push-fit stops", p: 6 }, H_INHIB];
 const HEAT_FIXTURE_KITS = {
   boiler: { fitNew: [{ l: "New boiler", p: { budget: 850, mid: 1300, premium: 2000 } }, { l: "Flue kit (standard horizontal)", p: 90 }, { l: "Gas isolation valve", p: 15 }, { l: "Filling loop (combi or system)", p: 15, opt: true },
-      { l: "PRV discharge pipe and fittings", p: 20 }, { l: "Condensate fittings", p: 12 }, { l: "System cleaner", p: 20 }, { l: "Inhibitor", p: 15 }, { l: "Brackets, fixings and sundries", p: 15 }, { l: "Programmer or room thermostat", p: { budget: 40, mid: 120, premium: 220 }, opt: true }],
+      { l: "PRV discharge pipe and fittings", p: 20 }, { l: "Condensate fittings", p: 12 }, { l: "System cleaner", p: 20 }, { l: "Inhibitor", p: 15 }, { l: "Brackets and fixings", p: 15 }, { l: "Programmer or room thermostat", p: { budget: 40, mid: 120, premium: 220 }, opt: true }],
     fitOld: [{ l: "Seals, washers and fittings", p: 20 }, { l: "Inhibitor", p: 15 }], removedOnly: [{ l: "Caps and blanking", p: 10 }],
     repair: hRep(["Diverter valve", "PCB / control board", "Fan", "Pump", "Gas valve", "Expansion vessel recharged", "Pressure sensor", "Ignition or flame sensing electrode", "Heat exchanger cleaned", "Condensate trap cleared"]) },
   get hwtank() { return FIXTURE_KITS.hwtank; },
@@ -1767,9 +1767,14 @@ function fixtureScope(label, st) {
 const HPD = 8; // hours in a trade day
 const DEF_H = 2; // most hours boxes start at 2 hours
 /* starting hours only: remove-and-fit jobs and floor repairs / replacements start at 4. Every box can still be changed up or down. */
-const FX_H = { boiler: { both: 12, fit: 10, remove: 3, repair: 2 } };
-const fxDefH = (st, key) => { const h = FX_H[key]; if (h && st) { if (st.repair) return h.repair; if (st.remove && st.fit) return h.both; if (st.fit) return h.fit; if (st.remove) return h.remove; } return st && st.remove && st.fit && !st.repair ? 4 : DEF_H; };
-const ST_H = { bGas: { up22: 4, newrun: 8 }, bPipe: { alter: 4, move: 10 }, bFlue: { ext: 1, vert: 6, plume: 1, newpos: 4 }, bCond: { int: 1, ext: 2, soak: 6 }, bPump: { yes: 1.5 }, bConv: { backb: 8, gravity: 8, sysToCombi: 4, toSystem: 8 } };
+/* Paul's figures: a boiler swap in the same position, with the pipework altered and a new filter, is about 8 hours
+   (the filter and pipework changes are part of that time). A filter on its own in an existing system is about 4 hours. */
+const FX_H = { boiler: { both: 8, fit: 8, remove: 3, repair: 2 }, hfilt: { both: 4, fit: 4, remove: 1, repair: 1 } };
+let blrFitting = false; /* set by computeSurvey: a new boiler is going in, so a filter fitted with it takes no extra time */
+const fxDefH = (st, key) => { if (key === "hfilt" && blrFitting && st && st.fit) return 0; const h = FX_H[key]; if (h && st) { if (st.repair) return h.repair; if (st.remove && st.fit) return h.both; if (st.fit) return h.fit; if (st.remove) return h.remove; } return st && st.remove && st.fit && !st.repair ? 4 : DEF_H; };
+/* gas runs depend on the route through the house, so they start at 0 for Paul to put in; altered pipework is part of the boiler swap time */
+const ST_H = { bGas: { up22: 0, newrun: 0 }, bPipe: { alter: 0, move: 10 }, bFlue: { ext: 1, vert: 6, plume: 1, newpos: 4 }, bCond: { int: 1, ext: 2, soak: 6 }, bPump: { yes: 1.5 }, bConv: { backb: 8, gravity: 8, sysToCombi: 4, toSystem: 8 } };
+const ST_NOTE = { "bGas:up22": "Put in your hours for the gas run: it depends on where the boiler is and the route the pipe can take through the house.", "bGas:newrun": "Put in your hours for the gas run: it depends on where the meter and boiler are and the route the pipe can take.", "bPipe:alter": "Included in the boiler swap time. Only add hours if the alterations are unusually big." };
 const stDefH = (key, val) => (ST_H[key] && ST_H[key][val] !== undefined ? ST_H[key][val] : stDefH0(key, val));
 const stDefH0 = (key, val) => (["floor", "joists", "plywood"].indexOf(key) > -1 && (val === "partial" || val === "full") ? 4 : DEF_H);
 const noteOf = (prices, k) => { const n = prices && typeof prices["desc:" + k] === "string" ? prices["desc:" + k].trim() : ""; return n ? "\n" + n : ""; };
@@ -1882,6 +1887,7 @@ const hrRaw = (hrs, key, def) => (hrs && key in hrs ? hrs[key] : def);
 const hrOf = (hrs, key, def) => { const v = hrRaw(hrs, key, def); return v === "" ? 0 : Math.max(0, Number(v) || 0); };
 
 function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices, srcs, bulk, bulkOnly, size) {
+  blrFitting = !!(fixtures && fixtures.boiler && fixtures.boiler.fit && !fixtures.boiler.repair);
   const hours = { plumbing: 0, joinery: 0, wetwall: 0, flooring: 0, tiling: 0, elec: 0 };
   let materials = 0;
   const kitLines = [];
@@ -2080,9 +2086,10 @@ function labourRows(c) {
   return [["Plumbing & fixtures", c.plumbHours], ["Joinery (floor/joists/ply)", c.joinerHours], ["Wet wall", c.wetWallHours],
     ["Lino flooring", c.flooringHours], ["Tiling", c.tileHours], ["Electrical", c.elecHours], ["Plastering", c.plasterHours]].filter((r) => r[1] > 0);
 }
+const NOT_ORDER = (k) => /^Connect onto existing pipework$/.test(k.label || "") && !(Number(k.cost) > 0);
 function kitGroups(survey, wantProv) {
   const g = {};
-  survey.kitLines.filter((k) => !!k.prov === !!wantProv && k.group !== "Bulk orders").forEach((k) => { (g[k.group] = g[k.group] || []).push(k); });
+  survey.kitLines.filter((k) => !!k.prov === !!wantProv && k.group !== "Bulk orders" && !NOT_ORDER(k)).forEach((k) => { (g[k.group] = g[k.group] || []).push(k); });
   return Object.entries(g);
 }
 
@@ -2096,7 +2103,7 @@ function matBreakdown(survey, calc) {
   });
   const bl = bulkLines(survey).filter((l) => l.cost > 0).map((l) => ({ label: l.label, cost: Number(l.cost) || 0, note: "" }));
   if (bl.length) out.push({ group: "Bulk buys", rows: bl, total: bl.reduce((a, r) => a + r.cost, 0) });
-  if (calc && calc.sundries > 0) out.push({ group: "Sundries", rows: [{ label: "Sundries (" + SUNDRIES_PCT + "% of materials)", cost: calc.sundries, note: "" }], total: calc.sundries });
+  if (calc && calc.sundries > 0) out.push({ group: "Sundries (" + SUNDRIES_PCT + "% of materials)", rows: [], total: calc.sundries });
   return out;
 }
 const NO_SUP = "No supplier set", IN_BULK = "Already in a bulk buy", OTHER_GRP = "Other";
@@ -2126,7 +2133,7 @@ function orderGroups(survey, calc, wantProv, mode) {
   const g = {}, seen = {};
   /* free-typed suppliers: "screwfix" and "Screwfix " land in one group (first spelling wins) */
   const put = (name, r) => { const k = name.toLowerCase().replace(/\s+/g, " "); const nm = seen[k] || (seen[k] = name); (g[nm] = g[nm] || []).push(r); };
-  survey.kitLines.filter((k) => !!k.prov === !!wantProv).forEach((k) => { const r = orderRow(k, mode); put(k.covered && !r.bulk ? IN_BULK : r.sup, r); });
+  survey.kitLines.filter((k) => !!k.prov === !!wantProv && !NOT_ORDER(k)).forEach((k) => { const r = orderRow(k, mode); put(k.covered && !r.bulk ? IN_BULK : r.sup, r); });
   if (!wantProv) {
     if (calc.tileNeeded) put(OTHER_GRP, { id: "tile", name: "Tiles and tiling materials", qty: 1, code: "", detail: "", sup: NO_SUP, covered: false, cost: 0, hasCost: false });
     if (calc.sundriesNeeded) put(OTHER_GRP, { id: "sundries", name: "Sundries (silicone, fixings, consumables) · " + SUNDRIES_PCT + "% of materials", qty: 1, code: "", detail: "", sup: NO_SUP, covered: false, cost: calc.sundries || 0, hasCost: calc.sundries > 0 });
@@ -2238,7 +2245,7 @@ function buildQuoteText(q) {
     L.push((D ? "Materials: " : "Materials at cost: ") + M(mat) + (note || ""));
     if (extraSup0 > 0) L.push("Trades and supplied items: " + M(extraSup0));
     const tot = mat + extraSup0 + (q.rate > 0 ? hrs * q.rate : 0);
-    L.push("Total for " + short + (q.rate > 0 ? "" : " (no labour price)") + (VR > 0 ? " before VAT" : "") + ": " + M(tot));
+    L.push("Total for " + short + (q.rate > 0 || D ? "" : " (no labour price)") + (VR > 0 ? " before VAT" : "") + ": " + M(tot));
     vatL(tot, "Total for " + short);
     return tot;
   };
@@ -2251,7 +2258,7 @@ function buildQuoteText(q) {
     } else L.push(ON[1].toUpperCase() + " — SAME AS " + ON[0].split(" — ")[0].toUpperCase() + (o2i.every((i) => i.swap) ? ", EXCEPT:" : ", WITH THESE CHANGES:"));
     if (!D) o2i.forEach((i) => { const sh = o2Show(i); L.push(D ? "- " + i.label + ": " + M(sh.materials + (q.rate > 0 ? sh.hours * q.rate : 0)) : "- " + i.label + ": approx " + fmtHrs(sh.hours) + " hours + materials " + M(sh.materials)); });
     const sund2 = c.sundriesNeeded ? Math.round(c.o2Materials * SUNDRIES_PCT) / 100 : 0;
-    const sn = (v) => (v > 0 ? " (includes sundries at " + SUNDRIES_PCT + "%: " + M(v) + ")" : "");
+    const sn = (v) => (v > 0 && !D ? " (includes sundries at " + SUNDRIES_PCT + "%: " + M(v) + ")" : "");
     if (!D) { const og = {}; (q.survey ? q.survey.kitLines : []).filter((k) => k.o2 && (Number(k.cost) > 0 || k.tbc)).forEach((k) => { const g = k.group.replace(O2_SFX, ""); (og[g] = og[g] || []).push(k); });
       const ogs = Object.entries(og);
       if (ogs.length) { L.push(""); L.push(ON[1].toUpperCase() + " MATERIALS (amounts):"); ogs.forEach(([g, rows]) => { L.push(g + ": " + M(rows.reduce((a, k) => a + (Number(k.cost) || 0), 0))); rows.forEach((k) => L.push("  - " + k.label + " — " + (k.tbc ? "price TBC" : M(k.cost)))); }); } }
@@ -2266,7 +2273,7 @@ function buildQuoteText(q) {
   if (c.provItems.length) {
     L.push("");
     L.push(o2i.length ? "PROVISIONAL TASKS (only if needed once work starts, extra to either option):" : "PROVISIONAL TASKS (only if needed once work starts, priced separately below):");
-    c.provItems.forEach((i) => L.push(D ? "- " + i.label + ": " + M(i.materials * (c.sundriesNeeded ? 1 + SUNDRIES_PCT / 100 : 1) + (q.rate > 0 ? i.hours * q.rate : 0)) : "- " + i.label + ": approx " + fmtHrs(i.hours) + " hours + materials " + M(i.materials)));
+    c.provItems.forEach((i) => L.push(D ? "- " + i.label + ": " + M(i.materials * (c.sundriesNeeded ? 1 + SUNDRIES_PCT / 100 : 1) + (q.rate > 0 ? i.hours * q.rate : 0)) : "- " + i.label + ": approx " + fmtHrs(i.hours) + " hours + materials " + M(i.materials * (c.sundriesNeeded ? 1 + SUNDRIES_PCT / 100 : 1)) + (c.sundriesNeeded ? " (with sundries)" : "")));
     L.push(D ? "These tasks are only charged if they are needed once the work starts, and will be agreed with you before they are done." : "Please quote for these provisional items and have them accepted by the customer before any of this work starts.");
     /* both options side by side: as surveyed, and with every "if needed" item */
     const extraSup = (c.supply > 0 ? c.supply : 0) + tr.reduce((x, t) => x + t.cost, 0);
@@ -2280,7 +2287,7 @@ function buildQuoteText(q) {
       L.push((D ? "Materials: " : "Materials at cost: ") + M(mat) + (note || ""));
       if (extraSup > 0) L.push("Trades and supplied items: " + M(extraSup));
       const tot = mat + extraSup + (q.rate > 0 ? hrs * q.rate : 0);
-      L.push("Total for " + title.split(" — ")[0].replace(/^OPTION /, "Option ") + (q.rate > 0 ? "" : " (no labour price)") + ": " + M(tot));
+      L.push("Total for " + title.split(" — ")[0].replace(/^OPTION /, "Option ") + (q.rate > 0 || D ? "" : " (no labour price)") + ": " + M(tot));
       return tot;
     };
     if (o2i.length) {
@@ -2289,8 +2296,8 @@ function buildQuoteText(q) {
     } else {
     L.push("");
     L.push("COST AND TIME FOR BOTH OPTIONS:");
-    const totA = optLines("OPTION A — AS SURVEYED (without the provisional tasks):", c.totalHours, c.materialsBase, c.sundries > 0 ? " (includes sundries at " + SUNDRIES_PCT + "%: " + M(c.sundries) + ")" : "");
-    const totB = optLines("OPTION B — INCLUDING THE PROVISIONAL TASKS:", hB, matB, c.sundriesNeeded ? " (includes sundries at " + SUNDRIES_PCT + "%: " + M(c.sundries + sundB) + ")" : "");
+    const totA = optLines("OPTION A — AS SURVEYED (without the provisional tasks):", c.totalHours, c.materialsBase, c.sundries > 0 && !D ? " (includes sundries at " + SUNDRIES_PCT + "%: " + M(c.sundries) + ")" : "");
+    const totB = optLines("OPTION B — INCLUDING THE PROVISIONAL TASKS:", hB, matB, c.sundriesNeeded && !D ? " (includes sundries at " + SUNDRIES_PCT + "%: " + M(c.sundries + sundB) + ")" : "");
     L.push("");
     L.push("Extra for the provisional tasks" + (D ? "" : " (+" + fmtHrs(c.provHours) + " hours)") + ": " + M(totB - totA));
     }
@@ -2307,7 +2314,7 @@ function buildQuoteText(q) {
   if (q.disclaimer) {
     L.push("");
     L.push("DISCLAIMER:");
-    L.push(q.disclaimer);
+    L.push(c.provItems.length ? q.disclaimer : q.disclaimer.replace(/\s*[^.]*[Pp]rovisional (tasks|items)[^.]*\./g, ""));
   }
   if (D) {
     L.push("");
@@ -3078,7 +3085,7 @@ function VanUsed({ job, setJob, gx, sx }) {
     setMsg(pick.length + (pick.length === 1 ? " item" : " items") + " added to your restock list (Price Book tab).");
   };
   const tot = vanUsedTotal(job);
-  return html`<${TickSection} on=${used.length > 0 || !!gx("van:on")} onToggle=${(v) => sx("van:on", v)} title=${TEAM ? "Used van stock" : "Used my own van stock"} hint=${TEAM ? "Note what you used and add it to the restock list" : "Note what you used, charge for it and add it to your restock list"}>
+  return html`<${TickSection} on=${used.length > 0 || !!gx("van:on")} onToggle=${(v) => sx("van:on", v)} title=${TEAM ? "Used van stock" : "Used my own van stock"} hint=${TEAM || loadUse() !== "biz" ? "Note what you used and add it to the restock list" : "Note what you used, charge for it and add it to your restock list"}>
     <div className="link-row tight">
       <input className="text-in grow" type="text" list="van-items" placeholder="Type or pick an item (e.g. PTFE tape)" aria-label="Van stock item" value=${q} onChange=${(e) => setQ(e.target.value)} onKeyDown=${(e) => { if (e.key === "Enter") add(); }} />
       <button type="button" className="btn" onClick=${add} disabled=${!q.trim()}>Add</button>
@@ -3149,7 +3156,8 @@ function PriceBookView({ auth }) {
   book.forEach((e) => { (groups[e.item] = groups[e.item] || []).push(e); });
   const allNames = Object.keys(groups);
   const supList = Array.from(new Set(book.map((e) => supName(e.supplier)).filter(Boolean))).sort();
-  const names = allNames.filter((n) => n.toLowerCase().includes(q.toLowerCase()) && (!supF || groups[n].some((e) => supName(e.supplier) === supF))).sort();
+  const qWords = toks(cq);
+  const names = allNames.filter((n) => qWords.every((w) => (n + " " + (groups[n][groups[n].length - 1].code || "")).toLowerCase().includes(w)) && (!supF || groups[n].some((e) => supName(e.supplier) === supF))).sort();
   const staleN = allNames.filter((n) => ageDays(groups[n][groups[n].length - 1].date) > 180).length;
   const hits = cq.trim() ? searchCatalog(cq, 30) : [];
   return html`<div>
@@ -3158,9 +3166,13 @@ function PriceBookView({ auth }) {
     <div className="hub">
       <label className="hub-search"><${Icon} name="search" /><input type="search" enterKeyHint="search" placeholder="Search the supplier catalogue" aria-label="Search the supplier catalogue" value=${cq} onChange=${(e) => { setCq(e.target.value); if (e.target.value) setPanel(""); }} /></label>
       ${cq.trim() ? html`<div className="hub-res">
+        ${names.length ? html`<div className="kit-head" style=${{ marginTop: 0 }}>Your prices</div>
+          ${names.slice(0, 6).map((n) => { const last = groups[n][groups[n].length - 1]; return html`<div key=${"m" + n} className="mat"><div className="cat-name">${n}<span className="muted"> · ${supName(last.supplier) || "paid"} ${last.date}${last.code ? " · code " + last.code : ""}</span></div><div className="mat-act cat-act"><b className="cat-price">${fmtP(last.price)}</b></div></div>`; })}
+          ${names.length > 6 ? html`<p className="note" style=${{ margin: 0 }}>${names.length - 6} more in "Prices I have paid" below.</p>` : null}
+          <div className="kit-head">Supplier catalogue</div>` : null}
         ${hits.map((c, i) => { const cd = codeFromUrl(c[3]); const inBook = bookData.some((e) => e.item === c[0] && e.price === c[1]); return html`<div key=${i} className="mat">
           <div className="cat-name">${c[0]}<span className="muted"> · ${SUP_NAME[c[2]]}${cd ? " · code " + cd : ""}</span>${c[3] ? html` <a href=${c[3]} target="_blank" rel="noopener noreferrer">view</a>` : null}</div>
-          <div className="mat-act cat-act"><b className="cat-price">${fmtKit(c[1])}</b>
+          <div className="mat-act cat-act"><b className="cat-price">${fmtP(c[1])}</b>
             <button type="button" className="btn" disabled=${inBook} onClick=${() => bookAdd(c[0], c[1], SUP_NAME[c[2]], "", cd)}>${inBook ? "Added" : "Add to price book"}</button>
             ${kits.length > 0 ? html`<select className="text-in" aria-label="Add to a kit" value="" onChange=${(e) => { const k = kits.find((x) => x.id === e.target.value); if (k) kitUpdate(k.id, (kk) => ({ ...kk, items: [...kk.items.filter((x) => (x.item || "").trim()), { item: c[0], code: cd, where: SUP_NAME[c[2]], price: String(c[1]) }] })); }}>
               <option value="">Add to kit…</option>${kits.map((k) => html`<option key=${k.id} value=${k.id}>${k.name}</option>`)}</select>` : null}</div></div>`; })}
@@ -3185,7 +3197,7 @@ function PriceBookView({ auth }) {
       ${panel === "scan" ? html`<div className="hub-panel"><${ReceiptImport} /></div>` : null}
     </div>
     <${StatusCard} title=${allNames.length ? "Your price book" : "Price book is empty"} tone=${allNames.length ? (staleN ? "warn" : "ok") : ""}
-      next=${allNames.length ? (staleN ? staleN + (staleN === 1 ? " item was last priced" : " items were last priced") + " over 6 months ago. Check those before you quote." : "Prices are up to date. The newest price paid is used next time you add the item.") : "Add a price below, scan a receipt, or just type prices into a survey. They collect here."}>
+      next=${allNames.length ? (staleN ? staleN + (staleN === 1 ? " item was last priced" : " items were last priced") + " over 6 months ago. Check those before you quote." : "Prices are up to date. The newest price paid is used next time you add the item.") : "Add a price above, scan a receipt, or just type prices into a survey. They collect here."}>
       <div className="stat-row"><div className="stat"><b>${allNames.length}</b><span>items</span></div><div className="stat"><b>${supList.length}</b><span>suppliers</span></div><div className="stat"><b>${kits.length}</b><span>kits</span></div></div>
     <//>
     ${TEAM ? null : html`<div className="card"><div className="kit-head" style=${{ marginTop: 0 }}>Screwfix orders</div>
@@ -3194,14 +3206,13 @@ function PriceBookView({ auth }) {
     <${RestockPanel} />
     <${Sec}>Prices I have paid<//>
     <div className="card">
-      ${allNames.length > 0 ? html`<input className="text-in" style=${{ marginBottom: 8 }} type="text" placeholder="Filter your items" aria-label="Filter your items" value=${q} onChange=${(e) => setQ(e.target.value)} />` : null}
       ${supList.length > 1 ? html`<div className="qpicks" role="group" aria-label="Filter by supplier"><button type="button" className=${"qpick" + (!supF ? " on" : "")} aria-pressed=${!supF} onClick=${() => setSupF("")}>All suppliers</button>${supList.map((n) => html`<button type="button" key=${n} className=${"qpick" + (supF === n ? " on" : "")} aria-pressed=${supF === n} onClick=${() => setSupF(supF === n ? "" : n)}>${n}</button>`)}</div>` : null}
-      ${names.length === 0 ? (allNames.length === 0 ? html`<${EmptyState} icon="tag" title="No prices saved yet">Enter a price on any survey item and it is saved here with the supplier and code. You can also add one below or import a receipt.<//>` : html`<p className="note">No item matches that filter.</p>`) : null}
+      ${names.length === 0 && allNames.length > 0 ? html`<p className="note">None of your prices match "${cq}".</p>` : null}
       ${names.map((n) => { const g = groups[n]; const last = g[g.length - 1]; return html`<details key=${n} className="pb">
-        <summary><span>${n}${last.code ? html`<span className="muted-s"> · code ${last.code}</span>` : null}</span><span><b className="mono">${fmtKit(last.price)}</b>${ageDays(last.date) > 180 ? html` <span className="muted-s age-old">check price</span>` : null}</span></summary>
+        <summary><span>${n}${last.code ? html`<span className="muted-s"> · code ${last.code}</span>` : null}</span><span><b className="mono">${fmtP(last.price)}</b>${ageDays(last.date) > 180 ? html` <span className="muted-s age-old">check price</span>` : null}</span></summary>
         ${g.slice().reverse().map((e, i) => html`<div key=${i} className="pb-hist">
           <span>${e.date}${e.supplier ? " · " + supName(e.supplier) : ""}${e.product ? " · " + e.product : ""}${e.code ? " · code " + e.code : ""}</span>
-          <span><b className="mono">${fmtKit(e.price)}</b> <${RemoveBtn} label="Remove this price" onClick=${() => bookRemove(e)} /></span></div>`)}
+          <span><b className="mono">${fmtP(e.price)}</b> <${RemoveBtn} label="Remove this price" onClick=${() => bookRemove(e)} /></span></div>`)}
       </details>`; })}
     </div>
   </div>`;
@@ -3370,7 +3381,7 @@ function ChargeBlock({ get, set }) {
 }
 /* invoices */
 const PAY_KEY = "pricer-pay-v1";
-const loadPay = () => { try { return localStorage.getItem(PAY_KEY) || ""; } catch (e) { return ""; } };
+const loadPay = () => { if (TEAM) return ""; try { return localStorage.getItem(PAY_KEY) || ""; } catch (e) { return ""; } };
 /* settings changed anywhere are picked up straight away by every screen */
 const settingsChanged = () => { try { window.dispatchEvent(new Event("jobpricer:settings")); } catch (e) { /* ignore */ } };
 function useSettingsTick() { const [, setN] = useState(0); useEffect(() => { const f = () => setN((n) => n + 1); window.addEventListener("jobpricer:settings", f); return () => window.removeEventListener("jobpricer:settings", f); }, []); }
@@ -3389,6 +3400,12 @@ const defQuoteNo = () => peekNo("pricer-qno", "Q-");
 /* call before a document goes out: fixes the number on this job and moves the counter on */
 const claimNo = (get, set, key, cnt, def) => () => { if (!String(get(key) || "").trim()) { set(key, def()); takeNo(cnt); } };
 const invMeta = (get) => { const date = get("inv:date") || localYmd(); const days = Math.max(0, Math.floor(Number(get("inv:days"))) || 14); return { no: String(get("inv:no") || "").trim() || defInvNo(), date, due: addDaysYmd(date, days) }; };
+/* a VAT invoice must show the VAT number */
+function VatNoWarn() {
+  useSettingsTick();
+  const t = loadTerms();
+  return t.vat && !String(t.vatNo || "").trim() ? html`<p className="note warn-t" style=${{ margin: "4px 0 6px" }}>VAT is switched on but there is no VAT number in Settings. Add it before sending, or the invoice is not a valid VAT invoice.</p>` : null;
+}
 function buildInvoiceText({ businessName, customerName, siteAddress, get, work, charges, minCharge, pay, terms, optName, matItems }) {
   const L = [], mt = invMeta(get);
   L.push(businessName || "[Your business name]");
@@ -3398,7 +3415,7 @@ function buildInvoiceText({ businessName, customerName, siteAddress, get, work, 
   L.push("Invoice date: " + ymdGB(mt.date));
   L.push("Payment due: " + ymdGB(mt.due));
   if (terms && vatRate(terms) > 0 && String(terms.vatNo || "").trim()) L.push("VAT number: " + String(terms.vatNo).trim());
-  L.push("Customer: " + (customerName || "[Customer name]"));
+  if (String(customerName || "").trim()) L.push("Customer: " + customerName);
   L.push("Site: " + (siteAddress || "[Site address]"));
   clientLines(get).forEach((x) => L.push(x));
   L.push("");
@@ -3442,6 +3459,7 @@ function InvoiceBlock({ get, set, text, filename, pay, setPay, profit, fold, chi
     <p className="note">${String(pay || "").trim() ? "Your payment details from Settings are printed on the invoice." : "No payment details yet: add them in Settings so the customer knows how to pay."}</p>
     <${Lbl} label="Note on the invoice (optional)" wide=${true}><input className="text-in" type="text" placeholder="e.g. Thank you for your custom" value=${get("inv:note") || ""} onChange=${(e) => set("inv:note", e.target.value)} /><//>
     ${profit !== undefined ? html`<${TaxAside} profit=${profit} />` : null}
+    <${VatNoWarn} />
     <div className="link-row" style=${{ marginTop: 8 }}>
       <${CopyQuote} text=${text} label="Copy invoice" btnCls="btn" onSend=${claimNo(get, set, "inv:no", "pricer-invno", defInvNo)} />
       ${fold ? null : html`<${SharePdf} sections=${[text]} filename=${filename} label="Send invoice PDF" onSend=${claimNo(get, set, "inv:no", "pricer-invno", defInvNo)} />`}
@@ -3489,7 +3507,7 @@ const TERMS_EXCL = [
   ["access", "The price assumes clear access and working water and drainage on the day."],
 ];
 const termsDefault = () => ({ payDays: "14", guar: "3", vat: false, vatRate: "20", vatNo: "", excl: Object.fromEntries(TERMS_EXCL.map((x) => [x[0], true])), extra: "" });
-const loadTerms = () => { try {
+const loadTerms = () => { if (TEAM) return termsDefault(); try {
   const t = JSON.parse(localStorage.getItem(TERMS_KEY));
   if (t && typeof t === "object") return { ...termsDefault(), ...t };
   /* older saved terms: keep everything except the guarantee, which is now 3 months by default */
@@ -3547,7 +3565,7 @@ function buildSmallQuote({ businessName, customerName, siteAddress, get, work, c
   L.push(businessName || "[Your business name]");
   L.push("QUOTATION — FIXED PRICE FOR THE WORK BELOW");
   L.push("");
-  L.push("Customer: " + (customerName || "[Customer name]"));
+  if (String(customerName || "").trim()) L.push("Customer: " + customerName);
   L.push("Site: " + (siteAddress || "[Site address]"));
   clientLines(get).forEach((x) => L.push(x));
   L.push("Date: " + gb(d));
@@ -3666,9 +3684,9 @@ function BoilerBlock({ fixtures, structural, updateFixture, updateStructural }) 
     ${q("Gas pipe to the boiler", html`<${Segmented} options=${[["none", "Like for like"], ["up22", "Upgrade to 22mm"], ["newrun", "New run"]]} value=${structural.bGas || "none"} onChange=${(v) => updateStructural("bGas", v)} />`)}
     ${q("Boiler pipework", html`<${Segmented} options=${[["none", "Exact same"], ["alter", "Needs altered"], ["move", "Moving"]]} value=${structural.bPipe || "none"} onChange=${(v) => updateStructural("bPipe", v)} />`)}
     ${q("Is there a condensate pipe already?", seg("condNow", yn, (v) => { if (v === "yes") updateStructural("bCond", "none"); }))}
-    <${Lbl} label="Where can the condensate tie in?" wide=${true}><input className="text-in" type="text" placeholder="e.g. Kitchen sink waste, 2m away; or outside gully" value=${g("condTie") || ""} onChange=${(e) => sv("condTie", e.target.value)} /><//>
+    ${g("condNow") === "yes" ? null : html`<div>    <${Lbl} label="Where can the condensate tie in?" wide=${true}><input className="text-in" type="text" placeholder="e.g. Kitchen sink waste, 2m away; or outside gully" value=${g("condTie") || ""} onChange=${(e) => sv("condTie", e.target.value)} /><//>
     ${q("Is there a waste pipe nearby?", seg("waste", yn, (v) => { if (v === "yes" && g("condNow") === "no") updateStructural("bCond", "int"); if (v === "no" && g("condNow") === "no") updateStructural("bCond", "ext"); }))}
-    ${q("Condensate pump needed?", seg("pump", yn, (v) => updateStructural("bPump", v === "yes" ? "yes" : "none")))}
+    ${q("Condensate pump needed?", seg("pump", yn, (v) => updateStructural("bPump", v === "yes" ? "yes" : "none")))}</div>`}
     ${q("Magnetic filter already fitted?", seg("filter", yn, (v) => { if (v === "no") updateFixture("hfilt", modeState("fit")); if (v === "yes") updateFixture("hfilt", modeState("none")); }))}
     ${q("Inhibitor in the system?", seg("inhibNow", [["yes", "Yes"], ["no", "No"], ["unknown", "Not sure"]]))}
     <p className="note">Gas work and commissioning must be done by a Gas Safe registered engineer.</p>
@@ -3692,20 +3710,21 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
   const altSt = alt ? modeState(alt) : null, altList = alt ? room.fixtureKits[def.key][fixtureListName(altSt)] || [] : [];
   const altCost = alt ? survey.kitLines.filter((k) => k.o2 && k.group === def.label + O2_SFX).reduce((a, k) => a + (Number(k.cost) || 0), 0) : 0;
   const cost = sumGroups(survey, [def.label + tagSfx(tag)]);
-  const sub = active ? [fmtHrs(hrOf(hrs, hk, fxDefH(state, def.key))) + " hrs", cost > 0 ? fmtKit(cost) : pc.bulkOnly ? "in bulk buy" : "no prices yet", tag === "pv" ? "only if needed" : tag === "o2" ? "option 2" : "", nProv ? nProv + " provisional" : "", alt ? "or " + altName.toLowerCase() + " (option 2)" : ""].filter(Boolean).join(" · ") : "";
+  const sub = active ? [fmtHrs(hrOf(hrs, hk, fxDefH(state, def.key))) + " hrs", cost > 0 ? fmtKit(cost) : pc.bulkOnly ? "in bulk buy" : altCost > 0 ? "" : "no prices yet", tag === "pv" ? "only if needed" : tag === "o2" ? "option 2" : "", nProv ? nProv + " provisional" : "", alt ? "or " + altName.toLowerCase() + " (option 2" + (altCost > 0 ? ", " + fmtKit(altCost) : "") + ")" : ""].filter(Boolean).join(" · ") : "";
   const modeName = (FIX_MODES.find((m) => m[0] === mode) || FIX_MODES[0])[1];
   const pick = (v) => (v === state.alt ? onChange({ ...modeState(v), alt: "" }) : v === "none" ? onChange({ remove: false, fit: false, repair: false })
     : v === "repair" ? onChange({ remove: false, fit: false, repair: true })
     : v === "remove" ? onChange({ remove: true, fit: false, repair: false })
     : v === "fit" ? onChange({ remove: false, fit: true, repair: false, condition: "new" })
     : onChange({ remove: true, fit: true, repair: false, condition: v }));
+  const custTick = html`<${Tick} checked=${!!state.cust} onChange=${() => onChange({ cust: !state.cust })} label=${"Customer is supplying the " + def.label.toLowerCase().replace(/ \(.*\)/, "") + " (or it comes with their kitchen or bathroom pack)"} />
+      ${state.cust ? html`<p className="note" style=${{ margin: "0 0 6px" }}>The ${def.label.toLowerCase().replace(/ \(.*\)/, "")} itself is left out of the price and the quote says "supplied by the customer". Fittings to connect it are still included.</p>` : null}`;
   const pickAlt = (v) => { onChange({ alt: v }); if (v && tag !== "in") setTag(toggleProv, tag, "in", "pv-fx-" + def.key, "o2-fx-" + def.key); };
   return html`<${ItemCard} title=${def.label} valueLabel=${modeName} active=${active} sub=${sub} options=${FIX_MODES} value=${mode} onPick=${pick} altValue=${alt} onAlt=${pickAlt}>
     ${false ? html`<p className="gla-hint">${GLA_HINTS[def.key]}</p>` : null}
     <${CheckTips} items=${ITEM_CHECKS[def.key]} />
     <${HoursInput} label=${hrsLabel} value=${hrRaw(hrs, hk, fxDefH(state, def.key))} onChange=${(v) => setHr(hk, v)} />
-    ${(mode === "fit" || mode === "new") || (alt === "fit" || alt === "new") ? html`<${Tick} checked=${!!state.cust} onChange=${() => onChange({ cust: !state.cust })} label=${"Customer is supplying the " + def.label.toLowerCase().replace(/ \(.*\)/, "") + " (or it comes with their kitchen or bathroom pack)"} />
-      ${state.cust ? html`<p className="note" style=${{ margin: "0 0 6px" }}>The ${def.label.toLowerCase().replace(/ \(.*\)/, "")} itself is left out of the price and the quote says "supplied by the customer". Fittings to connect it are still included.</p>` : null}` : null}
+    ${mode === "fit" || mode === "new" ? custTick : null}
     ${active && !alt ? html`<${PriceAs} value=${tag} onPick=${(v) => setTag(toggleProv, tag, v, "pv-fx-" + def.key, "o2-fx-" + def.key)} />` : null}
     ${su && active ? html`<${SuitePanel} def=${def} state=${state} onChange=${onChange} fixtures=${fixtures} tier=${tier} />` : null}
     ${!su && list.length > 0 ? html`<div>
@@ -3721,6 +3740,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
     <${ExtraBlock} group=${def.label} hint=${def.label.toLowerCase().replace(/ \(.*\)/, "")} title=${alt ? "Option 1 extra materials (" + modeName.toLowerCase() + ")" : ""} />
     ${alt ? html`<div className="alt-box">
       <div className="alt-head"><span><b>Option 2:</b> ${altName.toLowerCase()} instead</span><button type="button" className="linkbtn" onClick=${() => onChange({ alt: "" })}>Remove</button></div>
+      ${(alt === "fit" || alt === "new") && !(mode === "fit" || mode === "new") ? custTick : null}
       <${HoursInput} label=${"Time to " + altName.toLowerCase()} value=${hrRaw(hrs, "fxa-" + def.key, fxDefH(altSt, def.key))} onChange=${(v) => setHr("fxa-" + def.key, v)} />
       ${altList.length ? html`<div className="kit-head">Option 2 kit — ${altName.toLowerCase()}</div>
         <${KitList} list=${altList} prefix=${def.key + "-" + fixtureListName(altSt)} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} skip0=${custSkip(state.cust, fixtureListName(altSt), 0)} />` : null}
@@ -3743,6 +3763,7 @@ function StructuralCard({ room, def, value, onChange, tier, kit, onToggle, hrs, 
   const lumpOn = Number(pc.prices["stlump:" + def.key]) > 0;
   return html`<${ItemCard} title=${def.label} valueLabel=${valueName} active=${active} sub=${sub} options=${def.options} value=${value} onPick=${onChange}>
     <${HoursInput} label="Time to do" value=${hrRaw(hrs, "st-" + def.key + "-" + value, stDefH(def.key, value))} onChange=${(v) => setHr("st-" + def.key + "-" + value, v)} />
+    ${ST_NOTE[def.key + ":" + value] ? html`<p className=${"note" + (def.key === "bGas" && !(hrOf(hrs, "st-" + def.key + "-" + value, 0) > 0) ? " warn-t" : "")} style=${{ margin: "0 0 6px" }}>${ST_NOTE[def.key + ":" + value]}</p>` : null}
     <${PriceAs} value=${tag} onPick=${(v) => setTag(toggleProv, tag, v, pk, "o2-" + pk)} />
     ${list.length > 0 ? html`<div>
       <div className="kit-head">${valueName} — materials normally needed</div>
@@ -3783,6 +3804,12 @@ function parseMatList(text) {
     const supHit = PASTE_SUPS.find((n) => n.toLowerCase() === bare.toLowerCase() || new RegExp("^(?:from |order[: ]+|supplier[: ]+)?" + n.replace(/[&]/g, "\\&") + "(?:\\s+(?:order|list|basket))?$", "i").test(bare));
     if (supHit) { sup = supHit; return; }
     if (/^(address|site|job|materials?( list)?|list|order|total|for)\b[:\s]*/i.test(s) && !/\d+\s*(x|×)/i.test(s)) return;
+    /* a price at the end ("£1.19", "@ £4 each") is the price for one */
+    let price = "";
+    const pm = /[\s,|–—\-:(]*(?:@\s*)?£\s?(\d+(?:\.\d{1,2})?)\s*(?:each|ea\.?)?\)?\s*$/i.exec(s);
+    if (pm && pm.index > 0) { price = pm[1]; s = s.slice(0, pm.index).trim(); }
+    /* "qty 2 pan connector" */
+    const qq = /^(?:qty|quantity)[:\s]*(\d+)\s*[x×]?\s+(.+)$/i.exec(s); if (qq) s = qq[1] + " x " + qq[2];
     /* code: the last token, after a dash, comma, pipe, "code" or in brackets, letters and digits with at least one digit */
     let code = "";
     const cm = /(?:[\s,|–—\-:(]|code[:\s#]*)\s*\(?(?:code[:\s#]*)?([A-Z]{0,3}\d[A-Z0-9]{2,8})\)?\s*$/i.exec(s);
@@ -3794,12 +3821,13 @@ function parseMatList(text) {
     s = s.replace(/^[,:\-–—\s]+|[,:\-–—\s]+$/g, "").trim();
     if (!s) return;
     const q = Math.max(1, Math.round(Number(qty) || 1));
-    out.push({ item: s.charAt(0).toUpperCase() + s.slice(1), qty: String(q), code, where: sup });
+    out.push({ item: s.charAt(0).toUpperCase() + s.slice(1), qty: String(q), code, where: sup, price });
   });
   return out;
 }
 /* last price paid for this code, else for this name, from the Price Book */
 function pastePrice(m) {
+  if (Number(m.price) > 0) return { price: String(m.price), where: m.where };
   const by = (f) => { const hit = bookData.filter(f).slice(-1)[0]; return hit ? hit : null; };
   const h = (m.code && by((e) => (e.code || "").toUpperCase() === m.code)) || by((e) => (e.item || "").toLowerCase() === m.item.toLowerCase());
   return h ? { price: String(h.price), where: m.where || h.supplier || "" } : { price: "", where: m.where };
@@ -4104,7 +4132,7 @@ function SiteSurveyView(p) {
       <//>
     </div>
     <div className="card sp" id="sv-miss">
-      ${miss.length === 0 ? html`<p className="note">Every priced kit line has a price.</p>`
+      ${miss.length === 0 ? html`<p className="note">${survey.kitLines.length ? "Every priced kit line has a price." : "Nothing chosen yet: tap an item above to say what it needs."}</p>`
         : html`<p className="note"><b>${miss.length} kit ${miss.length === 1 ? "line" : "lines"} still need a price:</b> ${missGroups.map(([g, n]) => g + " (" + n + ")").join(", ")}. Open the item to add them, or leave them blank to price later.</p>`}
       ${survey.tbc && survey.tbc.length ? html`<p className="note"><b>${survey.tbc.length} ${survey.tbc.length === 1 ? "price" : "prices"} still to confirm:</b> ${survey.tbc.map((x) => x.label).join(", ")}. They are not in the total yet. Open the item and type the price in when you know it.</p>` : null}
       ${!String(customerName || "").trim() ? html`<p className="note">No customer name yet.</p>` : null}
@@ -4380,7 +4408,7 @@ function QuoteView(p) {
   const trades0 = tradeList(ticks).concat(extraLines(g).map((x, i) => ({ key: "ex" + i, tag: "", label: x[0], scope: "", cost: x[1], ref: "" })));
   const base0 = calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + trades0.reduce((a, x) => a + x.cost, 0);
   const topUp = chg.min > 0 && !(calc.o2Items || []).length && base0 < chg.min ? chg.min - base0 : 0;
-  const trades = trades0.concat(topUp > 0 ? [{ key: "min", tag: "", label: "Minimum charge top-up (minimum charge " + fmt(chg.min) + ")", scope: "", cost: topUp, ref: "" }] : []), tradeTotal = trades.reduce((a, x) => a + x.cost, 0);
+  const trades = trades0.concat(topUp > 0 ? [{ key: "min", tag: "", label: "Minimum charge top-up (minimum charge " + fmtP(chg.min) + ")", scope: "", cost: topUp, ref: "" }] : []), tradeTotal = trades.reduce((a, x) => a + x.cost, 0);
   const scopeItems = scopeBase.concat(trades.filter((x) => x.scope).map((x) => x.scope + (x.ref ? " (" + x.ref + ")" : "")));
   /* invoice: the option chosen, plus any provisional items that turned out to be needed */
   const [pay, setPay] = usePay();
@@ -4423,14 +4451,14 @@ function QuoteView(p) {
       const ok = hasC && hasA;
       return html`<${StatusCard} title=${ok ? (direct ? "Quote ready to send" : "Estimate ready to send") : "Check before you send"} tone=${ok ? "ok" : "warn"}
         next=${ok ? (direct ? "Copy it or make the PDF. The customer signs the acceptance block at the bottom." : (TEAM ? "Copy it or make the PDF for the office." : "Copy it or make the PDF for the office. Tick 'This is my own work' if it is a direct quote to the customer.")) : "Add " + [hasC ? "" : "the customer name", hasA ? "" : "the site address"].filter(Boolean).join(" and ") + " in the box below so the PDF and the saved job are named properly."}
-        pills=${[[direct ? "Direct quote" : "Provisional estimate", direct ? "ok" : ""], [rateOn ? "Labour included in total" : (direct ? "No labour rate set" : "Hours only"), rateOn || !direct ? "" : "warn"], ...(ost.total > 0 ? [[ost.left === 0 ? "Order list done" : ost.left + " to order", ost.left === 0 ? "ok" : ""]] : [])]} />`;
+        pills=${[[direct ? "Direct quote" : "For the office", direct ? "ok" : ""], [rateOn ? "Labour included in total" : (direct ? "No labour rate set" : "Hours only"), rateOn || !direct ? "" : "warn"], ...(ost.total > 0 ? [[ost.left === 0 ? "Order list done" : ost.left + " to order", ost.left === 0 ? "ok" : ""]] : [])]} />`;
     })() : null}
 
     ${tab === "order"
       ? html`<div><${OrderList} survey=${survey} calc=${calc} ticks=${ticks} setTick=${setTick} customerName=${customerName} siteAddress=${siteAddress} todayStr=${todayStr} tier=${tier} mode=${orderBy} setMode=${setOrderBy} />
         <div className="next-step"><button type="button" className="btn" onClick=${() => setTab("estimate")}><${Icon} name="back" /> Back to estimate</button></div></div>`
       : html`<div className="sheet">
-      <div className="biz-show">${!direct ? (String(businessName || "").trim() && !TEAM ? businessName : "Provisional estimate") : (businessName || "").trim() || html`<span className="mute">Add your business name in Settings</span>`}</div>
+      <div className="biz-show">${!direct ? (String(businessName || "").trim() && !TEAM ? businessName : "Estimate") : (businessName || "").trim() || html`<span className="mute">Add your business name in Settings</span>`}</div>
       <div className="sheet-sub">${direct ? "Quotation · fixed price for the customer" : "Provisional estimate for the office · not a customer quote"}</div>
       ${setTick && !TEAM && loadUse() !== "biz" ? html`<div className="rate-box"><label className="kit-row"><input type="checkbox" checked=${direct} onChange=${() => setTick("direct:on", !direct)} /><span className="name">This is my own work: make this a direct quote for the customer</span></label>
         <p className="note" style=${{ margin: "4px 0 0" }}>${direct ? "The PDF and copied text become a fixed-price quotation with a valid-until date, a customer signature block and no notes for the office." + (rateOn ? "" : " Turn on the hourly rate below, or the total will leave out your labour.") : "Tick this when the job is yours, not one for the office to price."}</p></div>` : null}
@@ -4452,15 +4480,15 @@ function QuoteView(p) {
       <table className="q-table">
         <thead><tr><th>${direct ? "Quote" : "Estimate"}</th><th>Total</th></tr></thead>
         <tbody>
-          ${direct ? (rateOn ? html`<tr><td>Labour</td><td>${fmt(labourCost)}</td></tr>` : null) : html`<tr><td>Labour (estimated)</td><td>${fmtHrs(calc.totalHours)} hrs</td></tr>`}
-          ${calc.sundries > 0 && html`<tr><td>Materials (listed)</td><td>${fmt(calc.materialsBase - calc.sundries)}</td></tr>`}
-          ${calc.sundries > 0 && html`<tr><td>Sundries (${SUNDRIES_PCT}% of materials)</td><td>${fmt(calc.sundries)}</td></tr>`}
+          ${direct ? (rateOn ? html`<tr><td>Labour</td><td>${fmtP(labourCost)}</td></tr>` : null) : html`<tr><td>Labour (estimated)</td><td>${fmtHrs(calc.totalHours)} hrs</td></tr>`}
+          ${calc.sundries > 0 && html`<tr><td>Materials (listed)</td><td>${fmtP(calc.materialsBase - calc.sundries)}</td></tr>`}
+          ${calc.sundries > 0 && html`<tr><td>Sundries (${SUNDRIES_PCT}% of materials)</td><td>${fmtP(calc.sundries)}</td></tr>`}
           <tr className="total"><td>${direct ? "Materials" : "Materials at cost"}</td><td>${calc.materialsBase > 0 ? fmt(calc.materialsBase) : "not priced"}</td></tr>
-          ${calc.supply > 0 && html`<tr><td>${calc.supplyLabel}</td><td>${fmt(calc.supply)}</td></tr>`}
-          ${trades.map((x) => html`<tr key=${x.key}><td>${x.label}${x.tag ? " " + x.tag : ""}</td><td>${fmt(x.cost)}</td></tr>`)}
-          ${(rateOn || trades.length > 0) && html`<tr className="total"><td>${direct ? (VRq > 0 ? "Total before VAT" : "Total quote price") : totalLabel(rateOn, trades.length > 0)}</td><td>${fmt(calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + tradeTotal)}</td></tr>`}
-          ${(rateOn || trades.length > 0) && VRq > 0 && html`<tr><td>VAT at ${VRq}%</td><td>${fmt((calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + tradeTotal) * VRq / 100)}</td></tr>`}
-          ${(rateOn || trades.length > 0) && VRq > 0 && html`<tr className="total"><td>Total including VAT</td><td>${fmt((calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + tradeTotal) * (1 + VRq / 100))}</td></tr>`}
+          ${calc.supply > 0 && html`<tr><td>${calc.supplyLabel}</td><td>${fmtP(calc.supply)}</td></tr>`}
+          ${trades.map((x) => html`<tr key=${x.key}><td>${x.label}${x.tag ? " " + x.tag : ""}</td><td>${fmtP(x.cost)}</td></tr>`)}
+          ${(rateOn || trades.length > 0) && html`<tr className="total"><td>${direct ? (VRq > 0 ? "Total before VAT" : "Total quote price") : totalLabel(rateOn, trades.length > 0)}</td><td>${fmtP(calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + tradeTotal)}</td></tr>`}
+          ${(rateOn || trades.length > 0) && VRq > 0 && html`<tr><td>VAT at ${VRq}%</td><td>${fmtP((calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + tradeTotal) * VRq / 100)}</td></tr>`}
+          ${(rateOn || trades.length > 0) && VRq > 0 && html`<tr className="total"><td>Total including VAT</td><td>${fmtP((calc.materialsBase + (calc.supply > 0 ? calc.supply : 0) + labourCost + tradeTotal) * (1 + VRq / 100))}</td></tr>`}
         </tbody>
       </table>
       ${(calc.o2Items || []).length > 0 && (() => {
@@ -4477,15 +4505,15 @@ function QuoteView(p) {
         </div>` : null}
         ${(() => { const swappedB = calc.o2Items.filter((i) => i.swap).map((i) => i.base); const sc2 = scopeItems.filter((x) => swappedB.indexOf(x) < 0).concat(calc.o2Items.map((i) => (i.swap ? i.label.replace(/ \(instead of: .*\)$/, "") : i.label))); return html`<div><div className="mini-label">${ON[1]}: scope</div><ul className="scope-list">${sc2.map((x, i) => html`<li key=${i}>${x}</li>`)}</ul></div>`; })()}
         <table className="q-table" style=${{ marginTop: 10 }}><tbody>
-          <tr className="total"><td>${ON[0]}${direct || rateOn ? "" : " (" + fmtHrs(calc.totalHours) + " hrs, no labour price)"}</td><td>${fmt(t1)}</td></tr>
-          <tr className="total"><td>${ON[1]}${direct || rateOn ? "" : " (" + fmtHrs(calc.totalHours + calc.o2Hours) + " hrs, no labour price)"}</td><td>${fmt(t2)}</td></tr>
+          <tr className="total"><td>${ON[0]}${direct || rateOn ? "" : " (" + fmtHrs(calc.totalHours) + " hrs, no labour price)"}</td><td>${fmtP(t1)}${VRq > 0 ? " + VAT" : ""}</td></tr>
+          <tr className="total"><td>${ON[1]}${direct || rateOn ? "" : " (" + fmtHrs(calc.totalHours + calc.o2Hours) + " hrs, no labour price)"}</td><td>${fmtP(t2)}${VRq > 0 ? " + VAT" : ""}</td></tr>
         </tbody></table>
       </div>`; })()}
       ${calc.provItems.length > 0 && html`<div>
         <div className="mini-label" style=${{ marginTop: 16 }}>Provisional items — only if needed once work starts (extra to the totals above)</div>
         <table className="q-table">
           <thead><tr><th>Item</th>${direct ? null : html`<th>Est. hours</th>`}<th>${direct ? "Price" : "Materials"}</th></tr></thead>
-          <tbody>${calc.provItems.map((i, k) => html`<tr key=${k}><td>${i.label}</td>${direct ? null : html`<td>${fmtHrs(i.hours)}</td>`}<td>${fmt(direct ? i.materials * (calc.sundriesNeeded ? 1 + SUNDRIES_PCT / 100 : 1) + (rateOn ? i.hours * rateVal : 0) : i.materials)}</td></tr>`)}</tbody>
+          <tbody>${calc.provItems.map((i, k) => html`<tr key=${k}><td>${i.label}</td>${direct ? null : html`<td>${fmtHrs(i.hours)}</td>`}<td>${fmtP(direct ? i.materials * (calc.sundriesNeeded ? 1 + SUNDRIES_PCT / 100 : 1) + (rateOn ? i.hours * rateVal : 0) : i.materials * (calc.sundriesNeeded ? 1 + SUNDRIES_PCT / 100 : 1))}</td></tr>`)}</tbody>
         </table>
         <p style=${{ fontSize: 13.5, fontWeight: 700, margin: "8px 0 0" }}>${direct ? "These are only charged if needed once the work starts, and will be agreed with the customer first." : "Please quote for these provisional items and have them accepted before any of this work starts."}</p>
       </div>`}
@@ -4496,9 +4524,9 @@ function QuoteView(p) {
             ${direct ? null : html`<p style=${{ fontSize: 14, margin: "0 0 6px" }}>${sizeLabel}, ${tier} tier:</p>`}
             <ul className="scope-list">${scopeItems.map((s, i) => html`<li key=${i}>${s}</li>`)}</ul>
           </div>`}
-      ${(() => { const mb = matBreakdown(survey, calc); return mb.length ? html`<div style=${{ marginTop: 12 }}><${Drop} bare=${true} title="Materials list" sub=${mb.length + (mb.length === 1 ? " item" : " items") + " · " + fmt(mb.reduce((a, x) => a + x.total, 0))}>
+      ${(() => { const mb = matBreakdown(survey, calc); return mb.length ? html`<div style=${{ marginTop: 12 }}><${Drop} bare=${true} title="Materials list" sub=${(() => { const n = mb.reduce((a, g) => a + (g.rows.length || 1), 0); return n + (n === 1 ? " line" : " lines"); })() + " · " + fmt(mb.reduce((a, x) => a + x.total, 0))}>
         <table className="q-table mb-table"><tbody>${mb.map((g) => html`<${React.Fragment} key=${g.group}>
-          <tr className="mb-group"><td>${g.group}</td><td>${fmt(g.total)}</td></tr>
+          <tr className="mb-group"><td>${g.group}</td><td>${fmtP(g.total)}</td></tr>
           ${g.rows.map((r, i) => html`<tr key=${i} className="mb-row"><td>${r.label}</td><td>${r.note ? r.note + (r.cost > 0 ? ", " + fmt(r.cost) : "") : fmt(r.cost)}</td></tr>`)}
         <//>`)}</tbody></table><//>
       </div>` : null; })()}
@@ -4510,7 +4538,8 @@ function QuoteView(p) {
       ${setTick && direct ? html`<${DayRateBlock} get=${g} set=${sv} />` : null}
       ${setTick && direct ? html`<${WasteBlock} get=${g} set=${sv} />` : null}
       ${setTick && direct ? html`<${Tick} checked=${!!g("mat:items")} onChange=${() => sv("mat:items", !g("mat:items"))} label="Show materials by item on the quote" />` : null}
-      ${topUp > 0 ? html`<p className="note">The total is under your minimum charge, so a top-up of ${fmt(topUp)} is added.</p>` : chg.min > 0 && hasO2 ? html`<p className="note">The minimum charge is not applied when the quote has two options.</p>` : null}
+      ${direct && !rateOn && setTick ? html`<p className="note warn-t">No labour is in this quote. Tick "Charge labour at an hourly rate" or type a fixed price before you send it.</p>` : null}
+      ${topUp > 0 ? html`<p className="note">The total is under your minimum charge, so a top-up of ${fmtP(topUp)} is added.</p>` : chg.min > 0 && hasO2 ? html`<p className="note">The minimum charge is not applied when the quote has two options.</p>` : null}
 
       ${setTick && direct ? html`<div className="mini-label" style=${{ marginTop: 22 }}>Paperwork</div>` : null}
       ${setTick && direct ? html`<${ClientBlock} get=${g} set=${sv} />` : null}
@@ -5080,7 +5109,7 @@ async function makeReportPdf(id, job, biz) {
   /* header band */
   fill(ACC); doc.rect(0, 0, PW, 84, "F");
   font("bold", 17, [255, 255, 255]); wrap(def.title, W)[0] && doc.text(wrap(def.title, W)[0], M, 40);
-  font("normal", 11, [220, 230, 245]); doc.text(v.company || "Report", M, 62);
+  font("normal", 11, [220, 230, 245]); doc.text(v.company || v.site || "", M, 62);
   y = 84 + 24;
   /* details grid */
   const cells = [["Property", v.site], ["Date", v.date ? fmtDate(v.date) : ""], ["Customer or tenant", v.tenant], ["Landlord or agent", v.landlord], ["Carried out by", v.by], ["Company", v.company]].filter((c) => c[1]);
@@ -5088,8 +5117,7 @@ async function makeReportPdf(id, job, biz) {
   fill(TINT); doc.roundedRect(M, y - 6, W, rowsN * 34 + 8, 4, 4, "F");
   cells.forEach(([k, val], i) => { const cx = M + 12 + (i % 2) * (W / 2), cy = y + 8 + Math.floor(i / 2) * 34; font("bold", 8, SOFT); doc.text(String(k).toUpperCase(), cx, cy - 2); font("normal", 10.5, INK); doc.text(wrap(val || "", W / 2 - 24)[0] || "", cx, cy + 12); });
   y += rowsN * 34 + 14;
-  font("italic", 9, SOFT); wrap(def.intro, W).forEach((ln) => { need(12); doc.text(ln, M, y); y += 12; });
-  y += 6;
+  y += 2;
   if (v.outcome) {
     const lbl = optLabel({ t: "sg", o: OUTCOME_OPTS }, v.outcome), col = v.outcome === "satisfactory" ? [22, 120, 80] : v.outcome === "unsatisfactory" ? RED : [176, 110, 20];
     need(40); fill(col); doc.roundedRect(M, y - 4, W, 28, 4, 4, "F"); font("bold", 12, [255, 255, 255]); doc.text("Result: " + lbl, M + 12, y + 14); y += 38;
@@ -5232,9 +5260,9 @@ function jobNoteText(j) {
     ms.forEach((x) => {
       const q = Math.max(1, Math.floor(Number(x.qty)) || 1);
       const c = Math.max(0, Number(x.cost) || 0) * q; tot += c;
-      L.push("- " + (x.item.trim() || "Materials") + (q > 1 ? " × " + q : "") + (x.code && x.code.trim() ? " [code " + x.code.trim() + "]" : "") + (x.where.trim() ? " (" + x.where.trim() + ")" : "") + (x.unk && !(c > 0) ? " — price TBC" : " — " + fmtKit(c)));
+      L.push("- " + (x.item.trim() || "Materials") + (q > 1 ? " × " + q : "") + (x.code && x.code.trim() ? " [code " + x.code.trim() + "]" : "") + (x.where.trim() ? " (" + x.where.trim() + ")" : "") + (x.unk && !(c > 0) ? " — price TBC" : c > 0 ? " — " + fmtKit(c) : ""));
     });
-    if (ms.length > 1) L.push("Total materials: " + fmtKit(tot));
+    if (ms.length > 1 && tot > 0) L.push("Total materials: " + fmtKit(tot));
   }
   const bk = (j.bulk || []).filter((x) => (x.what || "").trim() || (Number(x.cost) > 0));
   if (bk.length) {
@@ -5257,7 +5285,7 @@ function jobNoteText(j) {
       L.push("- " + ((o.from || "").trim() || "Supplier") + ((o.items || "").trim() ? ": " + o.items.trim() : "") + ((o.ref || "").trim() ? " — ref " + o.ref.trim() : "") + (!j.noAddr && (o.address || "").trim() ? " — for " + o.address.trim() : ""));
     });
   }
-  if (!TEAM) { const js = (j.x || {}).jobstatus; L.push("Work status: " + (j.complete ? "COMPLETE" : "NOT yet complete") + (js && js !== "complete" && js !== "progress" ? " · " + statusLabel(js) : "")); }
+  if (!TEAM && (j.complete || (j.x || {}).jobstatus)) { const js = (j.x || {}).jobstatus; L.push("Work status: " + (j.complete ? "COMPLETE" : "NOT yet complete") + (js && js !== "complete" && js !== "progress" ? " · " + statusLabel(js) : "")); }
   if ((j.further || "").trim()) L.push("Further work required: " + j.further.trim());
   if (j.tradeNeeded) L.push("Another trade required to attend: " + ((j.trade || "").trim() || "trade not stated") + ((j.tradeNote || "").trim() ? " — " + j.tradeNote.trim() : ""));
   const req = CHECKS.filter((c) => j.checks && j.checks[c[0]]);
@@ -5266,8 +5294,8 @@ function jobNoteText(j) {
     req.forEach((c) => {
       const done = j.done && j.done[c[0]], due = dueOf(j, c);
       const rp = reportStarted(j, c[0]) ? (REPORT_FORMS[c[0]].title + (reportVals(j, c[0], "").outcome ? ": " + optLabel({ t: "sg", o: OUTCOME_OPTS }, reportVals(j, c[0], "").outcome) : "")) : "";
-      L.push("- " + c[1] + (done ? " — checked " + fmtDate(done) : "") + (due ? ", next due " + fmtDate(due) : "") + (rp ? " — write-up: " + rp : ""));
       const ob = String((j.x || {})["obs:" + c[0]] || "").trim();
+      L.push("- " + c[1] + (done ? " — checked " + fmtDate(done) : "") + (due ? ", next due " + fmtDate(due) : "") + (rp ? " — write-up: " + rp : "") + (!done && !due && !rp && !ob ? " — to check" : ""));
       if (ob) L.push("  Found: " + ob.replace(/\n/g, " "));
     });
   }
@@ -5435,15 +5463,15 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <p className="note" style=${{ margin: "10px 0 0" }}>Total materials: <b>${fmtKit(matTotal)}</b></p>
     </div>
 
-    ${TEAM ? null : html`<${Sec} n="5">${biz ? "Price" : "Labour"}<//>`}
-    ${TEAM ? null : html`<div className="card">
+    ${TEAM || !biz ? null : html`<${Sec} n="5">Price<//>`}
+    ${TEAM || !biz ? null : html`<div className="card">
       <${RateBox} on=${effOn} rate=${effRate} onOn=${(v) => setJob((p) => ({ ...p, rateOn: v, x: { ...(p.x || {}), "rate:off": !v } }))} onRate=${(v) => setJob((p) => ({ ...p, rate: v }))} hours=${jh} />
       ${biz ? html`<${ChargeBlock} get=${gx} set=${sx} />
       <${DayRateBlock} get=${gx} set=${sx} />
       <${WasteBlock} get=${gx} set=${sx} />` : null}
     </div>`}
 
-    <${Sec} n=${TEAM ? "5" : "6"}>Finish<//>
+    <${Sec} n=${TEAM || !biz ? "5" : "6"}>Finish<//>
     <div className="card">
       ${TEAM ? null : html`<div className="field"><div className="field-label">Where is this job at?</div>
         <${Segmented} options=${biz ? JOB_STATUS : [["progress", "In progress"], ["complete", "Complete"]]} value=${biz ? gx("jobstatus") || "" : job.complete ? "complete" : gx("jobstatus") === "progress" ? "progress" : ""}
@@ -5468,7 +5496,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <//>` : null}
     </div>
 
-    <${Sec} n=${TEAM ? "6" : "7"}>Orders and notes<//>
+    <${Sec} n=${TEAM || !biz ? "6" : "7"}>Orders and notes<//>
     <div className="group">
       <${Drop} open=${(job.orders || []).length > 0} title="Orders placed" sub=${(job.orders || []).length ? (job.orders || []).length + " placed" : "supplier, reference, address"}>
       <p className="note">Anything ordered from a supplier for this job, with the order reference and where it is going.</p>
@@ -5490,7 +5518,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
 
 
     <div className="actionbar"><div className="bar-in">
-      ${use === "biz" ? html`<div className="bar-two">
+      ${use === "biz" ? html`<${VatNoWarn} /><div className="bar-two">
           <${SharePdf} sections=${[qText]} filename=${"Quote-" + ((job.where || job.jobType || "repair").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "repair") + ".pdf"} label="Quote PDF" cls="grow" onSend=${claimNo(gx, sx, "q:ref", "pricer-qno", defQuoteNo)} />
           <${SharePdf} sections=${[invText]} filename=${"Invoice-" + invMeta(gx).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf"} label="Invoice PDF" cls="grow" onSend=${jh * jr + matTotal + extraLines(gx).reduce((a, c) => a + c[1], 0) > 0 ? claimNo(gx, sx, "inv:no", "pricer-invno", defInvNo) : null} />
         </div>`
@@ -5545,7 +5573,7 @@ function EmptyState({ icon, title, children }) {
 
 /* business details used on every quote, invoice and job notes PDF (kept on this phone) */
 const BIZ_KEY = "pricer-biz-v1";
-const loadBiz = () => { try { const v = JSON.parse(localStorage.getItem(BIZ_KEY)); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } };
+const loadBiz = () => { if (TEAM) return {}; try { const v = JSON.parse(localStorage.getItem(BIZ_KEY)); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } };
 const saveBiz = (v) => { try { localStorage.setItem(BIZ_KEY, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } settingsChanged(); };
 const defRate = () => Math.min(100, Math.max(0, Number(loadBiz().rate) || 0));
 function SettingsSheet({ businessName, setBusinessName, onClose }) {
@@ -5620,7 +5648,7 @@ const TABS = [["small", "wrench", "Maintenance"], ["survey", "bath", "Bathroom"]
 function App() {
   const prefs = useMemo(loadPrefs, []);
   const [mode, setMode] = useState("small");
-  useEffect(() => { tmMode = mode; }, [mode]);
+  useEffect(() => { tmMode = mode === "calculator" ? "survey" : mode; }, [mode]);
   const [view, setView] = useState("form");
   const [sjob, setSjob] = useState(emptyJob);
   const auth = useAuth();
@@ -5650,7 +5678,7 @@ function App() {
   const [kit, setKit] = useState({});
   const [isExample, setIsExample] = useState(false);
 
-  const [businessName, setBusinessName] = useState(prefs.businessName || "");
+  const [businessName, setBusinessName] = useState(TEAM ? "" : prefs.businessName || "");
   const [customerName, setCustomerName] = useState("");
   const [siteAddress, setSiteAddress] = useState("");
   const [officeNotes, setOfficeNotes] = useState("");
@@ -5733,7 +5761,7 @@ function App() {
   const [undo, setUndo] = useState(null);
   useEffect(() => { if (!undo) return undefined; const t = setTimeout(() => setUndo(null), 20000); return () => clearTimeout(t); }, [undo]);
   const withUndo = (kind, fn) => () => {
-    tmReset(mode);
+    tmReset(mode === "calculator" ? "survey" : mode);
     setUndo({ kind, data: JSON.parse(snapJ(kind)), id: jobIds[kind] || null, mode });
     fn();
   };
@@ -5755,7 +5783,7 @@ function App() {
     return () => clearTimeout(t);
   });
 
-  useEffect(() => { savePrefs({ tier, businessName, kSupplier }); }, [tier, businessName, kSupplier]);
+  useEffect(() => { savePrefs({ tier, businessName: TEAM ? prefs.businessName || "" : businessName, kSupplier }); }, [tier, businessName, kSupplier]);
   /* every screen opens at the top */
   useEffect(() => { try { window.scrollTo(0, 0); } catch (e) { /* ignore */ } }, [mode, view, kview, hview]);
   /* hide the bottom bars while a keyboard is up (phones only, see CSS) */
