@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610261613"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610261845"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -2547,11 +2547,14 @@ const hrOf = (hrs, key, def) => { const v = hrRaw(hrs, key, def); return v === "
 const FQ_ADD = (s, l, p, x) => ({ s, l, p, ...(x || {}) });
 const FX_Q = {
   toilet: [
-    { k: "type", q: "Toilet type", lists: ["fitNew"], opts: [["cc", "Close-coupled"], ["btw", "Back-to-wall"], ["wh", "Wall-hung"]],
+    { k: "type", q: "Toilet type", lists: ["fitNew"], opts: [["cc", "Close-coupled"], ["btw", "Back-to-wall"], ["wh", "Wall-hung"], ["van", "Pan + vanity unit"]],
       on: { cc: { phrase: "close-coupled" },
         btw: { phrase: "back-to-wall", hours: 2, add: [FQ_ADD("btwcis", "Concealed cistern (if the pan comes without one)", 60, { opt: true }), FQ_ADD("btwunit", "Back-to-wall unit or boxing (type a price)", 120)] },
         wh: { phrase: "wall-hung on a concealed frame", hours: 5, off: ["Pan connector", "Wax/rubber pan seal"], note: "Frame and boxing to be fitted before tiling.",
-          add: [FQ_ADD("frame", "Wall-hung WC frame (cistern built in)", 160), FQ_ADD("plate", "Flush plate", 30), FQ_ADD("fpan", "Frame pan connector 90mm", 12), FQ_ADD("box", "Boxing: studs and moisture-resistant board (type a price)", 40)] } } },
+          add: [FQ_ADD("frame", "Wall-hung WC frame (cistern built in)", 160), FQ_ADD("plate", "Flush plate", 30), FQ_ADD("fpan", "Frame pan connector 90mm", 12), FQ_ADD("box", "Boxing: studs and moisture-resistant board (type a price)", 40)] },
+        /* cistern hidden inside a vanity / furniture unit, pan back-to-wall to the unit */
+        van: { phrase: "back-to-wall pan to a vanity unit with concealed cistern", hours: 2.5, off: ["Fixing kit (bolts/screws)"],
+          add: [FQ_ADD("vunit", "Toilet vanity / furniture unit (type a price)", 150), FQ_ADD("vcis", "Concealed cistern", 60), FQ_ADD("vflush", "Flush button or lever", 15), FQ_ADD("vbtw", "Back-to-wall pan fixing kit", 10)] } } },
     { k: "out", q: "Pan outlet to the soil", lists: ["fitNew", "fitOld"], when: (a) => a.type !== "wh", hidden: ["ci"],
       opts: [["str", "Straight"], ["b90", "90° bend"], ["off", "Offset"], ["floor", "Floor (S-trap)"], ["ci", "Into cast iron"]],
       on: { b90: { off: ["Pan connector"], add: [FQ_ADD("p90", "90° pan connector 110mm", 10)] },
@@ -3015,6 +3018,29 @@ FX_Q.htowel = [
       elec: { phrase: "electric only", off: ["Angled valves (pair)"], add: [FQ_ADD("caps", "Stop ends to cap the old pipes (pair)", 4)], note: "Electrical connection by a qualified electrician." } } },
   { ...FX_Q.radiator[0], when: (a) => a.fuel !== "elec" },
 ];
+/* "Comes with it": parts that come in the box with a new item. Ticking one takes its line(s) off the materials and order list.
+   [key, name, kit line labels, quick-question line codes]. Nothing ticked = the list exactly as before. */
+const CW_PARTS = {
+  toilet: [["fix", "Fixing kit", ["Fixing kit (bolts/screws)"], ["vbtw"]], ["pc", "Pan connector", ["Pan connector"], ["fpan"]], ["flexi", "Flexi connector", ["Flexible tap connector"], []]],
+  basin: [["ped", "Pedestal / brackets", [], ["semifix", "whbr", "vfix"]], ["wt", "Waste & trap", ["Basin waste & trap"], ["waste", "trap"]], ["taps", "Taps", ["Basin taps"], []]],
+  bath: [["legs", "Legs / frame", ["Bath feet / support frame"], []], ["pan", "Panels", ["Bath panel"], []], ["wo", "Waste & overflow", ["Bath waste & overflow kit"], ["fwaste"]], ["trap", "Trap", ["Bath trap"], []]],
+  shower: [["riser", "Riser kit / hose & head", ["Hose & head"], ["carm"]], ["fix", "Fixing kit", ["Fixing kit"], []]],
+  showerTray: [["legs", "Legs / riser", ["Tray legs / support frame"], []], ["waste", "Waste", ["Tray waste / trap"], ["hfw"]]],
+  radiator: [["br", "Brackets", ["Brackets / wall fixings"], []], ["val", "Valves", ["Radiator valves (thermostatic and lockshield pair)"], []]],
+  hrad: [["br", "Brackets", ["Brackets and fixings"], []], ["val", "Valves", ["TRV and lockshield valve (pair)"], []]],
+  htowel: [["br", "Brackets", ["Fixings"], []], ["val", "Valves", ["Angled valves (pair)"], []]],
+  ktap: [["tails", "Flexi tails", ["Tap connectors"], []]],
+  boiler: [["flue", "Flue kit", ["Flue kit (standard horizontal)"], []], ["filt", "Magnetic filter", [], []], ["ctl", "Controls / thermostat", ["Programmer or room thermostat"], []], ["loop", "Filling loop", ["Filling loop (combi or system)"], []]],
+};
+let cwBlrFilt = false; /* set by computeSurvey: the new boiler comes with a magnetic filter, so the filter item's own filter comes off */
+const cwHit = (key, ln, part, x) => part[2].indexOf(x.l) > -1 || (!!x.id && part[3].some((c) => x.id === "fq-" + key + "-" + ln + "-" + c));
+function cwMark(key, st, ln, list) {
+  if (ln !== "fitNew") return list;
+  if (key === "hfilt") return cwBlrFilt ? list.map((x, i) => (i === 0 ? { ...x, cw: true } : x)) : list;
+  const cw = (st && st.cw) || {}, parts = (CW_PARTS[key] || []).filter((p) => cw[p[0]]);
+  if (!parts.length) return list;
+  return list.map((x) => (parts.some((p) => cwHit(key, ln, p, x)) ? { ...x, cw: true } : x));
+}
 /* the effects of every answered question on the list in use (ln) */
 function fxFx(key, st, ln) {
   const qs = FX_Q[key], a = (st && st.q) || {}, out = [];
@@ -3036,8 +3062,9 @@ const QTY_ALIAS = {
   "Double socket": ["Single socket", "Double socket with USB A+C", "Brushed steel double socket"],
 };
 const kid = (prefix, it, i) => it.id || prefix + "-" + i;
-/* the materials list for an item, after its answers; the same array when nothing is answered */
-function fxKit(room, key, st, ln) {
+/* the materials list for an item, after its answers and "comes with it" ticks; the same array when nothing is answered or ticked */
+const fxKit = (room, key, st, ln) => cwMark(key, st, ln, fxKit0(room, key, st, ln));
+function fxKit0(room, key, st, ln) {
   const base = ((room.fixtureKits[key] || {})[ln]) || [];
   const fx = fxFx(key, st, ln);
   if (!fx.length) return base;
@@ -3066,7 +3093,7 @@ const fxHrs = (key, st, ln) => fxFx(key, st, ln).filter(({ e }) => e.hours > 0).
 /* wording for the quote: " (back-to-wall, pan into cast iron)" and notes on their own lines */
 function fxWords(key, st, ln, base) {
   const fx = fxFx(key, st, ln);
-  const ph = fx.map(({ e }) => e.phrase).filter(Boolean), nt = fx.map(({ e }) => e.note).filter(Boolean);
+  const ph = fx.map(({ e }) => (typeof e.phrase === "function" ? e.phrase((st && st.q) || {}) : e.phrase)).filter(Boolean), nt = fx.map(({ e }) => e.note).filter(Boolean);
   let b = base || "";
   if (ph.length) { const m = / \(× (\d+)\)$/.exec(b); b = m ? b.slice(0, m.index) + " (× " + m[1] + ", " + ph.join(", ") + ")" : b + " (" + ph.join(", ") + ")"; }
   return b + (nt.length ? "\n" + nt.join("\n") : "");
@@ -3099,6 +3126,7 @@ function jobFx(fixtures, room) {
 
 function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices, srcs, bulk, bulkOnly, size) {
   blrFitting = !!(fixtures && fixtures.boiler && fixtures.boiler.fit && !fixtures.boiler.repair);
+  cwBlrFilt = !!(blrFitting && fixtures.boiler.cw && fixtures.boiler.cw.filt);
   const hours = { plumbing: 0, joinery: 0, wetwall: 0, flooring: 0, tiling: 0, elec: 0 };
   let materials = 0;
   const kitLines = [];
@@ -3126,7 +3154,7 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
     if (!suiteFx(room, fixtures, f.key)) fxHrs(f.key, st, lname).forEach((x) => { fh += hrOf(hrs, x.hk, x.h * nQ); });
     (suiteFx(room, fixtures, f.key) ? [] : fxKit(room, f.key, st, lname)).forEach((it, i) => {
       const id = kid(f.key + "-" + lname, it, i);
-      if (!kitOn(kit, id, it) || custSkip(st.cust, lname, i)) return;
+      if (!kitOn(kit, id, it) || custSkip(st.cust, lname, i) || it.cw) return;
       const cov = !!(prices && prices["cov:" + id]);
       const cost = cov ? 0 : costOf(prices, id, it, tier) * qtyOf(prices, id, it, size) * nM;
       fm += cost;
@@ -3156,7 +3184,7 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
       fxHrs(f.key, as, an).forEach((x) => { ah += hrOf(hrs, "fqa" + x.hk.slice(2), x.h * nQ); });
       fxKit(room, f.key, as, an).forEach((it, i) => {
         const id = kid(f.key + "-" + an, it, i);
-        if (!kitOn(kit, id, it) || custSkip(st.cust, an, i)) return;
+        if (!kitOn(kit, id, it) || custSkip(st.cust, an, i) || it.cw) return;
         const cov = !!(prices && prices["cov:" + id]);
         const cost = cov ? 0 : costOf(prices, id, it, tier) * qtyOf(prices, id, it, size) * nM;
         amt += cost;
@@ -3299,7 +3327,7 @@ function missingPrices(room, fixtures, structural, kit, tier, prov, prices, bulk
   if (bulkOnly) return out;
   const chk = (group, list, prefix, cust) => list.forEach((it, i) => {
     const id = kid(prefix, it, i);
-    if (!kitOn(kit, id, it) || (cust && i === 0)) return;
+    if (!kitOn(kit, id, it) || (cust && i === 0) || it.cw) return;
     if (!(priceOf(it.p, tier) > 0 || (prices && id in prices))) return;
     if (prices && prices["cov:" + id]) return;
     if (costOf(prices, id, it, tier) > 0) return;
@@ -4012,7 +4040,7 @@ function fillUsual(pc, fx, list, prefix, tier, kit, skip0, only) {
   if (!fx || !list || !list.length || pc.bulkOnly) return;
   const all = u2All();
   list.forEach((it, i) => {
-    if (skip0 && i === 0) return;
+    if ((skip0 && i === 0) || it.cw) return;
     const id = kid(prefix, it, i);
     if (only !== undefined ? only !== id : !kitOn(kit, id, it)) return;
     if ((id in pc.prices && pc.prices[id] !== "") || pc.prices["name:" + id] || pc.prices["code:" + id] || pc.prices["cov:" + id] || pc.prices["auto:" + id] !== undefined) return;
@@ -4528,6 +4556,7 @@ function KitList({ list, prefix, tier, kit, onToggle, hrs, setHr, skip0, fx }) {
   return html`${list.map((it, i) => {
     if (skip0 && i === 0) return null;
     const id = kid(prefix, it, i);
+    if (it.cw) return html`<p key=${id} className="note" style=${{ margin: "2px 0 8px" }}><s>${nameOf(pc.prices, id, it.l)}</s> comes with it, so it is left off the list</p>`;
     const on = kitOn(kit, id, it);
     const j = it.alt ? list.findIndex((x) => x.l === it.alt) : -1;
     const altId = j >= 0 ? kid(prefix, list[j], j) : null;
@@ -5249,7 +5278,7 @@ function RadSizer({ fixtures, updateFixture, hrs, setHr, kit, onToggle }) {
 }
 
 /* quick questions on an item: each answer ticks the right materials, adds its time and wording */
-function FxQs({ room, def, state, onChange, lname, kit, tier, hrs, setHr, skip0, job, alt, skipKeys }) {
+function FxQs({ room, def, state, onChange, lname, kit, tier, hrs, setHr, skip0, job, alt, skipKeys, fixtures }) {
   const pc = React.useContext(PriceCtx);
   const a = state.q || {}, jb = job || {};
   const qs = (FX_Q[def.key] || []).filter((q) => q.lists.indexOf(lname) > -1 && (!q.when || q.when(a, state)) && !(skipKeys && skipKeys.indexOf(q.k) > -1));
@@ -5274,8 +5303,22 @@ function FxQs({ room, def, state, onChange, lname, kit, tier, hrs, setHr, skip0,
         ${q.hint ? html`<div className="fq-hint">${q.hint}</div>` : null}
         <${Segmented} options=${opts} value=${a[q.k] || ""} onChange=${(v) => set(q.k, v)} />
         ${bad ? html`<p className="note warn-t" style=${{ margin: "4px 0 0" }}>${bad}</p>` : null}
+        ${ce && ce.say ? (() => { const w = !!(ce.sayIf && ce.sayIf(fixtures)); return html`<p className=${"note" + (w ? " warn-t" : "")} style=${{ margin: "4px 0 0" }}>${w ? ce.sayWarn : ce.say}</p>`; })() : null}
         ${h ? html`<${HoursInput} label=${"Extra time: " + h.label.toLowerCase() + (nQ > 1 ? " (all " + nQ + ")" : "")} value=${hrRaw(hrs, h.hk, h.h * nQ)} onChange=${(v) => setHr(h.hk, v)} />` : null}
       </div>`; })}
+  </div>`;
+}
+/* "Comes with it": tick parts that come in the box. Only parts that are on this item's list are shown. */
+function CwTicks({ room, def, state, onChange, lname, fixtures }) {
+  if (lname !== "fitNew" || !CW_PARTS[def.key]) return null;
+  const base = fxKit0(room, def.key, state, lname), cw = state.cw || {};
+  const hf = fixtures && fixtures.hfilt;
+  const parts = CW_PARTS[def.key].filter((p) => (def.key === "boiler" && p[0] === "filt" ? !!(hf && hf.fit && !hf.repair) : base.some((x) => cwHit(def.key, lname, p, x))));
+  if (!parts.length) return null;
+  const flip = (k) => { const n = { ...cw }; if (n[k]) delete n[k]; else n[k] = true; onChange({ cw: n }); };
+  return html`<div className="fq">
+    <div className="kit-head">Comes with it <span className="fq-sub">(tick what's in the box: it comes off the materials and order list)</span></div>
+    ${parts.map((p) => html`<${Tick} key=${p[0]} checked=${!!cw[p[0]]} onChange=${() => flip(p[0])} label=${p[1]} />`)}
   </div>`;
 }
 /* once per job: the property. Some answers add a line priced only if needed, or a note on the quote */
@@ -5339,7 +5382,8 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
   return html`<${ItemCard} title=${def.label} valueLabel=${modeName} active=${active} sub=${sub} options=${FIX_MODES} value=${mode} onPick=${pick} altValue=${alt} onAlt=${pickAlt}>
     ${false ? html`<p className="gla-hint">${GLA_HINTS[def.key]}</p>` : null}
     <${CheckTips} items=${ITEM_CHECKS[def.key]} />
-    ${active && !su ? html`<${FxQs} room=${room} def=${def} state=${state} onChange=${onChange} lname=${lname} kit=${kit} tier=${tier} hrs=${hrs} setHr=${setHr} skip0=${custSkip(state.cust, lname, 0)} job=${fixtures._job} />` : null}
+    ${active && !su ? html`<${FxQs} room=${room} def=${def} state=${state} onChange=${onChange} lname=${lname} kit=${kit} tier=${tier} hrs=${hrs} setHr=${setHr} skip0=${custSkip(state.cust, lname, 0)} job=${fixtures._job} fixtures=${fixtures} />` : null}
+    ${active && !su ? html`<${CwTicks} room=${room} def=${def} state=${state} onChange=${onChange} lname=${lname} fixtures=${fixtures} />` : null}
     ${QTY_FX[def.key] && active ? (() => {
       const setN = (nn) => { nn = Math.min(30, Math.max(1, nn));
         /* hours typed for the old quantity are scaled to the new one */
@@ -5721,7 +5765,7 @@ function SiteSurveyView(p) {
         onChange=${(v) => updateStructural(item.key, v)} onToggle=${toggleKit} hrs=${hrs} setHr=${setHr} prov=${prov} toggleProv=${toggleProv} />`)}
       ${extra ? html`<${OtherWork} x=${extra} size=${size} hrs=${hrs} setHr=${setHr} />` : null}
       <${TradesBlock} />
-      <${GasBlock} />
+      ${room !== BATHROOM || (Array.isArray(pc.prices.gas) && pc.prices.gas.length > 0) ? html`<${GasBlock} />` : null}
     </div>
 
     <${Sec} n="4">${setSupply ? "Units and extra materials" : "Extra materials and bulk buys"}<//>
