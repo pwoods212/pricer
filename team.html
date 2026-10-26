@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0"><script>window.PRICER_TEAM = true;</script>
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610252027"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610260614"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -2761,6 +2761,50 @@ function usualAdd(ctx, name, price, sup, code) {
   all[ctx] = c;
   try { localStorage.setItem(USUAL_KEY, JSON.stringify(all)); } catch (e) { /* storage unavailable */ }
 }
+/* Your usual v2: for each item (toilet, basin, boiler...) and material line, which product you chose on how many
+   separate jobs. Once one product has been chosen on 3 jobs it fills in when you choose what you are doing to that
+   item, or tick that line on. It never changes a job you already have open or saved. Kept on this phone. */
+const AUTO_N = 3;
+const U2_KEY = "pricer-usual-v2";
+const u2All = () => { try { const v = JSON.parse(localStorage.getItem(U2_KEY)); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } };
+const u2Ctx = (fx, it, tier) => "fx:" + fx + ":" + String(it.l || "").trim().toLowerCase() + (it.p && typeof it.p === "object" ? ":" + (tier || "mid") : "");
+function jobTagOf(pc) { let t = pc.prices.jobTag; if (!t) { t = newId(); pc.setPrice("jobTag", t); } return t; }
+function u2Add(pc, fx, it, tier, name, price, sup, code) {
+  const nm = String(name || "").trim(), cd = String(code || "").trim(), pr = Number(price);
+  /* only products you actually chose: picked from your prices/catalogue, or given a product code */
+  if (!fx || !nm || !(pr > 0) || (!cd && nm.toLowerCase() === String(it.l || "").trim().toLowerCase())) return;
+  const tag = jobTagOf(pc), all = u2All(), ctx = u2Ctx(fx, it, tier), c = all[ctx] || {};
+  /* one job counts once for one product on this line: choosing a different product on the same job moves the count */
+  Object.keys(c).forEach((k) => { if (k !== nm && c[k].jobs) c[k].jobs = c[k].jobs.filter((j) => j !== tag); });
+  const cur = c[nm] || { jobs: [] };
+  const jobs = cur.jobs.indexOf(tag) > -1 ? cur.jobs : cur.jobs.concat(tag).slice(-40);
+  c[nm] = { jobs, price: pr, sup: supName(sup) || cur.sup || "", code: cd || cur.code || "", last: Date.now() };
+  all[ctx] = c;
+  try { localStorage.setItem(U2_KEY, JSON.stringify(all)); } catch (e) { /* storage unavailable */ }
+}
+function u2Best(all, fx, it, tier) {
+  const c = all[u2Ctx(fx, it, tier)] || {};
+  /* of the products used on 3+ jobs, the one you chose most recently, so switching brands takes 3 jobs, not more */
+  return Object.entries(c).map(([name, v]) => ({ name, ...v, n: (v.jobs || []).length })).filter((x) => x.n >= AUTO_N && x.price > 0).sort((a, b) => b.last - a.last)[0] || null;
+}
+function fillUsual(pc, fx, list, prefix, tier, kit, skip0, only) {
+  if (!fx || !list || !list.length || pc.bulkOnly) return;
+  const all = u2All();
+  list.forEach((it, i) => {
+    if (skip0 && i === 0) return;
+    const id = prefix + "-" + i;
+    if (only !== undefined ? only !== id : !kitOn(kit, id, it)) return;
+    if ((id in pc.prices && pc.prices[id] !== "") || pc.prices["name:" + id] || pc.prices["code:" + id] || pc.prices["cov:" + id] || pc.prices["auto:" + id] !== undefined) return;
+    const u = u2Best(all, fx, it, tier);
+    if (!u) return;
+    pc.setPrice("auto:" + id, String(u.price));
+    pc.setPrice(id, String(u.price));
+    if (u.name !== it.l) pc.setPrice("name:" + id, u.name);
+    if (u.code) pc.setPrice("code:" + id, u.code);
+    pc.setPrice("autonm:" + id, u.name !== it.l ? u.name : ""); pc.setPrice("autocd:" + id, u.code || "");
+    if (u.sup) pc.setSrc(id, u.sup);
+  });
+}
 const usualTop = (ctx, k) => Object.entries(usualAll()[ctx] || {}).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.n - a.n || b.last - a.last).slice(0, k || 5);
 /* one name per supplier: "Screwfix — Flomasta fill valve" is Screwfix, and short forms (SF, WD, CPS) are spelled out */
 const SUP_ALIAS = { sf: "Screwfix", screwfix: "Screwfix", ts: "Toolstation", toolstation: "Toolstation", wd: "Wholesale Domestic", cps: "City Plumbing", "city plumbing": "City Plumbing", pc: "Plumb Center", "plumb center": "Plumb Center", "b&q": "B&Q", bq: "B&Q" };
@@ -3258,7 +3302,7 @@ function PriceBookView({ auth }) {
   </div>`;
 }
 
-function KitList({ list, prefix, tier, kit, onToggle, hrs, setHr, skip0 }) {
+function KitList({ list, prefix, tier, kit, onToggle, hrs, setHr, skip0, fx }) {
   const pc = React.useContext(PriceCtx);
   return html`${list.map((it, i) => {
     if (skip0 && i === 0) return null;
@@ -3272,15 +3316,17 @@ function KitList({ list, prefix, tier, kit, onToggle, hrs, setHr, skip0 }) {
     const code = pc.prices["code:" + id] || "";
     const src = pc.srcs[id] || catSrc(it);
     const shown = nameOf(pc.prices, id, it.l);
+    /* "your usual" shows only while the filled-in product is still the one on the line */
+    const autoNow = pc.prices["auto:" + id] !== undefined && String(pc.prices[id]) === String(pc.prices["auto:" + id]) && on;
     return html`<div key=${id}>
-      <${MatEditor} label=${shown} on=${on} onToggle=${() => onToggle(id, it, altId)} noPrice=${!showPrice}
-        price=${id in pc.prices ? pc.prices[id] : (catUnit(it) !== null ? String(catUnit(it)) : "")} onPrice=${(v) => pc.setPrice(id, v)} priceOff=${cov}
+      <${MatEditor} label=${shown} on=${on} onToggle=${() => { onToggle(id, it, altId); if (!on) fillUsual(pc, fx, list, prefix, tier, kit, skip0, id); }} noPrice=${!showPrice}
+        price=${id in pc.prices ? pc.prices[id] : (catUnit(it) !== null ? String(catUnit(it)) : "")} onPrice=${(v) => { pc.setPrice(id, v); if (v === "" && pc.prices["auto:" + id] !== undefined && (pc.prices["name:" + id] || "") === (pc.prices["autonm:" + id] || "") && (pc.prices["code:" + id] || "") === (pc.prices["autocd:" + id] || "")) { pc.setPrice("name:" + id, ""); pc.setPrice("code:" + id, ""); pc.setSrc(id, ""); } }} priceOff=${cov}
         qty=${("qty:" + id) in pc.prices ? pc.prices["qty:" + id] : (it.q !== undefined ? String(defQty(it, pc.size)) : "")} qtyPh=${it.q !== undefined ? String(defQty(it, pc.size)) : "1"} onQty=${(v) => pc.setPrice("qty:" + id, v)}
         unk=${!!pc.prices["unk:" + id]} onUnk=${(v) => pc.setPrice("unk:" + id, v)}
         code=${code} onCode=${(v) => pc.setPrice("code:" + id, v)} where=${src} onWhere=${(v) => pc.setSrc(id, v)}
-        locked=${cov} tag=${cov ? "in bulk buy" : ""} pickLabel=${shown}
-        onCommit=${(f, v) => { if (f === "price") { bookAdd(shown, v, src, "", code); if (Number(v) > 0) usualAdd("kit:" + id, shown, v, src, code); } else if (f === "where") bookAdd(shown, pc.prices[id], v, "", code); else bookAdd(shown, pc.prices[id], src, "", v); }}
-        onPick=${(pr, sup, name, url, mycode) => { pc.setPrice(id, String(pr)); pc.setSrc(id, [sup, name].filter(Boolean).join(" — ")); const cd = mycode || codeFromUrl(url); if (cd) pc.setPrice("code:" + id, cd); if (name) pc.setPrice("name:" + id, name); usualAdd("kit:" + id, name || shown, pr, sup, cd); }}>
+        locked=${cov} tag=${cov ? "in bulk buy" : autoNow ? "your usual" : ""} pickLabel=${shown}
+        onCommit=${(f, v) => { if (f === "price") { bookAdd(shown, v, src, "", code); if (Number(v) > 0) { usualAdd("kit:" + id, shown, v, src, code); u2Add(pc, fx, it, tier, shown, v, src, code); } } else if (f === "code" && v && Number(pc.prices[id]) > 0) { bookAdd(shown, pc.prices[id], src, "", v); u2Add(pc, fx, it, tier, shown, pc.prices[id], src, v); } else if (f === "where") bookAdd(shown, pc.prices[id], v, "", code); else bookAdd(shown, pc.prices[id], src, "", v); }}
+        onPick=${(pr, sup, name, url, mycode) => { pc.setPrice(id, String(pr)); pc.setSrc(id, [sup, name].filter(Boolean).join(" — ")); const cd = mycode || codeFromUrl(url); if (cd) pc.setPrice("code:" + id, cd); if (name) pc.setPrice("name:" + id, name); usualAdd("kit:" + id, name || shown, pr, sup, cd); u2Add(pc, fx, it, tier, name || shown, pr, sup, cd); }}>
         <${Lbl} label="Your own name for this material (optional)" wide=${true}>
           <input className="text-in" type="text" placeholder=${it.l} value=${pc.prices["name:" + id] || ""} onChange=${(e) => pc.setPrice("name:" + id, e.target.value)} /><//>
         ${pc.bulk.length > 0 || cov ? html`<${Tick} checked=${cov} onChange=${() => pc.setPrice("cov:" + id, !cov)} label="Already bought in a bulk buy (don't add this price)" />` : null}
@@ -3765,14 +3811,15 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
   const nQ = fxCount(def.key, state);
   const sub = active ? [(nQ > 1 ? nQ + " × · " : "") + fmtHrs(hrOf(hrs, hk, fxDefH(state, def.key) * nQ)) + " hrs", cost > 0 ? fmtKit(cost) : pc.bulkOnly ? "in bulk buy" : altCost > 0 ? "" : "no prices yet", tag === "pv" ? "only if needed" : tag === "o2" ? "option 2" : "", nProv ? nProv + " provisional" : "", alt ? "or " + altName.toLowerCase() + " (option 2" + (altCost > 0 ? ", " + fmtKit(altCost) : "") + ")" : ""].filter(Boolean).join(" · ") : "";
   const modeName = (FIX_MODES.find((m) => m[0] === mode) || FIX_MODES[0])[1];
-  const pick = (v) => (v === state.alt ? onChange({ ...modeState(v), alt: "" }) : v === "none" ? onChange({ remove: false, fit: false, repair: false })
+  const fillFor = (v) => { if (v === "none" || su) return; const ms = { ...state, ...modeState(v) }, ln = fixtureListName(ms); fillUsual(pc, def.key, room.fixtureKits[def.key][ln] || [], def.key + "-" + ln, tier, kit, custSkip(state.cust, ln, 0)); };
+  const pick = (v) => ((v !== mode || v === state.alt) && fillFor(v), v === state.alt ? onChange({ ...modeState(v), alt: "" }) : v === "none" ? onChange({ remove: false, fit: false, repair: false })
     : v === "repair" ? onChange({ remove: false, fit: false, repair: true })
     : v === "remove" ? onChange({ remove: true, fit: false, repair: false })
     : v === "fit" ? onChange({ remove: false, fit: true, repair: false, condition: "new" })
     : onChange({ remove: true, fit: true, repair: false, condition: v }));
-  const custTick = html`<${Tick} checked=${!!state.cust} onChange=${() => onChange({ cust: !state.cust })} label=${"Customer is supplying the " + def.label.toLowerCase().replace(/ \(.*\)/, "").replace(/\btrvs\b/, "TRVs") + " (or it comes with their kitchen or bathroom pack)"} />
+  const custTick = html`<${Tick} checked=${!!state.cust} onChange=${() => { if (state.cust && !su) [mode, state.alt].forEach((m) => { if (m === "fit" || m === "new") { const ln = fixtureListName(modeState(m)), l2 = room.fixtureKits[def.key][ln] || []; if (l2.length) fillUsual(pc, def.key, l2, def.key + "-" + ln, tier, kit, false, def.key + "-" + ln + "-0"); } }); onChange({ cust: !state.cust }); }} label=${"Customer is supplying the " + def.label.toLowerCase().replace(/ \(.*\)/, "").replace(/\btrvs\b/, "TRVs") + " (or it comes with their kitchen or bathroom pack)"} />
       ${state.cust ? html`<p className="note" style=${{ margin: "0 0 6px" }}>The ${def.label.toLowerCase().replace(/ \(.*\)/, "")} itself is left out of the price and the quote says "supplied by the customer". Fittings to connect it are still included.</p>` : null}`;
-  const pickAlt = (v) => { onChange({ alt: v }); if (v && tag !== "in") setTag(toggleProv, tag, "in", "pv-fx-" + def.key, "o2-fx-" + def.key); };
+  const pickAlt = (v) => { if (v) fillFor(v); onChange({ alt: v }); if (v && tag !== "in") setTag(toggleProv, tag, "in", "pv-fx-" + def.key, "o2-fx-" + def.key); };
   return html`<${ItemCard} title=${def.label} valueLabel=${modeName} active=${active} sub=${sub} options=${FIX_MODES} value=${mode} onPick=${pick} altValue=${alt} onAlt=${pickAlt}>
     ${false ? html`<p className="gla-hint">${GLA_HINTS[def.key]}</p>` : null}
     <${CheckTips} items=${ITEM_CHECKS[def.key]} />
@@ -3795,13 +3842,13 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
     ${!su && list.length > 0 ? html`<div>
       <div className="kit-head">${kitLabel}</div>
       ${nQ > 1 ? html`<p className="note" style=${{ margin: "0 0 6px" }}>Prices are for one; they are multiplied by ${nQ} in the total.</p>` : null}
-      <${KitList} list=${list} prefix=${def.key + "-" + lname} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} skip0=${custSkip(state.cust, lname, 0)} />
+      <${KitList} fx=${def.key} list=${list} prefix=${def.key + "-" + lname} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} skip0=${custSkip(state.cust, lname, 0)} />
     </div>` : null}
     ${extras.length > 0 ? html`<div className="kit-head">Provisional extras, only if needed once opened up</div>` : null}
     ${extras.map((e) => html`<div key=${e.key}>
-      <${Tick} checked=${!!prov["bx-" + e.key]} onChange=${() => toggleProv("bx-" + e.key)} label=${e.label + " (provisional, only if needed)"} />
+      <${Tick} checked=${!!prov["bx-" + e.key]} onChange=${() => { if (!prov["bx-" + e.key]) fillUsual(pc, def.key, e.kit, "bx-" + e.key, tier, kit); toggleProv("bx-" + e.key); }} label=${e.label + " (provisional, only if needed)"} />
       ${prov["bx-" + e.key] ? html`<${HoursInput} label=${"Provisional time: " + e.label} value=${hrRaw(hrs, "bx-" + e.key, DEF_H)} onChange=${(v) => setHr("bx-" + e.key, v)} />` : null}
-      ${prov["bx-" + e.key] ? html`<${KitList} list=${e.kit} prefix=${"bx-" + e.key} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />` : null}
+      ${prov["bx-" + e.key] ? html`<${KitList} fx=${def.key} list=${e.kit} prefix=${"bx-" + e.key} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />` : null}
     </div>`)}
     <${ExtraBlock} group=${def.label} hint=${def.label.toLowerCase().replace(/ \(.*\)/, "")} title=${alt ? "Option 1 extra materials (" + modeName.toLowerCase() + ")" : ""} />
     ${alt ? html`<div className="alt-box">
@@ -3809,7 +3856,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
       ${(alt === "fit" || alt === "new") && !(mode === "fit" || mode === "new") ? custTick : null}
       <${HoursInput} label=${"Time to " + altName.toLowerCase()} value=${hrRaw(hrs, "fxa-" + def.key, fxDefH(altSt, def.key) * nQ)} onChange=${(v) => setHr("fxa-" + def.key, v)} />
       ${altList.length ? html`<div className="kit-head">Option 2 kit — ${altName.toLowerCase()}</div>
-        <${KitList} list=${altList} prefix=${def.key + "-" + fixtureListName(altSt)} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} skip0=${custSkip(state.cust, fixtureListName(altSt), 0)} />` : null}
+        <${KitList} fx=${def.key} list=${altList} prefix=${def.key + "-" + fixtureListName(altSt)} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} skip0=${custSkip(state.cust, fixtureListName(altSt), 0)} />` : null}
       <${ExtraBlock} group=${def.label + O2_SFX} title=${"Option 2 extra materials (" + altName.toLowerCase() + ")"} />
       ${altCost > 0 ? html`<p className="note" style=${{ margin: "4px 0 0" }}>Option 2 materials for this item: ${fmtKit(altCost)}</p>` : null}
     </div>` : active ? html`<button type="button" className="linkbtn" style=${{ margin: "4px 0 6px" }} onClick=${() => pickAlt(mode === "repair" ? "new" : "repair")}>+ Also price ${mode === "repair" ? "replacing it" : "repairing it"} (Option 2)</button>` : null}
@@ -3827,14 +3874,14 @@ function StructuralCard({ room, def, value, onChange, tier, kit, onToggle, hrs, 
   const sub = active ? [fmtHrs(hrOf(hrs, "st-" + def.key + "-" + value, stDefH(def.key, value))) + " hrs", cost > 0 ? fmtKit(cost) : pc.bulkOnly ? "in bulk buy" : "no prices yet", tag === "pv" ? "only if needed" : tag === "o2" ? "option 2" : ""].filter(Boolean).join(" · ") : "";
   const valueName = (def.options.find((o) => o[0] === value) || def.options[0])[1];
   const lumpOn = Number(pc.prices["stlump:" + def.key]) > 0;
-  return html`<${ItemCard} title=${def.label} valueLabel=${valueName} active=${active} sub=${sub} options=${def.options} value=${value} onPick=${onChange}>
+  return html`<${ItemCard} title=${def.label} valueLabel=${valueName} active=${active} sub=${sub} options=${def.options} value=${value} onPick=${(v) => { if (v !== "none" && room.structuralKits[def.key][v]) fillUsual(pc, "st-" + def.key, room.structuralKits[def.key][v], def.key + "-" + v, tier, kit); onChange(v); }}>
     <${HoursInput} label="Time to do" value=${hrRaw(hrs, "st-" + def.key + "-" + value, stDefH(def.key, value))} onChange=${(v) => setHr("st-" + def.key + "-" + value, v)} />
     ${ST_NOTE[def.key + ":" + value] ? html`<p className=${"note" + (def.key === "bGas" && !(hrOf(hrs, "st-" + def.key + "-" + value, 0) > 0) ? " warn-t" : "")} style=${{ margin: "0 0 6px" }}>${ST_NOTE[def.key + ":" + value]}</p>` : null}
     <${PriceAs} value=${tag} onPick=${(v) => setTag(toggleProv, tag, v, pk, "o2-" + pk)} />
     ${list.length > 0 ? html`<div>
       <div className="kit-head">${valueName} — materials normally needed</div>
       ${list.some((x) => x.q !== undefined) ? html`<div className="suite-meta">Quantities are a starting point for a ${pc.size || "medium"} room (floor about ${pc.area > 0 ? Math.round(pc.area * 10) / 10 : ({ small: "3", medium: "4.5", large: "6.5" })[pc.size] || "4.5"} m²). Change any quantity, and type a price where there is none.</div>` : null}
-      <${KitList} list=${list} prefix=${def.key + "-" + value} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />
+      <${KitList} fx=${"st-" + def.key} list=${list} prefix=${def.key + "-" + value} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />
     </div>` : null}
     <${Drop} bare=${true} open=${lumpOn} title="Know the material cost? Type your own total" sub=${lumpOn ? fmtKit(Number(pc.prices["stlump:" + def.key])) + " used" : "optional"}>
       <${Lbl} label="Materials total for this item (£)" wide=${true}>
