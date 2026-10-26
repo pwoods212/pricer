@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610260738"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610261107"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -767,6 +767,7 @@ body.kb .undo { bottom: 12px; }
 .rs-top .text-in { flex: 1; margin: 0; }
 .rs-out { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--chip, rgba(127,127,127,.12)); font-size: 14px; line-height: 1.45; }
 .rs-total { margin-top: 10px; font-size: 14px; }
+.rs-glaz { display: flex; justify-content: space-between; align-items: center; }
 .qty-line { display: flex; align-items: center; gap: 8px; margin: 2px 0 8px; font-size: 13px; color: var(--muted); }
 .qty-line b { min-width: 18px; text-align: center; color: var(--ink); font-family: var(--font-mono); font-size: 14px; }
 .qty-b { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line2); background: transparent; color: var(--ink2); font: inherit; font-size: 16px; line-height: 1; cursor: pointer; padding: 0; }
@@ -3996,26 +3997,36 @@ function BoilerBlock({ fixtures, structural, updateFixture, updateStructural, hr
   <//></div>`;
 }
 /* ===== Radiator sizes by room: a rough heat-loss guide (watts per m³, adjusted for the room), not a full heat loss survey =====
-   Outputs are typical panel radiator ratings at ΔT50 (e.g. a 600 x 600 double convector is about 1,000 W / 3,400 BTU). */
-const RS_TYPES = [["living", "Living / dining", 1], ["bed", "Bedroom", 0.85], ["bath", "Bathroom", 1.1], ["kitchen", "Kitchen", 0.85], ["hall", "Hall / landing", 0.9]];
+   Outputs are typical panel radiator ratings at ΔT50 (75°C flow, 20°C room; e.g. a 600 x 600 double convector is about 1,000 W / 3,400 BTU),
+   corrected for the boiler's heating flow temperature and the room temperature. */
+const RS_TYPES = [["living", "Living / dining", 1, 21], ["bed", "Bedroom", 0.85, 18], ["bath", "Bathroom", 1.1, 22], ["kitchen", "Kitchen", 0.85, 18], ["hall", "Hall / landing", 0.9, 18]];
 const RS_INS = [["new", "Well insulated", 30], ["avg", "Average", 40], ["old", "Old / solid stone", 55]];
 const RS_WALLS = [["0", "None", 0.85], ["1", "1", 1], ["2", "2", 1.15], ["3", "3+", 1.3]];
+const RS_WIN = [["0", "None", 0.95], ["1", "1", 1], ["2", "2", 1.07], ["3", "3", 1.14], ["4", "4+", 1.2]];
+const RS_GLAZ = [["single", "Single", 1.2], ["double", "Double", 1], ["triple", "Triple", 0.92]];
+const RS_FLOW = ["50", "55", "60", "65", "70", "75", "80"];
 const RS_W_PER_M = { 300: { K1: 560, K2: 1000 }, 450: { K1: 790, K2: 1380 }, 600: { K1: 980, K2: 1720 }, 700: { K1: 1130, K2: 1960 } };
 const RS_LENS = [400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1400, 1600, 1800, 2000];
 const RS_NAME = { K1: "single convector (type 11)", K2: "double convector (type 22)" };
 const rsF = (list, v) => { const r = list.find((x) => x[0] === v); return r ? r[2] : 1; };
+const rsGlaz = (r) => r.glaz || (r.single ? "single" : "double");
+const rsFlow = (cfg) => Number(cfg.flow) || (cfg.dt === "40" ? 65 : cfg.dt === "50" ? 80 : 70);
+const rsRoomT = (r) => (RS_TYPES.find((x) => x[0] === (r.type || "living")) || RS_TYPES[0])[3];
+/* how much of its ΔT50 rating a radiator gives at this flow temperature in a room at roomT. Condensing systems are designed
+   with the return about 20°C cooler than the flow (e.g. 70/50), so the average water temperature is the flow minus 10. */
+const rsK = (flow, roomT) => { const dt = flow - 10 - roomT; return dt > 0 ? Math.pow(dt / 50, 1.3) : 0; };
 function rsNeed(r, cfg) {
   const vol = (Number(r.l) || 0) * (Number(r.w) || 0) * (Number(r.h) || 2.4);
   if (!(vol > 0)) return 0;
-  let w = vol * rsF(RS_INS, cfg.ins || "avg") * rsF(RS_TYPES, r.type || "living") * rsF(RS_WALLS, r.walls || "1");
-  if (r.single) w *= 1.2;
+  let w = vol * rsF(RS_INS, cfg.ins || "avg") * rsF(RS_TYPES, r.type || "living") * rsF(RS_WALLS, r.walls || "1") * rsF(RS_WIN, r.win || "1") * rsF(RS_GLAZ, rsGlaz(r));
   if (r.big) w *= 1.1;
   if (r.cold) w *= 1.1;
   return Math.round(w / 10) * 10;
 }
 /* the shortest radiator of each type that covers the room, split over n radiators */
-function rsPick(need, n, ht, dt) {
-  const k = dt === "40" ? 0.75 : 1, per = need / Math.max(1, n), out = [];
+function rsPick(need, n, ht, k) {
+  const per = need / Math.max(1, n), out = [];
+  if (!(k > 0)) return out;
   ["K2", "K1"].forEach((t) => {
     const wm = RS_W_PER_M[ht || 600][t] * k;
     const len = RS_LENS.find((L) => (wm * L) / 1000 >= per);
@@ -4025,45 +4036,76 @@ function rsPick(need, n, ht, dt) {
 }
 const rsBtu = (w) => Math.round(w * 3.412 / 10) * 10;
 const fmtW = (w) => w.toLocaleString("en-GB") + " W (" + rsBtu(w).toLocaleString("en-GB") + " BTU)";
-function RadSizer({ fixtures, updateFixture, hrs, setHr }) {
+const rsItem = (ht, p) => "Radiator " + ht + " x " + p.len + " " + RS_NAME[p.t];
+function RadSizer({ fixtures, updateFixture, hrs, setHr, kit, onToggle }) {
   const pc = React.useContext(PriceCtx);
+  const [guide, setGuide] = useState(false);
   const rooms = (fixtures._rooms && fixtures._rooms.list) || [];
   const cfg = fixtures._radcfg || {};
+  const flow = rsFlow(cfg);
   const setRooms = (rs) => updateFixture("_rooms", { list: rs });
   const upd = (id, patch) => setRooms(rooms.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-  const add = () => setRooms([...rooms, { id: newId(), name: "", type: rooms.length ? "bed" : "living", l: "", w: "", h: "2.4", walls: "1", n: "" }]);
-  const res = rooms.map((r) => { const need = rsNeed(r, cfg); const n = Math.max(1, parseInt(r.n, 10) || (need > 2600 ? 2 : 1)); return { r, need, n, picks: need ? rsPick(need, n, Number(r.ht) || 600, cfg.dt) : [] }; });
+  const add = () => setRooms([...rooms, { id: newId(), name: "", type: rooms.length ? "bed" : "living", l: "", w: "", h: "2.4", walls: "1", win: "1", glaz: "double", n: "" }]);
+  const res = rooms.map((r) => { const need = rsNeed(r, cfg), ht = Number(r.ht) || 600, k = rsK(flow, rsRoomT(r));
+    /* unless set, one radiator, or two for a big room, or more if one is not enough at this boiler temperature */
+    let n = parseInt(r.n, 10) || 0;
+    if (!n) { n = k > 0 && need / k > 2600 ? 2 : 1; while (n < 6 && need && !rsPick(need, n, ht, k).length) n++; }
+    const picks = need ? rsPick(need, n, ht, k) : []; return { r, need, n, ht, picks, chosen: picks.find((p) => p.t === r.pick) || null }; });
   const total = res.reduce((a, x) => a + x.need, 0);
-  const sized = res.filter((x) => x.need > 0 && x.picks.length);
-  const nRad = sized.reduce((a, x) => a + x.n, 0);
+  const ticked = res.filter((x) => x.chosen);
+  const nRad = ticked.reduce((a, x) => a + x.n, 0);
   const unsized = res.filter((x) => x.need > 0 && !x.picks.length).length;
   const roomName = (x) => x.r.name || "Room " + (res.indexOf(x) + 1) + " (" + ((RS_TYPES.find((t) => t[0] === (x.r.type || "living")) || ["", "room"])[1]).toLowerCase() + ")";
+  const prodId = "hrad-fitNew-0", prod = HEAT_FIXTURE_KITS.hrad.fitNew[0];
+  const st0 = fixtures.hrad || {};
+  const rsLines = (pc.extras || []).filter((x) => x.rs);
+  /* repair priced with "replace" as option 2: the sizes belong to option 2, and the main item is left alone */
+  const toO2 = !!(st0.alt && ["new", "fit"].indexOf(st0.alt) > -1 && !(st0.fit && !st0.repair));
+  const takeOff = () => {
+    rsLines.forEach((x) => pc.removeExtra(x.id));
+    if (!kitOn(kit, prodId, prod)) onToggle(prodId, prod, null);
+    const cur = String(pc.prices["desc:fx-hrad"] || ""), at = cur.indexOf("Radiators sized for each room:");
+    if (at > -1) pc.setPrice("desc:fx-hrad", cur.slice(0, at).trim());
+  };
   const useIt = () => {
-    const lines = sized.map((x) => roomName(x) + ": " + x.n + " × " + (Number(x.r.ht) || 600) + " x " + x.picks[0].len + " " + RS_NAME[x.picks[0].t] + ", about " + fmtW(x.picks[0].w * x.n));
-    const st = fixtures.hrad || {}, nn = Math.min(30, nRad);
-    const oldN = fxCount("hrad", st), isNew = st.fit && st.remove && st.condition !== "old" && !st.repair;
+    const nn = Math.min(30, nRad);
+    const st = st0, oldN = fxCount("hrad", st);
     /* typed hours follow the new quantity, as the + and − buttons do */
     if (oldN > 0) ["fx-hrad", "fxa-hrad"].concat(Object.keys(hrs || {}).filter((k) => /^fqa?-hrad-/.test(k))).forEach((k) => { const old = hrs && hrs[k]; if (old !== undefined && old !== "" && !isNaN(Number(old))) setHr(k, String(Math.round(Number(old) / oldN * nn * 4) / 4)); });
-    updateFixture("hrad", { ...(isNew || (st.fit && !st.remove && !st.repair) ? {} : modeState("new")), n: String(nn) });
-    /* keep anything else in the customer note; replace only the sizes block */
+    updateFixture("hrad", { ...(toO2 || (st.fit && !st.repair && st.condition !== "old") ? {} : modeState("new")), n: String(nn) });
+    /* the exact sizes go on the materials list (one line per room); the general "Radiator (double panel)" line comes off so it is not counted twice.
+       Prices, codes and suppliers already typed on a size are kept; a new size takes its last price from the Price Book. */
+    if (kitOn(kit, prodId, prod)) onToggle(prodId, prod, null);
+    const old = {};
+    rsLines.forEach((x) => { old[x.item] = x; pc.removeExtra(x.id); });
+    if (!st.cust) ticked.forEach((x) => {
+      const item = rsItem(x.ht, x.chosen) + " — " + roomName(x), o = old[item], bk = lastBookFor(rsItem(x.ht, x.chosen));
+      pc.addExtra({ item, qty: String(x.n), group: toO2 ? "Radiator" + O2_SFX : "Radiator", where: o ? o.where : bk ? bk.supplier : "", code: o ? o.code : bk ? bk.code || "" : "", price: o ? o.price : bk ? String(bk.price) : "", rs: true });
+    });
+    /* the customer note keeps anything else; only the sizes block is replaced */
     const cur = String(pc.prices["desc:fx-hrad"] || ""), at = cur.indexOf("Radiators sized for each room:");
     const keep = (at > -1 ? cur.slice(0, at) : cur).trim();
+    const lines = ticked.map((x) => roomName(x) + ": " + x.n + " × " + x.ht + " x " + x.chosen.len + " " + RS_NAME[x.chosen.t] + ", about " + fmtW(x.chosen.w * x.n));
     pc.setPrice("desc:fx-hrad", (keep ? keep + "\n" : "") + "Radiators sized for each room:\n" + lines.join("\n"));
   };
   const num = (r, k, ph, lbl) => html`<${Lbl} label=${lbl}><input className="text-in" type="number" inputMode="decimal" min="0" step="0.1" placeholder=${ph} value=${r[k] || ""} onChange=${(e) => upd(r.id, { [k]: e.target.value })} /><//>`;
   return html`<${Drop} bare=${true} open=${rooms.length > 0} title="Radiator sizes by room" sub=${rooms.length ? rooms.length + (rooms.length === 1 ? " room · " : " rooms · ") + (total / 1000).toFixed(1) + " kW" : "measure the rooms, get a rough size"}>
     <div className="fq">
       <div className="fq-row"><div className="fq-q">The house</div><${Segmented} options=${RS_INS.map((x) => [x[0], x[1]])} value=${cfg.ins || "avg"} onChange=${(v) => updateFixture("_radcfg", { ins: v })} /></div>
-      <div className="fq-row"><div className="fq-q">Boiler flow temperature</div><${Segmented} options=${[["50", "Standard (ΔT50)"], ["40", "Cooler (ΔT40)"]]} value=${cfg.dt || "50"} onChange=${(v) => updateFixture("_radcfg", { dt: v })} />
-        <div className="fq-hint">Running the boiler cooler saves gas, but each radiator gives out about a quarter less, so it needs to be bigger.</div></div>
-      ${res.map(({ r, need, n, picks }, i) => html`<div key=${r.id} className="rs-room">
+      <div className="fq-row"><div className="fq-q">Heating temperature set on the boiler</div>
+        <${Segmented} options=${RS_FLOW.map((f) => [f, f + "°"])} value=${String(flow)} onChange=${(v) => updateFixture("_radcfg", { flow: v })} />
+        <div className="fq-hint">The radiator dial on the boiler. Many are left at 70 to 75°C. At 55 to 60°C the boiler condenses and saves gas, but each radiator gives out less heat, so it needs to be bigger. Sizes assume the water comes back about 20°C cooler, as condensing systems are designed.</div></div>
+      ${res.map(({ r, need, n, ht, picks }, i) => html`<div key=${r.id} className="rs-room">
         <div className="rs-top"><input className="text-in" type="text" aria-label="Room name" placeholder=${"Room " + (i + 1) + " (e.g. Front bedroom)"} value=${r.name || ""} onChange=${(e) => upd(r.id, { name: e.target.value })} />
           <button type="button" className="linkbtn" onClick=${() => setRooms(rooms.filter((x) => x.id !== r.id))}>Remove</button></div>
         <${Segmented} options=${RS_TYPES.map((x) => [x[0], x[1]])} value=${r.type || "living"} onChange=${(v) => upd(r.id, { type: v })} />
         <div className="mat-grid">${num(r, "l", "e.g. 4.2", "Length (m)")}${num(r, "w", "e.g. 3.6", "Width (m)")}${num(r, "h", "2.4", "Ceiling (m)")}</div>
         <div className="fq-q" style=${{ marginTop: 6 }}>Outside walls</div>
         <${Segmented} options=${RS_WALLS.map((x) => [x[0], x[1]])} value=${r.walls || "1"} onChange=${(v) => upd(r.id, { walls: v })} />
-        <${Tick} checked=${!!r.single} onChange=${() => upd(r.id, { single: !r.single })} label="Single glazed" />
+        <div className="fq-q" style=${{ marginTop: 6 }}>How many windows</div>
+        <${Segmented} options=${RS_WIN.map((x) => [x[0], x[1]])} value=${r.win || "1"} onChange=${(v) => upd(r.id, { win: v })} />
+        <div className="fq-q rs-glaz" style=${{ marginTop: 6 }}><span>Glazing</span><button type="button" className="linkbtn" onClick=${() => setGuide(true)}>How to tell</button></div>
+        <${Segmented} options=${RS_GLAZ.map((x) => [x[0], x[1]])} value=${rsGlaz(r)} onChange=${(v) => upd(r.id, { glaz: v, single: false })} />
         <${Tick} checked=${!!r.big} onChange=${() => upd(r.id, { big: !r.big })} label="Big windows or patio doors" />
         <${Tick} checked=${!!r.cold} onChange=${() => upd(r.id, { cold: !r.cold })} label="Top floor, or over a cold space" />
         <div className="mat-grid">
@@ -4071,17 +4113,24 @@ function RadSizer({ fixtures, updateFixture, hrs, setHr }) {
           <${Lbl} label="How many radiators"><select className="text-in" value=${String(n)} onChange=${(e) => upd(r.id, { n: e.target.value })}>${[1, 2, 3, 4, 5, 6].map((k) => html`<option key=${k} value=${String(k)}>${k}</option>`)}</select><//>
         </div>
         ${need > 0 ? html`<div className="rs-out"><b>Needs about ${fmtW(need)}</b>
-          ${picks.length ? picks.map((p) => html`<div key=${p.t}>${n} × ${Number(r.ht) || 600} x ${p.len} ${RS_NAME[p.t]}, about ${fmtW(p.w)}${n > 1 ? " each" : ""}</div>`)
-            : html`<div className="warn-t">Too much for ${n} at this height: add another radiator or go taller.</div>`}</div>` : html`<p className="note" style=${{ margin: "4px 0 0" }}>Type the length and width to see a size.</p>`}
+          ${picks.length ? html`<div className="fq-hint" style=${{ margin: "2px 0 2px" }}>Tick the one you want to order:</div>
+            ${picks.map((p) => html`<${Tick} key=${p.t} checked=${r.pick === p.t} onChange=${() => upd(r.id, { pick: r.pick === p.t ? "" : p.t })}
+              label=${n + " × " + ht + " x " + p.len + " " + RS_NAME[p.t] + ", about " + fmtW(p.w) + (n > 1 ? " each" : "")} />`)}`
+            : html`<div className="warn-t">Too much for ${n} at this height and boiler temperature: add another radiator, go taller, or turn the boiler up.</div>`}</div>`
+          : html`<p className="note" style=${{ margin: "4px 0 0" }}>Type the length and width to see a size.</p>`}
       </div>`)}
       <${AddBtn} onClick=${add}>Add a room<//>
-      ${total > 0 ? html`<div className="rs-total"><b>All rooms: about ${(total / 1000).toFixed(1)} kW of heating</b> (${rsBtu(total).toLocaleString("en-GB")} BTU), ${nRad} radiator${nRad === 1 ? "" : "s"}.
+      ${total > 0 ? html`<div className="rs-total"><b>All rooms: about ${(total / 1000).toFixed(1)} kW of heating</b> (${rsBtu(total).toLocaleString("en-GB")} BTU).
         <div className="fq-hint">A rough guide to check against, not a full heat loss survey. A combi is sized for the hot water, so it is usually well above this.</div>
-        ${unsized ? html`<p className="note warn-t" style=${{ margin: "6px 0 0" }}>${unsized} room${unsized === 1 ? " needs" : "s need"} more radiators or taller ones before it can be sized; ${unsized === 1 ? "it is" : "they are"} left out below.</p>` : null}
+        ${unsized ? html`<p className="note warn-t" style=${{ margin: "6px 0 0" }}>${unsized} room${unsized === 1 ? " needs" : "s need"} more radiators or taller ones before it can be sized.</p>` : null}
         ${nRad > 30 ? html`<p className="note warn-t" style=${{ margin: "6px 0 0" }}>The job can hold up to 30 radiators; the quantity is set to 30.</p>` : null}
-        ${nRad > 0 ? html`<button type="button" className="btn" style=${{ marginTop: 8 }} onClick=${useIt}>Put ${nRad} radiator${nRad === 1 ? "" : "s"} in this job</button>
-        <div className="fq-hint">Sets the radiator item to Remove & fit new with this quantity, and adds the size for each room to its customer note (anything else in the note is kept). Press it again after changing rooms.</div>` : null}</div>` : null}
+        ${st0.cust && nRad > 0 ? html`<p className="note" style=${{ margin: "6px 0 0" }}>The customer is supplying the radiators, so the sizes go in the customer note only, not on the order list.</p>` : null}
+        ${nRad > 0 ? html`<button type="button" className="btn" style=${{ marginTop: 8 }} onClick=${useIt}>Add the ${nRad} ticked radiator${nRad === 1 ? "" : "s"} to the job${toO2 ? " (option 2)" : ""}</button>
+        <div className="fq-hint">Puts each size on the materials and order list (room by room), sets the radiator item to that quantity, and adds the sizes to its customer note. Press it again after changing any room; prices you have typed on a size are kept.</div>`
+          : html`<p className="note" style=${{ margin: "6px 0 0" }}>Tick a size for each room to add them to the job.</p>`}
+        ${rsLines.length ? html`<button type="button" className="linkbtn" style=${{ marginTop: 6 }} onClick=${takeOff}>Take the sized radiators off the job</button>` : null}</div>` : null}
     </div>
+    ${guide ? html`<${CheckGuideSheet} id="glaze" onClose=${() => setGuide(false)} />` : null}
   <//>`;
 }
 
@@ -4188,8 +4237,8 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
         ${nQ > 1 ? html`<span className="qty-hint">${what === "pairs" ? "pairs" : ""}</span>` : null}</div>`;
     })() : null}
     ${def.key === "hrad" && active ? (() => { const d = String(pc.prices["desc:fx-hrad"] || ""), i = d.indexOf("Radiators sized for each room:"); if (i < 0) return null;
-      const m = [...d.slice(i).matchAll(/: (\d+) × /g)].reduce((t, x) => t + Number(x[1]), 0);
-      return m && m !== nQ ? html`<p className="note warn-t" style=${{ margin: "0 0 6px" }}>The customer note lists ${m} radiators but the quantity is ${nQ}. Change the quantity, or press "Put radiators in this job" again.</p>` : null; })() : null}
+      const ls = (pc.extras || []).filter((x) => x.rs), m = ls.length ? ls.reduce((t, x) => t + (Math.max(1, Math.floor(Number(x.qty)) || 1)), 0) : [...d.slice(i).matchAll(/: (\d+) × /g)].reduce((t, x) => t + Number(x[1]), 0);
+      return m && m !== nQ ? html`<p className="note warn-t" style=${{ margin: "0 0 6px" }}>${m} radiator${m === 1 ? " is" : "s are"} sized for this job but the quantity is ${nQ}. Change the quantity, or tick the sizes in "Radiator sizes by room" and add them again.</p>` : null; })() : null}
     <${HoursInput} label=${nQ > 1 ? hrsLabel + " (for " + nQ + ")" : hrsLabel} value=${hrRaw(hrs, hk, fxDefH(state, def.key) * nQ)} onChange=${(v) => setHr(hk, v)} />
     ${mode === "fit" || mode === "new" ? custTick : null}
     ${active && !alt ? html`<${PriceAs} value=${tag} onPick=${(v) => setTag(toggleProv, tag, v, "pv-fx-" + def.key, "o2-fx-" + def.key)} />` : null}
@@ -4540,7 +4589,7 @@ function SiteSurveyView(p) {
     ${room === HEATING ? html`<${BoilerBlock} fixtures=${fixtures} structural=${structural} updateFixture=${updateFixture} updateStructural=${updateStructural} hrs=${hrs} setHr=${setHr} />` : null}
     <${Sec} n="2">${room.fixturesLabel}<//>
     <${JobQs} fixtures=${fixtures} updateFixture=${updateFixture} hrs=${hrs} setHr=${setHr} kit=${kit} onToggle=${toggleKit} tier=${tier} />
-    ${room === HEATING && !TEAM ? html`<${RadSizer} fixtures=${fixtures} updateFixture=${updateFixture} hrs=${hrs} setHr=${setHr} />` : null}
+    ${room === HEATING && !TEAM ? html`<${RadSizer} fixtures=${fixtures} updateFixture=${updateFixture} hrs=${hrs} setHr=${setHr} kit=${kit} onToggle=${toggleKit} />` : null}
     ${room === BATHROOM && window.SUITE && fixtures._suite && (fixtures._suite.mode === "allow" || fixtures._suite.was) ? html`<${SuiteBar} fixtures=${fixtures} tier=${tier} onChange=${(patch) => updateFixture("_suite", patch)} />` : null}
     ${room === BATHROOM && window.SUITE && !suiteOn(room, fixtures) ? html`<${SuiteRange} fixtures=${fixtures} tier=${tier} />` : null}
     <div className="group" id="sv-fix">
@@ -5320,6 +5369,14 @@ const CHECK_GUIDE = {
     ["Paperwork", ["There is no legal certificate for a domestic Legionella risk assessment, but keep a written record of the assessment, the date, the temperatures found, the actions taken and the review date.", "Set the next review for no more than 2 years ahead, or sooner if the system changes."]]
   ] },
 };
+CHECK_GUIDE.glaze = { title: "Single, double or triple glazing?", src: ["Autarc: how to tell the type of window glazing", "https://hilfe.autarc.energy/en/articles/11848745-how-do-i-determine-the-type-of-window-glazing"],
+  foot: "A guide only. If the window is labelled or the customer has the paperwork, go by that. The flame test comes from",
+  blocks: [
+    ["Flame or torch test (quickest)", ["Hold a lighter or your phone torch close to the glass and look at it from an angle. Count the reflections.", "Single glazing: 1 (sometimes 2 very close together).", "Double glazing: 4 reflections.", "Triple glazing: 6 reflections.", "If one reflection has a slight purple or different tint, the glass has a low-E coating, which keeps more heat in."]],
+    ["Look at the edge of the glass", ["Double and triple glazing have a spacer bar (a metal or plastic strip) between the panes round the edge. Count the gaps: one gap is double, two gaps is triple.", "Single glazing has no spacer: the glass sits straight into putty or a bead.", "The spacer or the glass corner is often stamped with the maker, a date and BS EN 1279."]],
+    ["Thickness", ["Single glass is about 4 to 6 mm thick.", "A double glazed unit is usually about 20 to 28 mm thick (older ones can be 14 to 18 mm), and triple about 36 to 44 mm."]],
+    ["Other things to note", ["Secondary glazing (a separate inner pane on its own frame) counts roughly as double.", "Mist or water between the panes means the seal has failed. It keeps a bit less heat in, but still far more than single glass, so pick Double.", "Old sash and case windows in Glasgow tenements are often single glazed, even when the frames have been draught-proofed."]],
+  ] };
 
 CHECK_GUIDE.eicr.blocks.push(["What the words mean, with examples", [
   "Consumer unit: the fuse board, usually near the front door or meter. It should have a plastic or metal cover, labelled circuits and switches (not old rewirable fuses).",
@@ -5406,7 +5463,7 @@ function CheckGuideSheet({ id, onClose }) {
       <div className="mini-label">${h}</div>
       <ul style=${{ margin: "4px 0 0", paddingLeft: 18 }}>${items.map((t, k) => html`<li key=${k} style=${{ margin: "0 0 4px" }}>${t}</li>`)}</ul>
     </div>`)}
-    <p className="note">Guide only, not legal advice. Rules change, so confirm against the current official guidance before relying on this. Checked October 2026 against: <a href=${g.src[1]} target="_blank" rel="noopener noreferrer">${g.src[0]}</a>.</p>
+    <p className="note">${g.foot ? g.foot + " " : "Guide only, not legal advice. Rules change, so confirm against the current official guidance before relying on this. Checked October 2026 against: "}<a href=${g.src[1]} target="_blank" rel="noopener noreferrer">${g.src[0]}</a>.</p>
   <//>`;
 }
 /* =====================================================================
@@ -6245,13 +6302,15 @@ function App() {
   useEffect(() => { if (!undo) return undefined; const t = setTimeout(() => setUndo(null), 20000); return () => clearTimeout(t); }, [undo]);
   const withUndo = (kind, fn) => () => {
     tmReset(mode === "calculator" ? "survey" : mode);
-    setUndo({ kind, data: JSON.parse(snapJ(kind)), id: jobIds[kind] || null, mode });
+    setUndo({ kind, data: JSON.parse(snapJ(kind)), id: jobIds[kind] || null, mode, base: initJ.current[baseKey(kind)] });
     fn();
+    rebase.current = kind;
   };
-  const doUndo = () => { if (!undo) return; const back = undo.mode; openSaved({ kind: undo.kind, data: undo.data, id: undo.id }); if (back) setMode(back); setUndo(null); };
+  const doUndo = () => { if (!undo) return; const back = undo.mode; if (undo.base !== undefined) initJ.current[baseKey(undo.kind)] = undo.base; openSaved({ kind: undo.kind, data: undo.data, id: undo.id }); if (back) setMode(back); setUndo(null); };
   /* after opening a saved job, treat what is now on screen as the clean baseline */
+  const [, bumpBase] = useState(0);
   useEffect(() => {
-    if (rebase.current) { initJ.current[baseKey(rebase.current)] = snapJ(rebase.current); rebase.current = null; }
+    if (rebase.current) { initJ.current[baseKey(rebase.current)] = snapJ(rebase.current); rebase.current = null; bumpBase((n) => n + 1); }
   });
   /* autosave a draft a moment after every change. If an unanswered draft is still waiting, it is moved to a backup key first, never overwritten. */
   const writeDraft = useRef(null);
