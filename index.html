@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610261107"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610261613"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -768,6 +768,18 @@ body.kb .undo { bottom: 12px; }
 .rs-out { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--chip, rgba(127,127,127,.12)); font-size: 14px; line-height: 1.45; }
 .rs-total { margin-top: 10px; font-size: 14px; }
 .rs-glaz { display: flex; justify-content: space-between; align-items: center; }
+.trade-pick { padding: 18px 2px 8px; }
+.trade-h { font-size: 22px; font-weight: 700; margin: 0 0 4px; }
+.trade-btn { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 14px; margin: 0 0 10px; border-radius: 14px; border: 1px solid var(--line, #e3e3e8); background: var(--card, transparent); color: inherit; font: inherit; cursor: pointer; min-height: 64px; }
+.trade-btn.on { border-color: var(--accent, #f08a24); }
+.trade-ico { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--chip, rgba(127,127,127,.14)); flex: none; }
+.trade-txt { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.trade-txt span { font-size: 13.5px; opacity: .75; }
+.brand-trade { font-size: inherit; padding: 0; }
+.iph-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.iph img { width: 100%; height: 110px; object-fit: cover; border-radius: 8px; display: block; cursor: zoom-in; }
+.iph .text-in { margin: 4px 0 0; font-size: 14px; }
+.iph-miss { height: 110px; border-radius: 8px; display: grid; place-items: center; text-align: center; font-size: 12.5px; padding: 6px; background: var(--chip, rgba(127,127,127,.12)); }
 .qty-line { display: flex; align-items: center; gap: 8px; margin: 2px 0 8px; font-size: 13px; color: var(--muted); }
 .qty-line b { min-width: 18px; text-align: center; color: var(--ink); font-family: var(--font-mono); font-size: 14px; }
 .qty-b { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line2); background: transparent; color: var(--ink2); font: inherit; font-size: 16px; line-height: 1; cursor: pointer; padding: 0; }
@@ -1670,6 +1682,614 @@ const BATHROOM = { title: "Bathroom Survey", fixturesLabel: "Sanitaryware & Fitt
   structural: STRUCTURAL_ITEMS, structuralKits: STRUCTURAL_KITS, extras: { bath: BATH_EXTRAS } };
 const KITCHEN = { title: "Kitchen Survey", fixturesLabel: "Plumbing & Appliances", fixtures: KITCHEN_FIXTURE_ITEMS, fixtureKits: KITCHEN_FIXTURE_KITS,
   structural: KITCHEN_STRUCTURAL_ITEMS, structuralKits: KITCHEN_STRUCTURAL_KITS, extras: { sink: KITCHEN_EXTRAS } };
+/* ===== Electrical and Joinery sections (work version). Data from the trade spec; keys start with e / j. ===== */
+const ELEC_FIXTURE_ITEMS = [
+  { key: "eSocket",  label: "Socket" },
+  { key: "eNewPt",   label: "Add / Move a Socket or Spur" },
+  { key: "eLight",   label: "Light Fitting" },
+  { key: "eSwitch",  label: "Light Switch" },
+  { key: "eDown",    label: "Downlights" },
+  { key: "eCU",      label: "Consumer Unit" },
+  { key: "eShower",  label: "Electric Shower Circuit" },
+  { key: "eCooker",  label: "Cooker / Hob Circuit" },
+  { key: "eFan",     label: "Extractor Fan" },
+  { key: "eAlarm",   label: "Smoke / Heat / CO Alarms" },
+  { key: "eOutside", label: "Outside Light / Socket" },
+  { key: "eEV",      label: "EV Charger" },
+  { key: "eEICR",    label: "EICR / Testing" },
+  { key: "eFault",   label: "Fault Finding" },
+];
+
+const ELEC_FIXTURE_KITS = {
+  eSocket: {
+    removedOnly: [{ l: "Blank plate", p: 2 }, { l: "Wago connectors", p: 2 }],
+    fitNew: [
+      { l: "Double socket", p: { budget: 4, mid: 8, premium: 25 } },
+      { l: "Back box (35mm)", p: 1.5, opt: true },
+      { l: "Wago connectors", p: 2, opt: true },
+    ],
+    fitOld: [{ l: "Grommets / sundries", p: 1 }],
+    repair: [{ l: "Replacement socket (if burnt / cracked)", p: 6, opt: true }, { l: "Back box (if lugs broken)", p: 1.5, opt: true }, { l: "Wago connectors", p: 2 }],
+  },
+
+  eNewPt: {
+    removedOnly: [{ l: "Blank plate", p: 2 }, { l: "Junction box (maintenance-free)", p: 4 }],
+    fitNew: [
+      { l: "Double socket", p: { budget: 4, mid: 8, premium: 25 } },
+      { l: "Back box", p: 1.5 },
+      { l: "2.5mm twin & earth (10m)", p: 10 },
+      { l: "Wago connectors", p: 2 },
+      { l: "Capping / clips", p: 4 },
+      { l: "Filler / bonding to make good", p: 6 },
+    ],
+    fitOld: [
+      { l: "Back box", p: 1.5 },
+      { l: "2.5mm twin & earth (10m)", p: 10 },
+      { l: "Wago connectors", p: 2 },
+      { l: "Filler / bonding to make good", p: 6 },
+    ],
+    repair: [{ l: "Wago connectors", p: 2 }, { l: "Junction box (maintenance-free)", p: 4, opt: true }],
+  },
+
+  eLight: {
+    removedOnly: [{ l: "Ceiling rose / terminal cover", p: 3 }, { l: "Wago connectors", p: 2 }],
+    fitNew: [
+      { l: "Light fitting", p: { budget: 12, mid: 35, premium: 90 } },
+      { l: "Wago connectors", p: 2 },
+      { l: "LED lamp", p: 3, opt: true },
+      { l: "Fixings / plugs", p: 2 },
+    ],
+    fitOld: [{ l: "Wago connectors", p: 2 }, { l: "Fixings / plugs", p: 2 }],
+    repair: [{ l: "Lampholder / ceiling rose", p: 4 }, { l: "Wago connectors", p: 2 }, { l: "Heat-resistant sleeving", p: 2, opt: true }],
+  },
+
+  eSwitch: {
+    removedOnly: [{ l: "Blank plate", p: 2 }, { l: "Wago connectors", p: 2 }],
+    fitNew: [
+      { l: "Light switch", p: { budget: 3, mid: 7, premium: 20 } },
+      { l: "Back box (if depth changes)", p: 1.5, opt: true },
+      { l: "Earth sleeving / sundries", p: 1 },
+    ],
+    fitOld: [{ l: "Earth sleeving / sundries", p: 1 }],
+    repair: [{ l: "Replacement switch", p: 4 }, { l: "Earth sleeving / sundries", p: 1 }],
+  },
+
+  /* priced per light; the "How many" question sets the quantity */
+  eDown: {
+    removedOnly: [{ l: "Wago connectors", p: 2 }, { l: "Ceiling patch / filler", p: 6 }],
+    fitNew: [
+      { l: "Fire-rated LED downlight", p: { budget: 6, mid: 12, premium: 22 }, q: 4 },
+      { l: "1.5mm twin & earth (10m)", p: 7 },
+      { l: "Wago connectors", p: 3 },
+      { l: "Junction box (maintenance-free)", p: 4, opt: true },
+    ],
+    fitOld: [{ l: "Wago connectors", p: 3 }],
+    repair: [{ l: "Replacement downlight / driver", p: 12 }, { l: "Wago connectors", p: 2 }],
+  },
+
+  eCU: {
+    removedOnly: [{ l: "Labels / sundries", p: 5 }],
+    fitNew: [
+      { l: "Consumer unit (metal, RCBO, SPD)", p: { budget: 220, mid: 340, premium: 560 } },
+      { l: "Meter tails 25mm² (pair)", p: 15 },
+      { l: "Main earth 16mm²", p: 8 },
+      { l: "Grommets / glands / blanks", p: 6 },
+      { l: "Circuit labels / RCD notice", p: 3 },
+      { l: "Extra RCBOs (type a quantity)", p: 22, opt: true },
+    ],
+    fitOld: [{ l: "Grommets / glands / blanks", p: 6 }, { l: "Circuit labels / RCD notice", p: 3 }],
+    repair: [{ l: "Replacement RCBO / MCB", p: 22 }, { l: "Sundries", p: 3 }],
+  },
+
+  eShower: {
+    removedOnly: [{ l: "Blank plate", p: 2 }, { l: "Terminate cable (connector block / box)", p: 4 }],
+    fitNew: [
+      { l: "10mm² twin & earth (per 10m)", p: 48 },
+      { l: "45A pull-cord isolator", p: 12 },
+      { l: "40/45A RCBO (type A)", p: 28 },
+      { l: "Clips / capping / grommets", p: 8 },
+      { l: "Ceiling box / back box", p: 4 },
+    ],
+    fitOld: [{ l: "Shower terminal / connector sundries", p: 4 }, { l: "Grommets / sealing", p: 3 }],
+    repair: [{ l: "45A pull-cord isolator", p: 12, opt: true }, { l: "Remake burnt terminals / sundries", p: 5 }],
+  },
+
+  eCooker: {
+    removedOnly: [{ l: "Cooker outlet blank", p: 4 }],
+    fitNew: [
+      { l: "45A cooker switch", p: { budget: 8, mid: 15, premium: 30 } },
+      { l: "Cooker outlet plate", p: 5 },
+      { l: "6mm² twin & earth (per 10m)", p: 30, opt: true },   // switched on by "Existing supply"
+      { l: "32A RCBO (type A)", p: 22, opt: true },
+      { l: "Back boxes / capping", p: 6 },
+    ],
+    fitOld: [{ l: "Cooker connection sundries", p: 3 }],
+    repair: [{ l: "45A cooker switch", p: 12, opt: true }, { l: "Cooker outlet plate", p: 5, opt: true }, { l: "Sundries", p: 3 }],
+  },
+
+  eFan: {
+    removedOnly: [{ l: "Wall vent cover / grille", p: 5 }, { l: "Filler / sealant", p: 5 }],
+    fitNew: [
+      { l: "Extractor fan 100mm (timer)", p: { budget: 25, mid: 55, premium: 130 } },
+      { l: "Fan isolator (3-pole)", p: 10 },
+      { l: "1.5mm 3-core & earth (10m)", p: 9 },
+      { l: "Ducting kit 100mm", p: 12 },
+      { l: "External grille / wall sleeve", p: 8 },
+      { l: "Sealant / fixings", p: 5 },
+    ],
+    fitOld: [{ l: "Sealant / fixings", p: 5 }],
+    repair: [{ l: "Replacement fan (like-for-like)", p: 35, opt: true }, { l: "Fan isolator (3-pole)", p: 10, opt: true }, { l: "Sundries", p: 3 }],
+  },
+
+  /* Scottish tolerable standard set: 1 smoke in the living room, 1 smoke per hall/landing, 1 heat in the kitchen, CO where there is a fixed combustion appliance */
+  eAlarm: {
+    removedOnly: [{ l: "Blank plate / terminate", p: 3 }],
+    fitNew: [
+      { l: "Smoke alarm (interlinked)", p: { budget: 25, mid: 32, premium: 45 }, q: 2 },
+      { l: "Heat alarm (interlinked)", p: { budget: 28, mid: 35, premium: 48 } },
+      { l: "CO alarm (sealed 10-yr)", p: { budget: 22, mid: 30, premium: 45 } },
+      { l: "Fixings / plugs", p: 3 },
+    ],
+    fitOld: [{ l: "Fixings / plugs", p: 3 }],
+    repair: [{ l: "Replacement alarm head", p: 30 }, { l: "Sundries", p: 2 }],
+  },
+
+  eOutside: {
+    removedOnly: [{ l: "Junction box / terminate", p: 4 }, { l: "Sealant / filler", p: 5 }],
+    fitNew: [
+      { l: "Outside light (PIR)", p: { budget: 15, mid: 40, premium: 90 } },
+      { l: "1.5mm twin & earth (10m)", p: 7 },
+      { l: "Weatherproof junction box", p: 6 },
+      { l: "Glands / sealant / fixings", p: 6 },
+      { l: "Wall sleeve / conduit", p: 6 },
+    ],
+    fitOld: [{ l: "Glands / sealant / fixings", p: 6 }],
+    repair: [{ l: "PIR sensor / lamp", p: 15 }, { l: "Weatherproof junction box", p: 6, opt: true }],
+  },
+
+  eEV: {
+    removedOnly: [{ l: "Isolate & terminate supply", p: 8 }],
+    fitNew: [
+      { l: "7kW EV charger (tethered)", p: { budget: 480, mid: 700, premium: 1000 } },
+      { l: "6mm² SWA 3-core (per 10m)", p: 55 },
+      { l: "SWA glands (pair)", p: 8 },
+      { l: "40A RCBO type A (or EV board)", p: 30 },
+      { l: "Clips / fixings / sealant", p: 10 },
+      { l: "Labels", p: 3 },
+    ],
+    fitOld: [{ l: "SWA glands (pair)", p: 8 }, { l: "Clips / fixings / sealant", p: 10 }],
+    repair: [{ l: "Sundries (type a price)", p: 10 }],
+  },
+
+  eEICR: {
+    fitNew: [{ l: "EICR certificate / scheme fee", p: 5 }, { l: "Labels / test sundries", p: 5 }],
+    repair: [{ l: "Labels / test sundries", p: 5 }],
+  },
+
+  eFault: {
+    repair: [
+      { l: "Sundries (Wagos, sleeving)", p: 5 },
+      { l: "Parts if needed (type a price)", p: 20, opt: true },
+    ],
+    fitNew: [{ l: "Sundries (Wagos, sleeving)", p: 5 }],
+  },
+};
+
+const ELEC_FX_H = {
+  eSocket:  { both: 0.5,  fit: 0.5,  remove: 0.25, repair: 0.5 },
+  eNewPt:   { both: 3,    fit: 2,    remove: 0.75, repair: 1 },     // fit = spur, surface; questions add chasing/ring
+  eLight:   { both: 0.75, fit: 0.75, remove: 0.25, repair: 0.5 },
+  eSwitch:  { both: 0.25, fit: 0.25, remove: 0.25, repair: 0.25 },
+  eDown:    { both: 4,    fit: 3.5,  remove: 1,    repair: 0.5 },   // 4 lights from an existing light point
+  eCU:      { both: 7,    fit: 6,    remove: 1,    repair: 1.5 },   // incl. full test of existing circuits
+  eShower:  { both: 5,    fit: 5,    remove: 1,    repair: 1 },     // new circuit, ~10m, accessible floor void
+  eCooker:  { both: 2,    fit: 1.5,  remove: 0.5,  repair: 0.75 },  // reconnect; "No circuit" adds +2.5
+  eFan:     { both: 2.25, fit: 2,    remove: 0.75, repair: 1 },     // existing hole; "Through the wall" adds the core (+1)
+  eAlarm:   { both: 2.5,  fit: 2,    remove: 0.5,  repair: 0.5 },   // sealed radio set; mains adds hours via question
+  eOutside: { both: 3,    fit: 3,    remove: 0.5,  repair: 1 },
+  eEV:      { both: 6,    fit: 5,    remove: 1.5,  repair: 1.5 },   // straightforward, board near the front wall
+  eEICR:    { both: 3,    fit: 3,    remove: 0,    repair: 3 },     // studio / 1-bed; size question adds
+  eFault:   { both: 2,    fit: 2,    remove: 0,    repair: 2 },     // first 2 hours; questions add
+};
+
+const ELEC_STRUCTURAL_ITEMS = [
+  { key: "eChase", label: "Chasing & Making Good", verb: "Chase walls for cables and make good", group: "elec",
+    options: [["none", "None"], ["few", "1–3 points"], ["room", "Whole room"], ["multi", "Several rooms"]], days: { few: 0.25, room: 0.75, multi: 2 } },
+  { key: "eBoards", label: "Lift Floorboards", verb: "Lift and refix floorboards for cable runs", group: "elec",
+    options: [["none", "None"], ["few", "A few boards"], ["room", "One room"], ["multi", "Several rooms"]], days: { few: 0.25, room: 0.5, multi: 1.5 } },
+  { key: "eRewire", label: "Full Rewire", verb: "Full rewire", group: "elec",
+    options: [["none", "None"], ["b1", "1-bed flat"], ["b2", "2-bed"], ["b3", "3-bed"], ["b4", "4-bed"]], days: { b1: 5, b2: 7, b3: 10, b4: 13 } },
+  { key: "eCert", label: "Certification", verb: "Testing and certification", group: "elec",
+    options: [["none", "None"], ["mwc", "Minor works cert"], ["eic", "EIC (new circuit)"], ["eicFull", "EIC (rewire / board)"]], days: { mwc: 0.125, eic: 0.25, eicFull: 0.5 } },
+  { key: "eWarrant", label: "Building Warrant", verb: "Building warrant (Scotland)", group: "elec",
+    options: [["none", "Not needed"], ["acc", "Warrant + certifier (CoC)"], ["full", "Warrant, LA inspects"]], days: { acc: 0.25, full: 0.5 } },
+  { key: "eBond", label: "Main Bonding", verb: "Main protective bonding to gas and water", group: "elec",
+    options: [["none", "OK / none"], ["one", "Gas or water"], ["both", "Gas and water"]], days: { one: 0.25, both: 0.5 } },
+];
+
+const ELEC_STRUCTURAL_KITS = {
+  eChase: {
+    few:   [{ l: "Capping 25mm", p: 4 }, { l: "Bonding plaster / filler", p: 8 }, { l: "Chasing disc wear", p: 5 }],
+    room:  [{ l: "Capping 25mm", p: 10 }, { l: "Bonding plaster (bag)", p: 12 }, { l: "Chasing disc wear / dust bags", p: 12 }],
+    multi: [{ l: "Capping 25mm", p: 25 }, { l: "Bonding plaster (2 bags)", p: 24 }, { l: "Chasing disc wear / dust bags", p: 25 }],
+  },
+  eBoards: {
+    few:   [{ l: "Floor screws", p: 5 }],
+    room:  [{ l: "Floor screws", p: 8 }, { l: "Replacement boards (if split)", p: 25, opt: true }],
+    multi: [{ l: "Floor screws", p: 15 }, { l: "Replacement boards (if split)", p: 50, opt: true }],
+  },
+  /* rewire kits: the board itself is priced with the eCU item (Remove & fit new) */
+  eRewire: {
+    b1: [{ l: "2.5mm twin & earth (100m)", p: 90, q: 1 }, { l: "1.5mm twin & earth (100m)", p: 70, q: 1 }, { l: "1.0mm 3-core & earth (50m)", p: 38 }, { l: "6mm²/10mm² cable (cooker/shower)", p: 60 },
+      { l: "Sockets & boxes (x12)", p: 85 }, { l: "Switches, roses & boxes (x6)", p: 40 }, { l: "Smoke / heat / CO alarm set", p: 120 }, { l: "Capping, clips, Wagos, sundries", p: 60 }],
+    b2: [{ l: "2.5mm twin & earth (100m)", p: 90, q: 2 }, { l: "1.5mm twin & earth (100m)", p: 70, q: 1 }, { l: "1.0mm 3-core & earth (50m)", p: 38 }, { l: "6mm²/10mm² cable (cooker/shower)", p: 70 },
+      { l: "Sockets & boxes (x18)", p: 125 }, { l: "Switches, roses & boxes (x9)", p: 60 }, { l: "Smoke / heat / CO alarm set", p: 150 }, { l: "Capping, clips, Wagos, sundries", p: 85 }],
+    b3: [{ l: "2.5mm twin & earth (100m)", p: 90, q: 3 }, { l: "1.5mm twin & earth (100m)", p: 70, q: 2 }, { l: "1.0mm 3-core & earth (50m)", p: 38, q: 2 }, { l: "6mm²/10mm² cable (cooker/shower)", p: 80 },
+      { l: "Sockets & boxes (x24)", p: 170 }, { l: "Switches, roses & boxes (x13)", p: 85 }, { l: "Smoke / heat / CO alarm set", p: 180 }, { l: "Capping, clips, Wagos, sundries", p: 110 }],
+    b4: [{ l: "2.5mm twin & earth (100m)", p: 90, q: 4 }, { l: "1.5mm twin & earth (100m)", p: 70, q: 2 }, { l: "1.0mm 3-core & earth (50m)", p: 38, q: 2 }, { l: "6mm²/10mm² cable (cooker/shower)", p: 90 },
+      { l: "Sockets & boxes (x30)", p: 210 }, { l: "Switches, roses & boxes (x16)", p: 105 }, { l: "Smoke / heat / CO alarm set", p: 210 }, { l: "Capping, clips, Wagos, sundries", p: 140 }],
+  },
+  eCert: {
+    mwc:     [{ l: "Minor works cert / scheme fee", p: 3 }],
+    eic:     [{ l: "EIC / scheme notification fee", p: 5 }],
+    eicFull: [{ l: "EIC / scheme notification fee", p: 5 }, { l: "Labels / schedules", p: 5 }],
+  },
+  eWarrant: {
+    acc:  [{ l: "Building warrant fee (type a price)", p: 210 }, { l: "Certificate of Construction fee", p: 25 }],
+    full: [{ l: "Building warrant fee (type a price)", p: 210 }],
+  },
+  eBond: {
+    one:  [{ l: "10mm² earth cable (10m)", p: 12 }, { l: "Earth clamp (BS 951) + label", p: 3 }],
+    both: [{ l: "10mm² earth cable (20m)", p: 22 }, { l: "Earth clamps (BS 951) + labels", p: 6 }],
+  },
+};
+
+const ELEC_JOB_Q = [
+  { k: "earth", q: "Earthing", opts: [["tncs", "TN-C-S (PME)"], ["tns", "TN-S (sheath)"], ["tt", "TT (rod)"], ["none", "None found"]],
+    on: { tns: { note: "TN-S earth from the cable sheath: earth continuity to be confirmed at test (common in older Glasgow tenements)." },
+      tt: { x: "eRod", note: "TT earthing: RCD protection on all circuits and the earth rod tested." },
+      none: { x: "eRod", note: "No reliable earth found. SP Energy Networks to be asked for a PME earth, or an earth rod fitted." } } },
+  { k: "board", q: "Existing board", opts: [["mod", "RCBO / RCD board"], ["old", "Old MCB, no RCD"], ["fuse", "Rewireable fuses"], ["plastic", "Plastic split-load"]],
+    on: { old: { note: "No RCD protection: needs upgrading before new circuits are added, and to meet the Repairing Standard if let." },
+      fuse: { x: "eCUprov", note: "Rewireable fuse box: replacement advised. New circuits can't be added to it." },
+      plastic: { note: "Plastic consumer unit: replace with a metal one (non-combustible) when the board is changed." } } },
+  { k: "wire", q: "Cable type / age", opts: [["pvc", "PVC T&E (modern)"], ["old", "PVC, red/black"], ["rubber", "Rubber (VIR)"], ["lead", "Lead-sheathed"]],
+    on: { old: { note: "Old-colour PVC wiring: cable colour warning label fitted at the board." },
+      rubber: { x: "eIRtest", note: "Rubber-insulated wiring found: it is beyond its safe life. A rewire is advised. New work can't be connected to it safely." },
+      lead: { x: "eIRtest", note: "Lead-sheathed wiring found: a rewire is advised. Earth continuity through the sheath can't be relied on." } } },
+  { k: "occ", q: "Property", opts: [["empty", "Empty"], ["occ", "Occupied"], ["let", "Tenanted"]],
+    on: { occ: { note: "Occupied: power off times agreed, temporary supply to the fridge and freezer, and furniture moved by the customer." },
+      let: { note: "Tenanted: access arranged through the landlord or agent. EICR at least every 5 years (Repairing Standard)." } } },
+  { k: "bld", q: "Building", opts: [["house", "House (2 storeys or less)"], ["flat", "Flat / tenement"], ["hmo", "HMO"]],
+    on: { flat: { note: "Flat: a rewire or new circuits may need a building warrant (check with Glasgow building standards). Replacing like-for-like does not." },
+      hmo: { x: "eAFDD", note: "HMO: AFDDs are required on socket circuits up to 32A (BS 7671 421.1.7). EICR and alarm standards are checked at licensing." } } },
+];
+
+const ELEC_JOB_X = {
+  eRod:    { verb: "Earth rod and test (provisional)", h: 1.5, kit: [{ l: "Earth rod, clamp & 16mm² cable", p: 30 }, { l: "Inspection pit", p: 12 }] },
+  eCUprov: { verb: "Replace consumer unit (provisional, if testing allows)", h: 7, kit: [{ l: "Consumer unit (metal, RCBO, SPD)", p: 340 }] },
+  eIRtest: { verb: "Test existing circuits before work (provisional)", h: 2, kit: [{ l: "Test sundries", p: 5 }] },
+  eAFDD:   { verb: "AFDDs on socket circuits (provisional)", h: 1, kit: [{ l: "AFDD/RCBO combined device (type a quantity)", p: 95 }] },
+};
+
+const JOIN_FIXTURE_ITEMS = [
+  { key: "jDoor",    label: "Internal Door" },
+  { key: "jFurn",    label: "Door Furniture / Locks" },
+  { key: "jSkirt",   label: "Skirting" },
+  { key: "jArch",    label: "Architrave / Door Lining" },
+  { key: "jBoards",  label: "Floorboards / Sub-floor" },
+  { key: "jFloor",   label: "Laminate / LVT / Engineered" },
+  { key: "jStud",    label: "Stud Wall" },
+  { key: "jBox",     label: "Boxing In" },
+  { key: "jUnit",    label: "Kitchen Units" },
+  { key: "jWtop",    label: "Worktop" },
+  { key: "jSash",    label: "Sash & Case Window" },
+  { key: "jHatch",   label: "Loft Hatch / Ladder" },
+  { key: "jShelf",   label: "Shelving" },
+  { key: "jPanel",   label: "Bath / Access Panel" },
+  { key: "jDeck",    label: "Decking" },
+  { key: "jFence",   label: "Fencing / Gate" },
+];
+
+const JOIN_FIXTURE_KITS = {
+  jDoor: {
+    removedOnly: [{ l: "Waste disposal (per door)", p: 5 }],
+    fitNew: [
+      { l: "Internal door", p: { budget: 30, mid: 75, premium: 180 } },
+      { l: "Hinges 3\" (pair)", p: 5 },
+      { l: "Tubular latch", p: 5 },
+      { l: "Lever handles", p: { budget: 10, mid: 22, premium: 45 } },
+      { l: "Screws / sundries", p: 3 },
+      { l: "Door stop", p: 3, opt: true },
+    ],
+    fitOld: [{ l: "Screws / sundries", p: 3 }, { l: "Hinges 3\" (pair, if worn)", p: 5, opt: true }],
+    repair: [{ l: "Screws / plugs / glue", p: 4 }, { l: "Hinges 3\" (pair)", p: 5, opt: true }, { l: "Tubular latch", p: 5, opt: true }],
+  },
+
+  jFurn: {
+    removedOnly: [{ l: "Filler / sundries", p: 3 }],
+    fitNew: [
+      { l: "Lever handles", p: { budget: 10, mid: 22, premium: 45 } },
+      { l: "Tubular latch", p: 5 },
+      { l: "Screws / sundries", p: 2 },
+    ],
+    fitOld: [{ l: "Screws / sundries", p: 2 }],
+    repair: [{ l: "Latch / spring cassette", p: 5 }, { l: "Screws / sundries", p: 2 }],
+  },
+
+  /* quantity is metres; set by the "Length" question */
+  jSkirt: {
+    removedOnly: [{ l: "Waste disposal", p: 5 }, { l: "Filler", p: 4 }],
+    fitNew: [
+      { l: "Skirting (per m)", p: { budget: 2.8, mid: 4.5, premium: 11 }, q: 8 },
+      { l: "Grab adhesive (2 tubes)", p: 9 },
+      { l: "Screws / plugs / pins", p: 5 },
+      { l: "Decorators caulk", p: 3 },
+    ],
+    fitOld: [{ l: "Grab adhesive", p: 4.5 }, { l: "Screws / plugs / pins", p: 5 }, { l: "Decorators caulk", p: 3 }],
+    repair: [{ l: "Skirting (per m)", p: 4.5, q: 2 }, { l: "Glue / pins / filler", p: 6 }],
+  },
+
+  jArch: {
+    removedOnly: [{ l: "Filler", p: 4 }],
+    fitNew: [
+      { l: "Architrave set (one side)", p: { budget: 12, mid: 20, premium: 45 } },
+      { l: "Pins / glue / caulk", p: 5 },
+    ],
+    fitOld: [{ l: "Pins / glue / caulk", p: 5 }],
+    repair: [{ l: "Architrave length", p: 6 }, { l: "Pins / glue / caulk", p: 5 }],
+  },
+
+  /* per room; the "How much" question sets quantities */
+  jBoards: {
+    removedOnly: [{ l: "Waste disposal", p: 10 }],
+    fitNew: [
+      { l: "T&G floorboard 18mm (2.1m)", p: 12.5, q: 4 },
+      { l: "Noggins / CLS 2.4m", p: 4, q: 2 },
+      { l: "Floor screws (box)", p: 8 },
+      { l: "Joist hangers / packers", p: 6, opt: true },
+    ],
+    fitOld: [{ l: "Floor screws (box)", p: 8 }],
+    repair: [{ l: "T&G floorboard 18mm (2.1m)", p: 12.5, q: 1 }, { l: "Floor screws (box)", p: 8 }, { l: "Talc / squeak fix sundries", p: 5, opt: true }],
+  },
+
+  /* per m²; quantity set by "Area" */
+  jFloor: {
+    removedOnly: [{ l: "Waste disposal (per room)", p: 15 }],
+    fitNew: [
+      { l: "Laminate flooring (m²)", p: { budget: 11, mid: 18, premium: 30 }, q: 6.6 },
+      { l: "Underlay (m²)", p: 3, q: 6 },
+      { l: "Beading / scotia (2.4m)", p: 4, q: 4 },
+      { l: "Threshold / door bar", p: 10 },
+      { l: "Adhesive / pins / spacers", p: 8 },
+      { l: "DPM / vapour barrier (if solid floor)", p: 15, opt: true },
+    ],
+    fitOld: [{ l: "Beading / scotia (2.4m)", p: 4, q: 5 }, { l: "Adhesive / pins / spacers", p: 8 }, { l: "Spare boards (allow 10%)", p: 0, opt: true }],
+    repair: [{ l: "Replacement boards (type a price)", p: 20 }, { l: "Adhesive / pins", p: 5 }],
+  },
+
+  /* base is a 2m x 2.4m wall, boarded both sides; "Wall length" scales it */
+  jStud: {
+    removedOnly: [{ l: "Waste disposal", p: 25 }, { l: "Making good (filler / bonding)", p: 15 }],
+    fitNew: [
+      { l: "CLS 38x63 2.4m", p: 4, q: 8 },
+      { l: "Plasterboard 12.5mm 2.4x1.2", p: 11, q: 4 },
+      { l: "Drywall screws / fixings", p: 12 },
+      { l: "Acoustic insulation roll", p: 28, opt: true },
+      { l: "Frame fixings (concrete screws / plugs)", p: 8 },
+    ],
+    fitOld: [{ l: "Drywall screws / fixings", p: 12 }],
+    repair: [{ l: "Plasterboard 12.5mm 2.4x1.2", p: 11 }, { l: "CLS 38x63 2.4m", p: 4, q: 2 }, { l: "Drywall screws / fixings", p: 6 }],
+  },
+
+  jBox: {
+    removedOnly: [{ l: "Waste disposal", p: 5 }],
+    fitNew: [
+      { l: "Batten 25x38 2.4m", p: 2.5, q: 3 },
+      { l: "MR MDF 9mm (half sheet)", p: 16 },
+      { l: "Screws / plugs / glue", p: 6 },
+      { l: "Access panel (screw-fix)", p: 8, opt: true },
+      { l: "Caulk / filler", p: 4 },
+    ],
+    fitOld: [{ l: "Screws / plugs / glue", p: 6 }, { l: "Caulk / filler", p: 4 }],
+    repair: [{ l: "MR MDF 9mm (offcut)", p: 8 }, { l: "Screws / glue", p: 4 }],
+  },
+
+  /* per unit; "How many" sets the count. Units are usually supplied by the customer or kitchen supplier */
+  jUnit: {
+    removedOnly: [{ l: "Waste disposal (per unit)", p: 6 }],
+    fitNew: [
+      { l: "Kitchen unit (supplied by others)", p: { budget: 0, mid: 0, premium: 0 }, q: 1 },
+      { l: "Wall-unit hanging rail / brackets", p: 6, opt: true },
+      { l: "Connecting screws / fixings", p: 3 },
+      { l: "Plinth / end panel (type a price)", p: 15, opt: true },
+    ],
+    fitOld: [{ l: "Connecting screws / fixings", p: 3 }, { l: "Wall-unit hanging rail / brackets", p: 6, opt: true }],
+    repair: [{ l: "Soft-close hinge (pair)", p: 6 }, { l: "Drawer runner (pair)", p: 12, opt: true }, { l: "Screws", p: 2 }],
+  },
+
+  jWtop: {
+    removedOnly: [{ l: "Waste disposal", p: 15 }],
+    fitNew: [
+      { l: "Worktop 3m x 600 x 38", p: { budget: 60, mid: 110, premium: 240 } },
+      { l: "End strip / edging", p: 6 },
+      { l: "Worktop bolts (per joint)", p: 5, opt: true },
+      { l: "Silicone / colour-fill", p: 10 },
+      { l: "Brackets / screws", p: 5 },
+    ],
+    fitOld: [{ l: "Silicone / colour-fill", p: 10 }, { l: "Brackets / screws", p: 5 }],
+    repair: [{ l: "Colour-fill / repair kit", p: 12 }, { l: "Silicone", p: 6 }],
+  },
+
+  /* per window; Glasgow tenement sash and case */
+  jSash: {
+    removedOnly: [{ l: "Waste disposal", p: 10 }],
+    fitNew: [
+      { l: "Sash cord (waxed, 12m)", p: 12 },
+      { l: "Staff & parting beads", p: 20 },
+      { l: "Draught-proofing (brush / seal kit)", p: { budget: 30, mid: 70, premium: 140 } },
+      { l: "Sash pulleys (if seized)", p: 12, opt: true },
+      { l: "Pins / screws / wax", p: 5 },
+    ],
+    fitOld: [{ l: "Sash cord (waxed, 12m)", p: 12 }, { l: "Pins / screws / wax", p: 5 }],
+    repair: [
+      { l: "Sash cord (waxed, 12m)", p: 12 },
+      { l: "Staff bead (if broken)", p: 8, opt: true },
+      { l: "Resin / timber splice (type a price)", p: 20, opt: true },
+      { l: "Putty / glazing sundries", p: 8, opt: true },
+      { l: "Sash fastener / stops", p: 10, opt: true },
+    ],
+  },
+
+  jHatch: {
+    removedOnly: [{ l: "Board / insulation over hole (type a price)", p: 25 }],
+    fitNew: [
+      { l: "Insulated loft hatch", p: { budget: 40, mid: 75, premium: 150 } },
+      { l: "Timber trimmers 47x100", p: 12, opt: true },
+      { l: "Screws / sealant", p: 5 },
+    ],
+    fitOld: [{ l: "Screws / sealant", p: 5 }, { l: "Draught seal", p: 6 }],
+    repair: [{ l: "Draught seal", p: 6 }, { l: "Catch / hinge", p: 8 }],
+  },
+
+  jShelf: {
+    removedOnly: [{ l: "Filler", p: 4 }],
+    fitNew: [
+      { l: "Shelf (each)", p: { budget: 10, mid: 25, premium: 60 }, q: 2 },
+      { l: "Battens / brackets", p: 8 },
+      { l: "Plugs / screws", p: 4 },
+    ],
+    fitOld: [{ l: "Plugs / screws", p: 4 }],
+    repair: [{ l: "Plugs / screws / brackets", p: 8 }],
+  },
+
+  jPanel: {
+    removedOnly: [{ l: "Filler / sundries", p: 3 }],
+    fitNew: [
+      { l: "Bath panel (front)", p: { budget: 25, mid: 45, premium: 90 } },
+      { l: "Batten frame 25x38", p: 5 },
+      { l: "Screws / caps / silicone", p: 8 },
+      { l: "End panel", p: 20, opt: true },
+    ],
+    fitOld: [{ l: "Screws / caps / silicone", p: 8 }],
+    repair: [{ l: "Batten frame 25x38", p: 5 }, { l: "Screws / caps / silicone", p: 8 }],
+  },
+
+  /* fencing priced per panel run; the "Panels" question sets quantities */
+  jFence: {
+    removedOnly: [{ l: "Waste disposal (type a price)", p: 40 }],
+    fitNew: [
+      { l: "Fence panel 1.83m", p: { budget: 25, mid: 38, premium: 70 }, q: 5 },
+      { l: "Fence post 100x100 2.4m treated", p: 13, q: 6 },
+      { l: "Postcrete (2 per post)", p: 14, q: 6 },
+      { l: "Gravel board", p: 15, q: 5, opt: true },
+      { l: "Panel clips / screws", p: 6 },
+      { l: "Timber gate", p: 80, opt: true },
+      { l: "Gate hinges, latch, bolt", p: 25, opt: true },
+    ],
+    fitOld: [{ l: "Panel clips / screws", p: 6 }, { l: "Postcrete (2 per post)", p: 14, q: 2, opt: true }],
+    repair: [{ l: "Fence post 100x100 2.4m treated", p: 13 }, { l: "Postcrete (2 per post)", p: 14 }, { l: "Post repair spur / brackets", p: 12, opt: true }, { l: "Panel clips / screws", p: 6 }],
+  },
+
+  /* decking per m²; the "Size" question sets quantities */
+  jDeck: {
+    removedOnly: [{ l: "Waste disposal (type a price)", p: 40 }],
+    fitNew: [
+      { l: "Deck boards (m²)", p: { budget: 15, mid: 22, premium: 70 }, q: 10 },
+      { l: "Joists 47x150 C16 treated (3.6m)", p: 12, q: 6 },
+      { l: "Posts / pads / postcrete", p: 40 },
+      { l: "Weed membrane + gravel", p: 30 },
+      { l: "Deck screws / joist hangers", p: 30 },
+      { l: "End-grain preserver", p: 10 },
+    ],
+    fitOld: [{ l: "Deck screws / fixings", p: 20 }],
+    repair: [{ l: "Replacement boards (type a price)", p: 30 }, { l: "Deck screws", p: 10 }],
+  },
+};
+
+const JOIN_FX_H = {
+  jDoor:    { both: 3,    fit: 2.5,  remove: 0.5, repair: 1 },     // hang on existing lining incl. hinges, latch, handles
+  jFurn:    { both: 0.75, fit: 0.75, remove: 0.25, repair: 0.5 },
+  jSkirt:   { both: 2.75, fit: 2.5,  remove: 0.5, repair: 1 },     // 8m incl. mitres / scribes (~0.3h/m); "Length" adds
+  jArch:    { both: 1.5,  fit: 1.25, remove: 0.25, repair: 0.5 },  // one side of a door
+  jBoards:  { both: 3,    fit: 2.5,  remove: 0.75, repair: 1 },    // a patch of ~4 boards
+  jFloor:   { both: 3.5,  fit: 3,    remove: 0.75, repair: 1.5 },  // 6m² laminate incl. trims, beading (small rooms are slow per m²); "Area" adds
+  jStud:    { both: 7,    fit: 6,    remove: 2,   repair: 2 },     // 2m x 2.4m, boarded both sides; "Wall length" adds
+  jBox:     { both: 3,    fit: 2.5,  remove: 0.5, repair: 1 },     // one run (~2m)
+  jUnit:    { both: 1.75, fit: 1.25, remove: 0.5, repair: 0.5 },   // per unit
+  jWtop:    { both: 5,    fit: 4,    remove: 1,   repair: 1 },     // one straight 3m length, no joints
+  jSash:    { both: 3.5,  fit: 3,    remove: 1,   repair: 3 },     // one window, re-cord both sashes; overhaul / draught-proof add
+  jHatch:   { both: 3,    fit: 3,    remove: 1,   repair: 0.75 },  // new hatch in an existing opening
+  jShelf:   { both: 1.5,  fit: 1.25, remove: 0.25, repair: 0.5 },  // 2 shelves
+  jPanel:   { both: 1.5,  fit: 1.25, remove: 0.25, repair: 0.75 },
+  jDeck:    { both: 14,   fit: 12,   remove: 3,   repair: 2 },     // 10m² deck, ground level
+  jFence:   { both: 8,    fit: 6.5,  remove: 1.5, repair: 1.5 },   // 5 panels / 6 posts dug and concreted
+};
+
+const JOIN_STRUCTURAL_ITEMS = [
+  { key: "jStrip", label: "Strip Out & Waste", verb: "Strip out old fixtures and remove waste", group: "joinery",
+    options: [["none", "None"], ["van", "Van load"], ["skip", "Skip"], ["bags", "Skip bags x3"]], days: { van: 0.25, skip: 0.5, bags: 0.5 } },
+  { key: "jMakeGood", label: "Making Good", verb: "Making good after joinery work", group: "joinery",
+    options: [["none", "None"], ["minor", "Minor (filler)"], ["room", "Per room (bonding)"]], days: { minor: 0.25, room: 0.5 } },
+  { key: "jFireStop", label: "Fire Stopping", verb: "Fire stopping round services and penetrations", group: "joinery",
+    options: [["none", "None"], ["few", "A few penetrations"], ["flat", "Whole flat / riser"]], days: { few: 0.25, flat: 1 } },
+  { key: "jProtect", label: "Protection", verb: "Floor and furniture protection", group: "joinery",
+    options: [["none", "None"], ["room", "One room"], ["house", "Whole house + stair"]], days: { room: 0.1, house: 0.25 } },
+  { key: "jFireDoors", label: "Fire Door Upgrade", verb: "Upgrade existing doors to FD30S standard", group: "joinery",
+    options: [["none", "None"], ["entr", "Flat entrance only"], ["hmo", "HMO set (5 doors)"]], days: { entr: 0.75, hmo: 3 } },
+];
+
+const JOIN_STRUCTURAL_KITS = {
+  jStrip: {
+    van:  [{ l: "Waste disposal (van load, type a price)", p: 60 }, { l: "Rubble bags", p: 8 }],
+    skip: [{ l: "Skip 6yd (type a price)", p: 280 }, { l: "Skip permit (road, if needed)", p: 50, opt: true }],
+    bags: [{ l: "Skip bags x3 incl. collection", p: 270 }],
+  },
+  jMakeGood: {
+    minor: [{ l: "Filler / caulk", p: 10 }],
+    room:  [{ l: "Bonding / multi-finish (bag)", p: 14 }, { l: "Filler / caulk / scrim", p: 12 }],
+  },
+  jFireStop: {
+    few:  [{ l: "Intumescent mastic", p: 10, q: 2 }, { l: "Intumescent pipe collars / wraps", p: 15 }],
+    flat: [{ l: "Intumescent mastic", p: 10, q: 5 }, { l: "Intumescent pipe collars / wraps", p: 15, q: 3 }, { l: "Fire batt / stone wool", p: 45 }, { l: "Fire-stopping labels / photos", p: 5 }],
+  },
+  jProtect: {
+    room:  [{ l: "Dust sheets / floor protector", p: 15 }],
+    house: [{ l: "Floor protector roll / correx", p: 40 }, { l: "Dust sheets / zip door", p: 25 }],
+  },
+  jFireDoors: {
+    entr: [{ l: "FD30S entrance door (certified)", p: 180 }, { l: "Fire-rated hinges (3, grade 13)", p: 15 }, { l: "Overhead door closer", p: 45 }, { l: "Intumescent strips + smoke seals", p: 18 }, { l: "Intumescent letter plate", p: 40, opt: true }, { l: "Fire door signs", p: 4 }],
+    hmo:  [{ l: "FD30S door (certified)", p: 110, q: 5 }, { l: "Fire-rated hinges (3, grade 13)", p: 15, q: 5 }, { l: "Door closers", p: 30, q: 5 }, { l: "Intumescent strips + smoke seals", p: 18, q: 5 }, { l: "Fire door signs", p: 4, q: 5 }],
+  },
+};
+
+const JOIN_JOB_Q = [
+  { k: "bld", q: "Property", opts: [["ten", "Tenement flat"], ["4blk", "4-in-a-block / cottage flat"], ["house", "House"], ["new", "New-build flat"]],
+    on: { ten: { note: "Tenement: carry-up of materials, non-standard sizes, lath and plaster. Common stair, shared roof or windows may need factor approval." },
+      new: { note: "New-build flat: don't break fire stopping or the flat entrance door's fire rating. Check the developer's warranty (NHBC/LABC)." } } },
+  { k: "floor", q: "Floor type", opts: [["tg", "Timber joists, T&G"], ["sq", "Timber, square-edge boards"], ["chip", "Chipboard on joists"], ["conc", "Concrete"]],
+    on: { sq: { note: "Old square-edged boards: some may split when lifted. Reclaimed boards allowed for." },
+      conc: { note: "Concrete floor: fixings by plugs. Moisture checked before timber flooring." } } },
+  { k: "storey", q: "Floor level", opts: [["gr", "Ground / 1st"], ["up", "2nd floor+, no lift"]],
+    on: { up: { x: "jCarry" } } },
+  { k: "occ", q: "Occupied", opts: [["empty", "Empty"], ["occ", "Occupied"]],
+    on: { occ: { note: "Occupied: furniture moved by the customer, rooms cleared before we start, daily tidy-up." } } },
+  { k: "use", q: "Use", opts: [["own", "Owner"], ["let", "Private let"], ["hmo", "HMO"]],
+    on: { hmo: { x: "jHMOfire", note: "HMO: fire doors (FD30S, self-closing, smoke seals) to the bedrooms, kitchen, living room and flat entrance under licensing. Glasgow HMO conditions apply." } } },
+  { k: "cons", q: "Listed / conservation area", opts: [["no", "No"], ["yes", "Yes / not sure"]],
+    on: { yes: { note: "Listed building or conservation area: windows and external doors repaired like-for-like. Replacements need consent." } } },
+];
+
+const JOIN_JOB_X = {
+  jCarry:   { verb: "Carry materials up the stair and waste down", h: 2, kit: [] },
+  jHMOfire: { verb: "Fire door survey and upgrade (provisional)", h: 3, kit: [{ l: "Intumescent strips + smoke seals (per door)", p: 18 }, { l: "Door closer (per door)", p: 30 }] },
+};
+
+const ELECTRICAL = { title: "Electrical Survey", fixturesLabel: "Electrical items", structLabel: "Whole job", hk: "elec", fixtures: ELEC_FIXTURE_ITEMS, fixtureKits: ELEC_FIXTURE_KITS,
+  structural: ELEC_STRUCTURAL_ITEMS, structuralKits: ELEC_STRUCTURAL_KITS, extras: {}, jobQ: ELEC_JOB_Q, jobX: ELEC_JOB_X, jobSub: "once per job: earthing, board, cables" };
+const JOINERY = { title: "Joinery Survey", fixturesLabel: "Joinery items", structLabel: "Whole job", hk: "joinery", fixtures: JOIN_FIXTURE_ITEMS, fixtureKits: JOIN_FIXTURE_KITS,
+  structural: JOIN_STRUCTURAL_ITEMS, structuralKits: JOIN_STRUCTURAL_KITS, extras: {}, jobQ: JOIN_JOB_Q, jobX: JOIN_JOB_X, jobSub: "once per job: building, floors, access" };
+
 /* ---------- Heating (wet central heating; boilers and other gas work stay in the gas section) ---------- */
 const HEAT_FIXTURE_ITEMS = [
   { key: "boiler", label: "Boiler" },
@@ -1798,6 +2418,7 @@ const DEF_H = 2; // most hours boxes start at 2 hours
    (the filter and pipework changes are part of that time). A filter on its own in an existing system is about 4 hours. */
 const FX_H = { boiler: { both: 8, fit: 8, remove: 3, repair: 2 }, hfilt: { both: 4, fit: 4, remove: 1, repair: 1 },
   ktap: { both: 1, fit: 0.75, remove: 0.25, repair: 0.5 }, sink: { both: 2, fit: 1.5, remove: 0.5, repair: 0.5 }, dishwasher: { both: 1, fit: 0.75, remove: 0.25, repair: 0.5 }, washer: { both: 1, fit: 0.75, remove: 0.25, repair: 0.5 } };
+Object.assign(FX_H, ELEC_FX_H, JOIN_FX_H);
 let blrFitting = false; /* set by computeSurvey: a new boiler is going in, so a filter fitted with it takes no extra time */
 const fxDefH = (st, key) => { if (key === "hfilt" && blrFitting && st && st.fit) return 0; const h = FX_H[key]; if (h && st) { if (st.repair) return h.repair; if (st.remove && st.fit) return h.both; if (st.fit) return h.fit; if (st.remove) return h.remove; } return st && st.remove && st.fit && !st.repair ? 4 : DEF_H; };
 /* gas runs depend on the route through the house, so they start at 0 for Paul to put in; altered pipework is part of the boiler swap time */
@@ -1904,6 +2525,7 @@ function makeCtx(st) {
   return {
     prices: st.prices, srcs: st.srcs, bulk: st.bulk, bulkOnly: st.bulkOnly, size: st.size, area: st.area,
     setPrice: (id, v) => st.setPrices((p) => ({ ...p, [id]: v })),
+    updPrice: (id, fn) => st.setPrices((p) => ({ ...p, [id]: fn(p[id]) })),
     setSrc: (id, v) => st.setSrcs((p) => ({ ...p, [id]: v })),
     addBulk: () => st.setBulk((b) => [...b, { id: newId(), where: "", note: "", total: "" }]),
     updateBulk: (id, patch) => st.setBulk((b) => b.map((x) => (x.id === id ? { ...x, ...patch } : x))),
@@ -1930,12 +2552,19 @@ const FX_Q = {
         btw: { phrase: "back-to-wall", hours: 2, add: [FQ_ADD("btwcis", "Concealed cistern (if the pan comes without one)", 60, { opt: true }), FQ_ADD("btwunit", "Back-to-wall unit or boxing (type a price)", 120)] },
         wh: { phrase: "wall-hung on a concealed frame", hours: 5, off: ["Pan connector", "Wax/rubber pan seal"], note: "Frame and boxing to be fitted before tiling.",
           add: [FQ_ADD("frame", "Wall-hung WC frame (cistern built in)", 160), FQ_ADD("plate", "Flush plate", 30), FQ_ADD("fpan", "Frame pan connector 90mm", 12), FQ_ADD("box", "Boxing: studs and moisture-resistant board (type a price)", 40)] } } },
-    { k: "out", q: "Pan outlet to the soil", lists: ["fitNew", "fitOld"], when: (a) => a.type !== "wh",
+    { k: "out", q: "Pan outlet to the soil", lists: ["fitNew", "fitOld"], when: (a) => a.type !== "wh", hidden: ["ci"],
       opts: [["str", "Straight"], ["b90", "90° bend"], ["off", "Offset"], ["floor", "Floor (S-trap)"], ["ci", "Into cast iron"]],
       on: { b90: { off: ["Pan connector"], add: [FQ_ADD("p90", "90° pan connector 110mm", 10)] },
         off: { off: ["Pan connector"], add: [FQ_ADD("poff", "Offset pan connector 110mm", 12)] },
         floor: { off: ["Pan connector"], add: [FQ_ADD("pfl", "Floor-outlet (S-trap) pan connector", 10)] },
         ci: { hours: 1, off: ["Pan connector"], add: [FQ_ADD("pci", "Pan connector to cast iron (collar or adaptor)", 15)], note: "Connection into the existing cast iron soil pipe." } } },
+    { k: "soil", q: "Soil pipe the pan goes into", lists: ["fitNew", "fitOld"], when: (a) => a.out !== "ci", opts: [["pl", "Plastic 4\" (110mm)"], ["ci", "Cast iron"], ["lead", "Lead 3½\""]],
+      on: { ci: { hours: 1, off: ["Pan connector"], add: [FQ_ADD("pci", "Connector onto the cast iron soil (collar or adaptor)", 15)], note: "Connection into the existing cast iron soil pipe." },
+        lead: { hours: 0.5, add: [FQ_ADD("pext", "Pan extension 3½\" to 4\" (onto the lead soil pipe)", 12)], note: "Connection onto the existing 3½ inch lead soil pipe with a pan extension to 4 inch." } } },
+    { k: "stack", q: "Soil stack for the toilet", lists: ["fitNew", "fitOld"], opts: [["none", "No change"], ["boss", "New branch / boss"], ["sect", "Replace a section"], ["move", "Reroute to new position"]],
+      on: { boss: { okIfQ: (a) => a.soil !== "ci", warnQ: "A boss can't go on a cast iron stack: pick Replace a section to cut in a new branch.", hours: 1.5, add: [FQ_ADD("sboss", "Soil stack boss or branch connector 110mm", 15)], note: "New connection made into the soil stack." },
+        sect: { hours: 3, add: [FQ_ADD("pext", null), FQ_ADD("pci", null), FQ_ADD("ssect", "110mm soil pipe, branch and couplers (type a price)", 45), FQ_ADD("sci", "Cast iron or lead to plastic stack connector", 25, { opt: true })], note: "Section of the soil stack replaced to suit the toilet. If the stack is shared, the work is to be arranged with the factor and neighbours." },
+        move: { hours: 2, add: [FQ_ADD("pext", null), FQ_ADD("pci", null), FQ_ADD("smove", "110mm soil pipe, bends and couplers (type a price)", 30), FQ_ADD("smci", "Cast iron or lead to plastic connector", 25, { opt: true })], note: "Soil pipe rerouted to suit the new toilet position." } } },
     { k: "feed", q: "Cistern feed", lists: ["fitNew"], opts: [["bot", "Bottom entry"], ["side", "Side entry"]],
       on: { side: { add: [FQ_ADD("sidef", "Extra elbow and longer flexi for side entry", 6)] } } },
     { k: "fv", q: "Old cistern fill valve", lists: ["fitOld"], opts: [["ok", "Fine"], ["new", "Needs a new one"]],
@@ -2010,6 +2639,376 @@ const FX_Q = {
   ],
 };
 FX_Q.hrad = [FX_Q.radiator[0], FX_Q.radiator[1]];
+Object.assign(FX_Q, {
+eSocket: [
+  { k: "type", q: "Socket type", lists: ["fitNew"], opts: [["dbl", "Double"], ["sgl", "Single"], ["usb", "USB (A+C)"], ["met", "Metal / brushed"]],
+    on: { dbl: { phrase: "double socket" },
+      sgl: { phrase: "single socket", off: ["Double socket"], add: [FQ_ADD("sgl", "Single socket", 3.5)] },
+      usb: { phrase: "double socket with USB", off: ["Double socket"], add: [FQ_ADD("usb", "Double socket with USB A+C", 22)] },
+      met: { phrase: "metal-clad / brushed socket", off: ["Double socket"], add: [FQ_ADD("met", "Brushed steel double socket", 14)], note: "Metal front plates need an earth fly lead to the box." } } },
+  { k: "box", q: "Back box", lists: ["fitNew", "fitOld"], opts: [["ok", "Keep"], ["deep", "Needs deeper"], ["dry", "Dry-lining box"]],
+    on: { deep: { hours: 0.5, set: ["Back box (35mm)"], phrase: "deeper back box" },
+      dry: { hours: 0.25, add: [FQ_ADD("drybox", "Dry-lining box 35mm", 1.2)] } } },
+  { k: "qty", q: "How many", lists: ["fitNew", "fitOld", "removedOnly"], opts: [["1", "1"], ["2", "2"], ["4", "4"], ["6", "6"], ["10", "10"]],
+    on: { 2: { qty: { "Double socket": 2 }, hours: 0.4 }, 4: { qty: { "Double socket": 4 }, hours: 1.2 }, 6: { qty: { "Double socket": 6 }, hours: 2 }, 10: { qty: { "Double socket": 10 }, hours: 3.5 } } },
+],
+
+eNewPt: [
+  { k: "from", q: "Wired from", lists: ["fitNew", "fitOld"], opts: [["spur", "Spur off socket"], ["ring", "Extend the ring"], ["fcu", "Fused spur (FCU)"], ["new", "New circuit"]],
+    on: { spur: { phrase: "spurred from an existing socket", note: "Only one unfused spur per ring socket; ring tested before connecting." },
+      ring: { hours: 1, phrase: "ring circuit extended", qty: { "2.5mm twin & earth (10m)": 2 } },
+      fcu: { hours: 0.25, phrase: "fused spur", add: [FQ_ADD("fcu", "Switched fused spur (FCU)", 7), FQ_ADD("fcubox", "Back box", 1.5)] },
+      new: { hours: 2.5, phrase: "on a new circuit", add: [FQ_ADD("rcbo", "RCBO 32A/20A (type A)", 22), FQ_ADD("cab", "2.5mm twin & earth (extra 20m)", 20)], note: "New circuit to the consumer unit. A spare way and an RCD-protected board are needed." } } },
+  { k: "route", q: "Cable run", lists: ["fitNew", "fitOld"], opts: [["void", "Floor / ceiling void"], ["chase", "Chase plaster"], ["surf", "Surface trunking"], ["dry", "Behind dry-lining"]],
+    on: { void: { hours: 0.5, phrase: "cable run under floorboards", note: "Floorboards lifted and refixed." },
+      chase: { hours: 1.5, phrase: "cable chased in and made good", add: [FQ_ADD("chcap", "Plastic capping 25mm", 4)], note: "Chases filled ready for decoration. Final skim by others." },
+      surf: { phrase: "in surface mini-trunking", off: ["Filler / bonding to make good", "Capping / clips"], add: [FQ_ADD("trunk", "Mini trunking 16x16 (2m x 3)", 9), FQ_ADD("surfbox", "Surface pattress", 2)] },
+      dry: { hours: 0.5, add: [FQ_ADD("drybox", "Dry-lining box", 1.2)] } } },
+  { k: "where", q: "Room", lists: ["fitNew", "fitOld"], opts: [["norm", "General"], ["kit", "Kitchen worktop"], ["bath", "Bathroom (3m rule)"]],
+    on: { kit: { note: "Keep 300mm clear of the sink and hob edges where you can (good practice)." },
+      bath: { note: "Bathroom socket must be at least 3m from the bath or shower zone (BS 7671 701.512.3)." } } },
+],
+
+eLight: [
+  { k: "type", q: "Fitting type", lists: ["fitNew"], opts: [["pend", "Pendant"], ["batten", "Ceiling flush / batten"], ["heavy", "Chandelier / heavy"], ["bath", "Bathroom IP44+"], ["wall", "Wall light"]],
+    on: { pend: { phrase: "pendant" }, batten: { phrase: "ceiling flush light" },
+      heavy: { phrase: "heavy fitting", hours: 0.75, add: [FQ_ADD("hook", "Ceiling hook / support batten", 6)], note: "Fixed to a joist or noggin for the weight." },
+      bath: { phrase: "IP-rated bathroom light", add: [FQ_ADD("ip", "IP-rated fitting uplift", 15)], note: "IP rating to suit the bathroom zone." },
+      wall: { phrase: "wall light", hours: 1, add: [FQ_ADD("wcab", "1.5mm twin & earth (5m)", 4), FQ_ADD("wbox", "Back box / filler", 5)] } } },
+  { k: "earth", q: "Earth at the rose", lists: ["fitNew", "fitOld"], opts: [["yes", "Yes"], ["no", "No earth"]],
+    on: { no: { note: "No earth at the lighting point: Class II (double-insulated) fitting only. Rewire of the lighting circuit advised." } } },
+  { k: "qty", q: "How many", lists: ["fitNew", "fitOld", "removedOnly"], opts: [["1", "1"], ["2", "2"], ["3", "3"], ["5", "5"]],
+    on: { 2: { qty: { "Light fitting": 2 }, hours: 0.6 }, 3: { qty: { "Light fitting": 3 }, hours: 1.2 }, 5: { qty: { "Light fitting": 5 }, hours: 2.5 } } },
+],
+
+eSwitch: [
+  { k: "type", q: "Switch type", lists: ["fitNew"], opts: [["1g", "1-gang"], ["2g", "2-gang / 2-way"], ["dim", "Dimmer (LED)"], ["pull", "Pull-cord"], ["met", "Metal"]],
+    on: { "2g": { phrase: "2-gang switch", add: [FQ_ADD("2g", "2-gang switch uplift", 2)] },
+      dim: { phrase: "LED dimmer", off: ["Light switch"], add: [FQ_ADD("dim", "LED dimmer (trailing edge)", 18)], note: "Lamps must be dimmable." },
+      pull: { phrase: "ceiling pull-cord switch", off: ["Light switch"], add: [FQ_ADD("pull", "Pull-cord switch", 6)] },
+      met: { phrase: "metal switch", off: ["Light switch"], add: [FQ_ADD("mets", "Brushed steel switch", 10)] } } },
+  { k: "neut", q: "Smart switch? (needs neutral)", lists: ["fitNew"], opts: [["no", "No"], ["yes", "Yes"]],
+    on: { yes: { hours: 0.25, add: [FQ_ADD("smart", "Smart switch (type a price)", 35)], note: "Most smart switches need a neutral at the switch, which older wiring may not have." } } },
+],
+
+eDown: [
+  { k: "qty", q: "How many lights", lists: ["fitNew", "fitOld", "removedOnly"], opts: [["4", "4"], ["6", "6"], ["8", "8"], ["10", "10"], ["12", "12"]],
+    on: { 6: { qty: { "Fire-rated LED downlight": 6 }, hours: 1 }, 8: { qty: { "Fire-rated LED downlight": 8 }, hours: 2 }, 10: { qty: { "Fire-rated LED downlight": 10 }, hours: 3 }, 12: { qty: { "Fire-rated LED downlight": 12 }, hours: 4 } } },
+  { k: "above", q: "Above the ceiling", lists: ["fitNew", "fitOld"], opts: [["loft", "Loft access"], ["floor", "Floor above (lift boards)"], ["none", "No access"]],
+    on: { floor: { hours: 1.5, note: "Floorboards lifted above to run cables and refixed." },
+      none: { hours: 2, add: [FQ_ADD("rods", "Cable rods / pull-through sundries", 5)], note: "No access above: cables fished through the ceiling. Small ceiling repairs may be needed." } } },
+  { k: "room", q: "Room", lists: ["fitNew"], opts: [["gen", "General"], ["bath", "Bathroom / shower"], ["kit", "Kitchen"]],
+    on: { bath: { phrase: "IP65 downlights", add: [FQ_ADD("ip65", "IP65 uplift per light (type a price)", 3)], note: "IP65 fittings in zones 1 and 2." } } },
+  { k: "sw", q: "Switching", lists: ["fitNew"], opts: [["same", "Existing switch"], ["dim", "Dimmer"], ["2way", "New 2-way"]],
+    on: { dim: { add: [FQ_ADD("ddim", "LED dimmer (trailing edge)", 18)] },
+      "2way": { hours: 1.5, add: [FQ_ADD("3c", "1.0mm 3-core & earth (10m)", 8), FQ_ADD("2wsw", "2-way switch & box", 5)] } } },
+],
+
+eCU: [
+  { k: "ways", q: "Circuits", lists: ["fitNew"], opts: [["6", "Up to 6"], ["10", "7 to 10"], ["14", "11 to 14"], ["18", "15+"]],
+    on: { 10: { hours: 1, add: [FQ_ADD("rcbo4", "Extra RCBOs x4", 88)] }, 14: { hours: 2, add: [FQ_ADD("rcbo8", "Extra RCBOs x8", 176)] }, 18: { hours: 3, add: [FQ_ADD("rcbo12", "Extra RCBOs x12", 264), FQ_ADD("big", "Larger enclosure uplift", 60)] } } },
+  { k: "loc", q: "Board position", lists: ["fitNew"], opts: [["same", "Same place"], ["move", "Move (< 3m)"], ["cup", "Into cupboard / stair"]],
+    on: { move: { hours: 3, add: [FQ_ADD("tails", "Extend circuits: Wagos, box & cable (type a price)", 40)], phrase: "relocated", note: "Meter tails over 3m need a switch-fuse or isolator at the meter." },
+      cup: { note: "Meter / board in a shared tenement cupboard or common stair: access to be arranged with the factor or neighbours." } } },
+  { k: "split", q: "Board type", lists: ["fitNew"], opts: [["rcbo", "All RCBO"], ["dual", "Dual RCD + some RCBOs"]],
+    on: { dual: { phrase: "high-integrity dual RCD board", note: "Dual RCD board: one fault can trip half the house. An all-RCBO board is recommended." }, rcbo: { phrase: "all-RCBO board" } } },
+  { k: "spd", q: "Surge protection (SPD)", lists: ["fitNew"], opts: [["yes", "Fit SPD"], ["waive", "Customer declines"]],
+    on: { yes: { phrase: "with surge protection" },
+      waive: { add: [FQ_ADD("spdcr", "SPD credit (type a minus price)", -40)], note: "Customer has declined surge protection (BS 7671 443.4). Recorded on the certificate. Not advised if there are smoke alarms on a circuit." } } },
+],
+
+eShower: [
+  { k: "kw", q: "Shower power", lists: ["fitNew"], opts: [["85", "8.5 kW"], ["95", "9.5 kW"], ["105", "10.5 kW"], ["11", "10.8 kW+"]],
+    on: { 85: { phrase: "8.5kW shower circuit", note: "8.5kW draws ~37A: 10mm² cable unless the run is short and clipped direct (check the design)." },
+      95: { phrase: "9.5kW shower circuit" },
+      105: { phrase: "10.5kW shower circuit", note: "10.5kW draws ~46A: 45A isolator, 45A or 50A RCBO, 10mm² cable. Check the incoming fuse and the total load." },
+      11: { phrase: "high-power shower circuit", add: [FQ_ADD("ins", "Extra for insulation / derating (type a price)", 20)], note: "Over 10.5kW: check the main fuse (60A tenements may be too small) and the cable route through insulation." } } },
+  { k: "run", q: "Cable run", lists: ["fitNew"], opts: [["10", "Up to 10m"], ["20", "10 to 20m"], ["30", "20 to 30m"]],
+    on: { 20: { hours: 1.5, qty: { "10mm² twin & earth (per 10m)": 2 } }, 30: { hours: 3, qty: { "10mm² twin & earth (per 10m)": 3 } } } },
+  { k: "board", q: "Spare way in the board", lists: ["fitNew"], opts: [["yes", "Yes"], ["no", "No / old board"]],
+    on: { no: { hours: 1.5, add: [FQ_ADD("ssfu", "Switch-fuse unit + Henley (type a price)", 65)], note: "No spare RCD-protected way. A separate switch-fuse is fitted, or the consumer unit needs replacing (priced separately)." } } },
+  { k: "route", q: "Route", lists: ["fitNew"], opts: [["void", "Floor / ceiling void"], ["chase", "Chased"], ["trunk", "Surface trunking"]],
+    on: { chase: { hours: 2, note: "10mm² cable chased in. Make good, final skim by others." },
+      trunk: { add: [FQ_ADD("trk", "Trunking 25x16 (3 lengths)", 15)] } } },
+],
+
+eCooker: [
+  { k: "app", q: "Appliance", lists: ["fitNew", "fitOld"], opts: [["cook", "Freestanding cooker"], ["hob", "Hob + oven (split)"], ["range", "Range / induction 7kW+"], ["plug", "13A plug-in only"]],
+    on: { hob: { hours: 1, add: [FQ_ADD("ob2", "Second outlet plate + cable", 12)], phrase: "hob and oven circuit" },
+      range: { phrase: "range / large induction circuit", off: ["6mm² twin & earth (per 10m)", "32A RCBO (type A)"], add: [FQ_ADD("10mm", "10mm² twin & earth (per 10m)", 48), FQ_ADD("40a", "40A RCBO (type A)", 26)], note: "Cable size by diversity calculation for the appliance rating." },
+      plug: { phrase: "13A appliance spur", off: ["45A cooker switch", "Cooker outlet plate", "6mm² twin & earth (per 10m)", "32A RCBO (type A)"], add: [FQ_ADD("fcu", "Switched fused spur (FCU)", 7)] } } },
+  { k: "exist", q: "Existing supply", lists: ["fitNew"], opts: [["ok", "Circuit there, OK"], ["none", "No circuit"], ["small", "Undersized"]],
+    on: { ok: { phrase: "reconnected to the existing circuit" },
+      none: { set: ["6mm² twin & earth (per 10m)", "32A RCBO (type A)"], hours: 2.5, phrase: "on a new cooker circuit" },
+      small: { set: ["6mm² twin & earth (per 10m)", "32A RCBO (type A)"], hours: 2.5, note: "Existing cooker cable is too small for the new appliance: new circuit included." } } },
+],
+
+eFan: [
+  { k: "ctl", q: "Control", lists: ["fitNew"], opts: [["timer", "Overrun timer"], ["hum", "Humidistat + timer"], ["cont", "Continuous (dMEV)"], ["sel", "SELV / in zone 1"]],
+    on: { hum: { off: ["Extractor fan 100mm (timer)"], add: [FQ_ADD("fhum", "Extractor fan 100mm (humidistat + timer)", 65)], phrase: "with humidistat and timer" },
+      cont: { off: ["Extractor fan 100mm (timer)"], add: [FQ_ADD("fcont", "Continuous-running fan (dMEV)", 120)], phrase: "continuous-running fan" },
+      sel: { off: ["Extractor fan 100mm (timer)"], add: [FQ_ADD("fselv", "SELV fan + transformer", 70)], phrase: "SELV fan (zone 1)", note: "Fan within zone 1 above the bath or shower: SELV (12V) type." } } },
+  { k: "route", q: "Ducting route", lists: ["fitNew"], opts: [["wall", "Through the wall"], ["inline", "Inline to loft / soffit"], ["exist", "Existing hole"], ["win", "Window glass"]],
+    on: { wall: { hours: 1, add: [FQ_ADD("core", "Core drill bit hire / wear (type a price)", 10)], note: "100mm core through the wall. Stone tenement walls can be 600mm+ thick." },
+      inline: { hours: 1.5, off: ["Extractor fan 100mm (timer)", "Ducting kit 100mm"], add: [FQ_ADD("inl", "Inline fan kit 100mm (timer)", 85), FQ_ADD("duct", "Ducting 100mm 3m + clips", 15), FQ_ADD("tile", "Roof / soffit vent", 12)], phrase: "inline fan to loft" },
+      exist: { off: ["External grille / wall sleeve"] },
+      win: { hours: 0.5, add: [FQ_ADD("wkit", "Window fan kit", 15)], note: "The glazier cuts the hole in the glass (priced separately)." } } },
+  { k: "feed", q: "Wired from", lists: ["fitNew"], opts: [["light", "Lighting circuit"], ["fcu", "Fused spur"]],
+    on: { fcu: { add: [FQ_ADD("ffcu", "Fused spur 3A", 8)] } } },
+],
+
+eAlarm: [
+  { k: "pwr", q: "Alarm type", lists: ["fitNew"], opts: [["seal", "Sealed 10-yr radio"], ["mains", "Mains + radio link"], ["wired", "Mains hard-wired link"]],
+    on: { seal: { phrase: "sealed 10-year lithium, radio-interlinked" },
+      mains: { hours: 2, phrase: "mains-powered, radio-interlinked", add: [FQ_ADD("mcab", "1.5mm twin & earth (20m)", 14), FQ_ADD("mrcbo", "Dedicated 6A RCBO / way", 18, { opt: true })], note: "Mains alarms on their own circuit or a regularly used lighting circuit (BS 5839-6)." },
+      wired: { hours: 4, phrase: "mains-powered, hard-wired interlink", add: [FQ_ADD("3c", "1.0mm 3-core & earth (30m)", 22)], note: "Hard-wired interlink: floorboards or ceilings opened. Radio link is usually simpler." } } },
+  { k: "set", q: "Alarms needed", lists: ["fitNew"], opts: [["flat", "Flat: 2 smoke + heat"], ["house", "House: 3 smoke + heat"], ["big", "Bigger: 4+ smoke"]],
+    on: { house: { qty: { "Smoke alarm (interlinked)": 3 }, hours: 0.5 }, big: { qty: { "Smoke alarm (interlinked)": 4 }, hours: 1 } } },
+  { k: "co", q: "Fixed combustion appliance", lists: ["fitNew"], opts: [["one", "Boiler / fire (1)"], ["two", "2 rooms"], ["none", "None (all electric)"]],
+    on: { two: { qty: { "CO alarm (sealed 10-yr)": 2 } },
+      none: { off: ["CO alarm (sealed 10-yr)"], note: "No fixed combustion appliance or flue, so no CO alarm is needed." } } },
+],
+
+eOutside: [
+  { k: "what", q: "What", lists: ["fitNew"], opts: [["light", "Light"], ["sock", "Socket"], ["both", "Light + socket"]],
+    on: { sock: { phrase: "outdoor socket", off: ["Outside light (PIR)", "1.5mm twin & earth (10m)"], add: [FQ_ADD("ws", "IP66 outdoor socket", 22), FQ_ADD("25c", "2.5mm twin & earth (10m)", 10)], hours: 0.5, note: "RCD protection (30mA) for outdoor sockets." },
+      both: { phrase: "outdoor light and socket", add: [FQ_ADD("ws", "IP66 outdoor socket", 22), FQ_ADD("25c", "2.5mm twin & earth (10m)", 10)], hours: 2 } } },
+  { k: "where", q: "Where", lists: ["fitNew"], opts: [["wall", "On the house wall"], ["garden", "Garden / outbuilding"]],
+    on: { garden: { hours: 4, add: [FQ_ADD("swa", "2.5mm 3-core SWA (per 10m)", 25), FQ_ADD("gl", "SWA glands & boxes", 15), FQ_ADD("duct", "Ducting / warning tape (type a price)", 20)], note: "Buried SWA at a suitable depth with warning tape. Trench digging by others unless priced." } } },
+  { k: "wall", q: "Wall", lists: ["fitNew"], opts: [["brick", "Brick / block"], ["stone", "Sandstone (thick)"], ["clad", "Render / cladding"]],
+    on: { stone: { hours: 1, note: "Drilling through a thick sandstone wall." } } },
+],
+
+eEV: [
+  { k: "earth", q: "Earthing", lists: ["fitNew"], opts: [["pen", "Charger has PEN protection"], ["tt", "Earth rod (TT)"], ["dev", "Separate PEN device"]],
+    on: { pen: { phrase: "charger with built-in open-PEN protection" },
+      tt: { hours: 1.5, add: [FQ_ADD("rod", "Earth rod, clamp & 16mm² cable", 30), FQ_ADD("rodpit", "Inspection pit", 12)], note: "Charger on a separate TT earth rod. Earth electrode resistance tested and recorded." },
+      dev: { add: [FQ_ADD("pend", "Open-PEN protection device", 140)] } } },
+  { k: "run", q: "Cable run", lists: ["fitNew"], opts: [["10", "Up to 10m"], ["20", "10 to 20m"], ["30", "20m+ / underground"]],
+    on: { 20: { hours: 1.5, qty: { "6mm² SWA 3-core (per 10m)": 2 } },
+      30: { hours: 4, qty: { "6mm² SWA 3-core (per 10m)": 3 }, add: [FQ_ADD("dig", "Ducting / groundwork (type a price)", 60)], note: "Long or underground run: voltage drop checked. Groundwork by others unless priced." } } },
+  { k: "supply", q: "Supply and board", lists: ["fitNew"], opts: [["ok", "Spare way, 80A+ fuse"], ["nospace", "No spare way"], ["small", "60A fuse / looped supply"]],
+    on: { nospace: { hours: 1.5, add: [FQ_ADD("evcu", "EV consumer unit (RCBO, SPD)", 110), FQ_ADD("henley", "Henley block + tails", 30)] },
+      small: { note: "Main fuse may be too small, or the supply is looped. SP Energy Networks to upgrade (application before install). Load-limiting charger setting may be needed." } } },
+],
+
+eEICR: [
+  { k: "size", q: "Property size", lists: ["fitNew", "repair"], opts: [["1", "Studio / 1-bed"], ["2", "2-bed"], ["3", "3-bed"], ["4", "4-bed+"]],
+    on: { 2: { hours: 1 }, 3: { hours: 2.5 }, 4: { hours: 4 } } },
+  { k: "why", q: "Reason", lists: ["fitNew", "repair"], opts: [["let", "Letting (5-yr)"], ["sale", "Sale / purchase"], ["check", "General check"]],
+    on: { let: { note: "Private let in Scotland: EICR by a SELECT/NICEIC/NAPIT member at least every 5 years. Landlord-supplied appliances need PAT testing.", add: [FQ_ADD("pat", "PAT testing (per appliance, type a quantity)", 0, { opt: true })] } } },
+  { k: "rem", q: "Remedials", lists: ["fitNew", "repair"], opts: [["none", "Quote separately"], ["allow", "Allow provisional"]],
+    on: { allow: { add: [FQ_ADD("remd", "Provisional remedials (C2 items)", 80)], hours: 2, note: "Provisional sum for C2 remedial items. Only charged if needed." } } },
+],
+
+eFault: [
+  { k: "what", q: "Symptom", lists: ["repair", "fitNew"], opts: [["trip", "RCD tripping"], ["dead", "Circuit dead"], ["burn", "Burning smell / scorched"], ["flicker", "Flickering"]],
+    on: { trip: { note: "Intermittent RCD trips can take more than one visit. The first visit is priced. Further time is charged at the hourly rate." },
+      burn: { add: [FQ_ADD("acc", "Replacement accessory / connector", 10)], note: "Isolated and made safe on the first visit." } } },
+  { k: "extra", q: "Allow extra time", lists: ["repair", "fitNew"], opts: [["0", "None"], ["2", "+2h"], ["4", "+4h"]],
+    on: { 2: { hours: 2 }, 4: { hours: 4 } } },
+],
+jDoor: [
+  { k: "type", q: "Door type", lists: ["fitNew"], opts: [["std", "Standard"], ["fd30", "Fire door FD30"], ["glz", "Glazed"], ["fold", "Bi-fold / pocket"]],
+    on: { std: { phrase: "internal door" },
+      fd30: { phrase: "FD30S fire door", hours: 2, off: ["Internal door", "Hinges 3\" (pair)", "Tubular latch"],
+        add: [FQ_ADD("fd", "FD30 fire door (certified)", 110), FQ_ADD("fh", "Fire-rated hinges (3, grade 13)", 15), FQ_ADD("fl", "Fire-rated latch", 9),
+              FQ_ADD("fis", "Intumescent strips + smoke seals", 18), FQ_ADD("fc", "Door closer (overhead or concealed)", 30), FQ_ADD("fsig", "Fire door signs / labels", 4)],
+        note: "Fire door fitted as a full assembly: certified door, 3 fire-rated hinges, intumescent strips and smoke seals, self-closer. Gaps 2–4mm to manufacturer's instructions." },
+      glz: { phrase: "glazed door", off: ["Internal door"], add: [FQ_ADD("gd", "Glazed door (safety glass)", 120)] },
+      fold: { phrase: "bi-fold door", hours: 1, off: ["Internal door", "Hinges 3\" (pair)", "Tubular latch"], add: [FQ_ADD("bif", "Bi-fold door + track kit", 110)] } } },
+  { k: "frame", q: "Frame / lining", lists: ["fitNew", "fitOld"], opts: [["ok", "Keep"], ["new", "New lining"], ["size", "Odd size: trim / pack"]],
+    on: { new: { hours: 2, add: [FQ_ADD("lin", "Door lining set", 32), FQ_ADD("arc2", "Architrave set (2 sides)", 35)], phrase: "new lining and architrave", note: "Making good to the plaster round the new lining by others." },
+      size: { hours: 1, note: "Tenement doors are often non-standard sizes: door trimmed or packed, or made to measure." } } },
+  { k: "fin", q: "Finish", lists: ["fitNew"], opts: [["pre", "Pre-finished"], ["prim", "Primed (decorator)"], ["paint", "Paint it ourselves"]],
+    on: { paint: { hours: 2.5, add: [FQ_ADD("pnt", "Undercoat + gloss / satin", 18)] }, prim: { note: "Door left primed for the decorator." } } },
+  { k: "qty", q: "How many doors", lists: ["fitNew", "fitOld", "removedOnly"], opts: [["1", "1"], ["2", "2"], ["3", "3"], ["5", "5"], ["7", "7"]],
+    on: { 2: { qty: { "Internal door": 2, "Hinges 3\" (pair)": 2, "Tubular latch": 2, "Lever handles": 2 }, hours: 2.5 },
+      3: { qty: { "Internal door": 3, "Hinges 3\" (pair)": 3, "Tubular latch": 3, "Lever handles": 3 }, hours: 5 },
+      5: { qty: { "Internal door": 5, "Hinges 3\" (pair)": 5, "Tubular latch": 5, "Lever handles": 5 }, hours: 10 },
+      7: { qty: { "Internal door": 7, "Hinges 3\" (pair)": 7, "Tubular latch": 7, "Lever handles": 7 }, hours: 15 } } },
+],
+
+jFurn: [
+  { k: "what", q: "What", lists: ["fitNew"], opts: [["lever", "Handles + latch"], ["bath", "Bathroom lock"], ["entr", "Entrance door lock"], ["fire", "Fire-door furniture"]],
+    on: { bath: { phrase: "bathroom lock and thumb-turn", add: [FQ_ADD("bl", "Bathroom lock + thumb-turn", 22)], off: ["Tubular latch"], hours: 0.5 },
+      entr: { phrase: "entrance door lock", hours: 1, off: ["Tubular latch", "Lever handles"], add: [FQ_ADD("dead", "5-lever mortice deadlock BS3621", 35), FQ_ADD("night", "Nightlatch / anti-snap cylinder", 45, { opt: true }), FQ_ADD("keep", "Keep / strike plates", 6)] },
+      fire: { phrase: "fire-rated door furniture", add: [FQ_ADD("ilp", "Intumescent letter plate", 40, { opt: true }), FQ_ADD("ipad", "Intumescent lock / hinge pads", 6)], note: "Ironmongery to the fire door certificate. Intumescent pads behind locks and hinges." } } },
+  { k: "qty", q: "How many doors", lists: ["fitNew", "fitOld"], opts: [["1", "1"], ["3", "3"], ["5", "5"], ["7", "7"]],
+    on: { 3: { qty: { "Lever handles": 3, "Tubular latch": 3 }, hours: 1.5 }, 5: { qty: { "Lever handles": 5, "Tubular latch": 5 }, hours: 3 }, 7: { qty: { "Lever handles": 7, "Tubular latch": 7 }, hours: 4.5 } } },
+],
+
+jSkirt: [
+  { k: "len", q: "Length", lists: ["fitNew", "fitOld", "removedOnly"], opts: [["8", "Up to 8m"], ["15", "15m (room)"], ["30", "30m"], ["50", "50m (flat)"]],
+    on: { 15: { qty: { "Skirting (per m)": 15 }, hours: 2 }, 30: { qty: { "Skirting (per m)": 30, "Grab adhesive (2 tubes)": 2 }, hours: 6 }, 50: { qty: { "Skirting (per m)": 50, "Grab adhesive (2 tubes)": 3 }, hours: 12 } } },
+  { k: "prof", q: "Profile", lists: ["fitNew"], opts: [["mdf", "MDF torus / ogee"], ["tall", "Tall tenement (220mm+)"], ["match", "Match existing (machined)"]],
+    on: { tall: { phrase: "tall period skirting", off: ["Skirting (per m)"], add: [FQ_ADD("tall", "Tall MDF skirting 219mm (per m)", 7)] },
+      match: { phrase: "skirting machined to match", hours: 1, add: [FQ_ADD("mill", "Machined profile (joinery shop, type a price)", 80)], note: "Profile made to match the existing skirting." } } },
+  { k: "wall", q: "Walls", lists: ["fitNew", "fitOld"], opts: [["flat", "Flat"], ["uneven", "Uneven / lath & plaster"], ["grounds", "Timber grounds"]],
+    on: { uneven: { hours: 1.5, note: "Scribed to uneven walls. Some gaps filled with caulk." }, grounds: { note: "Fixed to the existing timber grounds." } } },
+],
+
+jArch: [
+  { k: "sides", q: "Sides", lists: ["fitNew", "fitOld"], opts: [["1", "One side"], ["2", "Both sides"]],
+    on: { 2: { qty: { "Architrave set (one side)": 2 }, hours: 1 } } },
+  { k: "lin", q: "Door lining", lists: ["fitNew"], opts: [["ok", "Keep"], ["new", "Replace lining"]],
+    on: { new: { hours: 2, add: [FQ_ADD("lin", "Door lining set", 32)], phrase: "new door lining" } } },
+  { k: "qty", q: "How many doors", lists: ["fitNew", "fitOld"], opts: [["1", "1"], ["3", "3"], ["5", "5"]],
+    on: { 3: { qty: { "Architrave set (one side)": 3 }, hours: 2.5 }, 5: { qty: { "Architrave set (one side)": 5 }, hours: 5 } } },
+],
+
+jBoards: [
+  { k: "amt", q: "How much", lists: ["fitNew", "fitOld"], opts: [["few", "A few boards"], ["half", "Half a room"], ["room", "Whole room (~12m²)"]],
+    on: { half: { qty: { "T&G floorboard 18mm (2.1m)": 14, "Noggins / CLS 2.4m": 4 }, hours: 4 },
+      room: { qty: { "T&G floorboard 18mm (2.1m)": 28, "Noggins / CLS 2.4m": 6 }, hours: 8, add: [FQ_ADD("fscrew", "Floor screws (extra box)", 8)] } } },
+  { k: "type", q: "Floor type", lists: ["fitNew"], opts: [["tg", "T&G pine boards"], ["chip", "Chipboard sheets"], ["ply", "Ply overlay"], ["sq", "Square-edge (tenement)"]],
+    on: { chip: { off: ["T&G floorboard 18mm (2.1m)"], add: [FQ_ADD("chip", "P5 chipboard 18mm 2.4x0.6", 15)], phrase: "chipboard flooring" },
+      ply: { add: [FQ_ADD("ply", "Ply 6mm overlay (sheet)", 22)], hours: 1, phrase: "ply overlay" },
+      sq: { off: ["T&G floorboard 18mm (2.1m)"], add: [FQ_ADD("sqb", "Reclaimed / square-edge board (type a price)", 15)], note: "Old square-edged tenement boards: matched with reclaimed boards where possible." } } },
+  { k: "joist", q: "Joists", lists: ["fitNew", "repair"], opts: [["ok", "Sound"], ["sister", "Sister 1–2"], ["rot", "Rot / woodworm"]],
+    on: { sister: { hours: 2, add: [FQ_ADD("sj", "C24 joist 47x195 (3.6m) + bolts", 35)], note: "Joist strengthened by sistering." },
+      rot: { hours: 3, add: [FQ_ADD("rotp", "Treatment / timber (provisional, type a price)", 60)], note: "Rot or woodworm found: extent to be confirmed once the floor is open. Treatment by a specialist if widespread." } } },
+],
+
+jFloor: [
+  { k: "type", q: "Flooring type", lists: ["fitNew"], opts: [["lam", "Laminate"], ["lvt", "LVT click"], ["eng", "Engineered wood"], ["glue", "LVT glue-down"]],
+    on: { lam: { phrase: "laminate flooring" },
+      lvt: { phrase: "LVT click flooring", off: ["Laminate flooring (m²)", "Underlay (m²)"], add: [FQ_ADD("lvt", "LVT click (m²)", 24), FQ_ADD("lvtu", "LVT underlay 1.5mm (m²)", 4)], hours: 1 },
+      eng: { phrase: "engineered wood flooring", off: ["Laminate flooring (m²)"], add: [FQ_ADD("eng", "Engineered oak (m²)", 42)], hours: 2 },
+      glue: { phrase: "glue-down LVT", off: ["Laminate flooring (m²)", "Underlay (m²)"], add: [FQ_ADD("lvtg", "Glue-down LVT (m²)", 22), FQ_ADD("adh", "LVT adhesive", 35), FQ_ADD("ply6", "6mm ply / latex prep (type a price)", 60)], hours: 4, note: "Sub-floor prep (ply or self-levelling compound) is needed under glue-down LVT." } } },
+  { k: "area", q: "Area", lists: ["fitNew", "fitOld", "removedOnly"], opts: [["6", "Up to 6m² (bath)"], ["12", "12m² (room)"], ["20", "20m²"], ["35", "35m²"], ["50", "50m² (flat)"]],
+    on: { 12: { qty: { "Laminate flooring (m²)": 13.2, "Underlay (m²)": 12, "Beading / scotia (2.4m)": 6 }, hours: 3 },
+      20: { qty: { "Laminate flooring (m²)": 22, "Underlay (m²)": 20, "Beading / scotia (2.4m)": 8 }, hours: 6 },
+      35: { qty: { "Laminate flooring (m²)": 38.5, "Underlay (m²)": 35, "Beading / scotia (2.4m)": 13 }, hours: 12 },
+      50: { qty: { "Laminate flooring (m²)": 55, "Underlay (m²)": 50, "Beading / scotia (2.4m)": 18 }, hours: 18 } } },
+  { k: "sub", q: "Sub-floor", lists: ["fitNew"], opts: [["ok", "Flat boards"], ["uneven", "Uneven / old boards"], ["conc", "Concrete"]],
+    on: { uneven: { hours: 3, add: [FQ_ADD("hb", "Hardboard / 6mm ply (per 12m², type a price)", 45)], note: "Old boards overlaid with ply or hardboard first." },
+      conc: { set: ["DPM / vapour barrier (if solid floor)"], note: "Concrete sub-floor: moisture checked and a DPM laid." } } },
+  { k: "doors", q: "Doors to trim", lists: ["fitNew"], opts: [["0", "None"], ["2", "1–2"], ["4", "3–5"]],
+    on: { 2: { hours: 1 }, 4: { hours: 2.5 } } },
+],
+
+jStud: [
+  { k: "len", q: "Wall length", lists: ["fitNew"], opts: [["2", "Up to 2m"], ["3", "3m"], ["4", "4–5m"]],
+    on: { 3: { qty: { "CLS 38x63 2.4m": 12, "Plasterboard 12.5mm 2.4x1.2": 6 }, hours: 2 },
+      4: { qty: { "CLS 38x63 2.4m": 18, "Plasterboard 12.5mm 2.4x1.2": 10 }, hours: 6 } } },
+  { k: "door", q: "Door opening", lists: ["fitNew"], opts: [["no", "No"], ["yes", "Yes"]],
+    on: { yes: { hours: 1.5, add: [FQ_ADD("lin", "Door lining set", 32), FQ_ADD("arc2", "Architrave set (2 sides)", 35)], phrase: "with door opening" } } },
+  { k: "spec", q: "Board / insulation", lists: ["fitNew"], opts: [["std", "Standard"], ["acou", "Acoustic"], ["mr", "Moisture-resistant"], ["fire", "Fire-rated"]],
+    on: { acou: { set: ["Acoustic insulation roll"], off: ["Plasterboard 12.5mm 2.4x1.2"], add: [FQ_ADD("sb", "Acoustic plasterboard 12.5mm", 17)], phrase: "acoustic" },
+      mr: { off: ["Plasterboard 12.5mm 2.4x1.2"], add: [FQ_ADD("mrb", "Moisture-resistant plasterboard", 15)], phrase: "moisture-resistant" },
+      fire: { off: ["Plasterboard 12.5mm 2.4x1.2"], add: [FQ_ADD("frb", "Fire-rated plasterboard 12.5mm", 15)], phrase: "fire-rated" } } },
+  { k: "fin", q: "Finish", lists: ["fitNew"], opts: [["board", "Boarded only"], ["tape", "Tape & joint"], ["skim", "Skim (by plasterer)"]],
+    on: { tape: { hours: 4, add: [FQ_ADD("tj", "Tape, jointing compound, beads", 30)] }, skim: { note: "Skim coat by the plasterer (priced separately)." } } },
+],
+
+jBox: [
+  { k: "what", q: "Boxing for", lists: ["fitNew"], opts: [["pipe", "Pipes (low)"], ["soil", "Soil stack"], ["cist", "Concealed cistern"], ["meter", "Meter / board"]],
+    on: { soil: { hours: 1.5, add: [FQ_ADD("ac", "Acoustic wrap / insulation", 15)], phrase: "soil stack boxing", note: "Removable panel left at the stack access door." },
+      cist: { hours: 2, add: [FQ_ADD("cpan", "MR MDF 18mm (sheet)", 38)], note: "Removable access panel for the cistern." },
+      meter: { note: "Meter boxing must leave the meter readable and the main switch accessible." } } },
+  { k: "fin", q: "Finish", lists: ["fitNew"], opts: [["paint", "Painted"], ["tile", "Tiled (by tiler)"]],
+    on: { tile: { off: ["MR MDF 9mm (half sheet)"], add: [FQ_ADD("tb", "Tile backer / 12mm MR ply", 28)], note: "Boxing built to take tiles. Tiling priced separately." } } },
+],
+
+jUnit: [
+  { k: "qty", q: "How many units", lists: ["fitNew", "fitOld", "removedOnly"], opts: [["1", "1"], ["4", "4"], ["8", "8"], ["12", "12"], ["16", "16"]],
+    on: { 4: { qty: { "Kitchen unit (supplied by others)": 4, "Connecting screws / fixings": 4 }, hours: 5 },
+      8: { qty: { "Kitchen unit (supplied by others)": 8, "Connecting screws / fixings": 8 }, hours: 12 },
+      12: { qty: { "Kitchen unit (supplied by others)": 12, "Connecting screws / fixings": 12 }, hours: 19 },
+      16: { qty: { "Kitchen unit (supplied by others)": 16, "Connecting screws / fixings": 16 }, hours: 26 } } },
+  { k: "flat", q: "Units", lists: ["fitNew"], opts: [["rig", "Rigid (pre-built)"], ["flat", "Flat-pack"]],
+    on: { flat: { hours: 1, note: "Flat-pack units assembled on site (about 1 hour each, add per unit)." } } },
+  { k: "extra", q: "Extras", lists: ["fitNew"], opts: [["none", "None"], ["plinth", "Plinth + end panels"], ["full", "Plinth, panels, cornice, appliances"]],
+    on: { plinth: { set: ["Plinth / end panel (type a price)"], hours: 2.5 },
+      full: { set: ["Plinth / end panel (type a price)"], hours: 6, add: [FQ_ADD("cor", "Cornice / pelmet (type a price)", 20), FQ_ADD("integ", "Integrated appliance door kits", 10)] } } },
+],
+
+jWtop: [
+  { k: "mat", q: "Worktop", lists: ["fitNew"], opts: [["lam", "Laminate"], ["wood", "Solid wood"], ["comp", "Compact / quartz (templated)"]],
+    on: { lam: { phrase: "laminate worktop" },
+      wood: { phrase: "solid wood worktop", off: ["Worktop 3m x 600 x 38"], add: [FQ_ADD("oak", "Solid oak worktop 3m x 620 x 40", 220), FQ_ADD("oil", "Worktop oil (3 coats)", 15)], hours: 2, note: "Oiled on all faces, including cut-outs, before fitting." },
+      comp: { phrase: "stone / compact worktop (by supplier)", off: ["Worktop 3m x 600 x 38", "End strip / edging", "Worktop bolts (per joint)"], note: "Stone or quartz worktops templated and fitted by the supplier. We level the units and prepare for the template." } } },
+  { k: "len", q: "Lengths", lists: ["fitNew", "removedOnly"], opts: [["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"]],
+    on: { 2: { qty: { "Worktop 3m x 600 x 38": 2 }, hours: 2 }, 3: { qty: { "Worktop 3m x 600 x 38": 3 }, hours: 4 }, 4: { qty: { "Worktop 3m x 600 x 38": 4 }, hours: 6 } } },
+  { k: "joint", q: "Joints", lists: ["fitNew"], opts: [["0", "None"], ["1", "1 joint"], ["2", "2 joints"], ["3", "3 joints"]],
+    on: { 1: { hours: 1.5, set: ["Worktop bolts (per joint)"], phrase: "mason's mitre joint" },
+      2: { hours: 3, set: ["Worktop bolts (per joint)"], qty: { "Worktop bolts (per joint)": 2 } },
+      3: { hours: 4.5, set: ["Worktop bolts (per joint)"], qty: { "Worktop bolts (per joint)": 3 } } } },
+  { k: "cut", q: "Cut-outs", lists: ["fitNew", "fitOld"], opts: [["0", "None"], ["1", "Sink or hob"], ["2", "Sink + hob"], ["u", "Undermount sink"]],
+    on: { 1: { hours: 1, add: [FQ_ADD("seal", "Edge sealant for cut-out", 4)] },
+      2: { hours: 2, add: [FQ_ADD("seal", "Edge sealant for cut-out", 8)] },
+      u: { hours: 3, note: "Undermount cut-out only in solid wood or compact. Routed and sealed." } } },
+],
+
+jSash: [
+  { k: "job", q: "Work", lists: ["repair", "fitNew"], opts: [["cord", "Re-cord only"], ["over", "Overhaul (cords, beads, ease)"], ["draught", "Overhaul + draught-proof"]],
+    on: { cord: { phrase: "sash cords renewed" },
+      over: { phrase: "sash and case overhaul", hours: 1.5 },
+      draught: { phrase: "overhaul and draught-proofing", hours: 3.5, add: [FQ_ADD("dp", "Draught-proofing (routed seal kit)", 70)], note: "Routed brush or seal draught-proofing to sashes and beads." } } },
+  { k: "qty", q: "How many windows", lists: ["repair", "fitNew", "fitOld"], opts: [["1", "1"], ["2", "2"], ["4", "4"], ["6", "6"]],
+    on: { 2: { qty: { "Sash cord (waxed, 12m)": 2 }, hours: 4 }, 4: { qty: { "Sash cord (waxed, 12m)": 3 }, hours: 12 }, 6: { qty: { "Sash cord (waxed, 12m)": 4 }, hours: 20 } } },
+  { k: "cond", q: "Timber condition", lists: ["repair", "fitNew"], opts: [["ok", "Sound"], ["sill", "Rotten sill / bottom rail"], ["glass", "Broken pane / loose putty"]],
+    on: { sill: { hours: 3, set: ["Resin / timber splice (type a price)"], note: "Rotten timber cut out and spliced or resin-repaired. Extent to be confirmed once opened up." },
+      glass: { hours: 1.5, set: ["Putty / glazing sundries"], add: [FQ_ADD("gl", "Replacement pane (type a price)", 30)] } } },
+  { k: "access", q: "Access", lists: ["repair", "fitNew"], opts: [["in", "From inside"], ["high", "Upper floor (outside work)"]],
+    on: { high: { note: "Outside work above ground floor needs scaffold or a cherry picker (priced separately). Inside-only work assumed." } } },
+],
+
+jHatch: [
+  { k: "open", q: "Opening", lists: ["fitNew"], opts: [["exist", "Existing hole"], ["new", "Cut new opening"]],
+    on: { new: { hours: 3, set: ["Timber trimmers 47x100"], phrase: "new loft opening formed", note: "Ceiling cut and joists trimmed. Making good to the ceiling by the plasterer. A joist that has to be cut needs trimming to suit (check if it is structural)." } } },
+  { k: "ladder", q: "Loft ladder", lists: ["fitNew"], opts: [["no", "No"], ["alu", "Aluminium sliding"], ["timber", "Timber folding"]],
+    on: { alu: { hours: 1.5, add: [FQ_ADD("lad", "Aluminium loft ladder", 70)], phrase: "with loft ladder" },
+      timber: { hours: 2, add: [FQ_ADD("tlad", "Timber folding loft ladder + hatch", 160)], phrase: "with timber loft ladder" } } },
+  { k: "fire", q: "Fire-rated?", lists: ["fitNew"], opts: [["no", "No"], ["yes", "Yes (flat / escape)"]],
+    on: { yes: { off: ["Insulated loft hatch"], add: [FQ_ADD("fhatch", "Fire-rated insulated hatch (FR30)", 160)], phrase: "fire-rated loft hatch" } } },
+],
+
+jShelf: [
+  { k: "type", q: "Shelf type", lists: ["fitNew"], opts: [["bracket", "Bracket shelves"], ["float", "Floating"], ["alcove", "Alcove on battens"], ["cup", "Alcove cupboard"]],
+    on: { float: { hours: 0.75, add: [FQ_ADD("fb", "Floating shelf brackets (heavy)", 12)] },
+      alcove: { hours: 0.5, add: [FQ_ADD("bat", "Battens 25x50 2.4m", 6)] },
+      cup: { hours: 8, add: [FQ_ADD("cupb", "Alcove cupboard: MDF, doors, hinges (type a price)", 180)], phrase: "alcove cupboard built", note: "Cupboard left primed for the decorator." } } },
+  { k: "qty", q: "How many", lists: ["fitNew"], opts: [["2", "2"], ["4", "4"], ["6", "6"]],
+    on: { 4: { qty: { "Shelf (each)": 4 }, hours: 1.5 }, 6: { qty: { "Shelf (each)": 6 }, hours: 3 } } },
+  { k: "wall", q: "Wall", lists: ["fitNew"], opts: [["solid", "Brick / stone"], ["board", "Plasterboard"], ["lath", "Lath & plaster"]],
+    on: { board: { add: [FQ_ADD("cav", "Cavity fixings", 6)], note: "Heavy loads fixed into studs." },
+      lath: { hours: 0.5, note: "Lath and plaster: fixed through to the wall or studs behind." } } },
+],
+
+jPanel: [
+  { k: "type", q: "Panel", lists: ["fitNew"], opts: [["bath", "Bath panel (plastic/MDF)"], ["tile", "Tiled panel + access"], ["access", "Access panel only"]],
+    on: { tile: { off: ["Bath panel (front)"], add: [FQ_ADD("tb", "12mm MR ply / tile backer", 28), FQ_ADD("ah", "Magnetic access hatch", 25)], hours: 1.5, note: "Panel built for tiling, with a removable access hatch for the waste." },
+      access: { off: ["Bath panel (front)"], add: [FQ_ADD("ap", "Access panel (push-latch)", 18)], phrase: "access panel" } } },
+  { k: "end", q: "End panel", lists: ["fitNew"], opts: [["no", "No"], ["yes", "Yes"]],
+    on: { yes: { set: ["End panel"], hours: 0.5 } } },
+],
+
+jDeck: [
+  { k: "size", q: "Size", lists: ["fitNew", "removedOnly"], opts: [["s", "Up to 10m²"], ["m", "20m²"], ["l", "30m²"]],
+    on: { m: { qty: { "Deck boards (m²)": 20, "Joists 47x150 C16 treated (3.6m)": 11 }, hours: 10 },
+      l: { qty: { "Deck boards (m²)": 30, "Joists 47x150 C16 treated (3.6m)": 16 }, hours: 20 } } },
+  { k: "board", q: "Deck board", lists: ["fitNew"], opts: [["sw", "Treated softwood"], ["comp", "Composite"]],
+    on: { comp: { off: ["Deck boards (m²)"], add: [FQ_ADD("cdeck", "Composite deck boards + clips (type total price)", 650)], phrase: "composite decking", note: "Composite: set the price for the whole area (about £65/m²)." } } },
+  { k: "height", q: "Height", lists: ["fitNew"], opts: [["low", "Ground level"], ["raised", "Raised (up to 1.2m)"], ["high", "Over 1.2m"]],
+    on: { raised: { hours: 6, add: [FQ_ADD("bal", "Balustrade / handrail (type a price)", 150)], note: "Raised deck: barrier and handrail where needed." },
+      high: { note: "Decking over 1.2m high needs a building warrant (Schedule 3 type 19). Planning may also apply." } } },
+],
+
+jFence: [
+  { k: "panels", q: "Panels", lists: ["fitNew", "fitOld", "removedOnly"], opts: [["3", "1–3"], ["5", "5"], ["10", "10"], ["15", "15"]],
+    on: { 3: { qty: { "Fence panel 1.83m": 3, "Fence post 100x100 2.4m treated": 4, "Postcrete (2 per post)": 4, "Gravel board": 3 } },
+      10: { qty: { "Fence panel 1.83m": 10, "Fence post 100x100 2.4m treated": 11, "Postcrete (2 per post)": 11, "Gravel board": 10 }, hours: 6 },
+      15: { qty: { "Fence panel 1.83m": 15, "Fence post 100x100 2.4m treated": 16, "Postcrete (2 per post)": 16, "Gravel board": 15 }, hours: 12 } } },
+  { k: "post", q: "Posts", lists: ["fitNew"], opts: [["timber", "Timber"], ["conc", "Concrete + gravel boards"]],
+    on: { conc: { off: ["Fence post 100x100 2.4m treated"], set: ["Gravel board"], add: [FQ_ADD("cpost", "Concrete posts (type total price)", 130)], hours: 2, phrase: "concrete posts and gravel boards" } } },
+  { k: "gate", q: "Gate", lists: ["fitNew"], opts: [["no", "No"], ["yes", "Yes"]],
+    on: { yes: { set: ["Timber gate", "Gate hinges, latch, bolt"], hours: 2.5, phrase: "with gate" } } },
+  { k: "height", q: "Height", lists: ["fitNew"], opts: [["std", "Up to 1.8m"], ["over", "Over 2m"]],
+    on: { over: { note: "A fence over 2m needs a building warrant (Schedule 3 type 18), and usually planning permission." } } },
+]
+});
 FX_Q.htowel = [
   { k: "fuel", q: "Towel rail type", lists: ["fitNew"], opts: [["wet", "Wet only"], ["dual", "Dual fuel"], ["elec", "Electric only"]],
     on: { dual: { phrase: "dual fuel", add: [FQ_ADD("elem", "Dual fuel element and T-piece", 35), FQ_ADD("blank", "Blanking plug", 4)], note: "Electrical connection of the element by a qualified electrician." },
@@ -2027,6 +3026,15 @@ function fxFx(key, st, ln) {
   });
   return out;
 }
+/* a size or count answer also sets the line that another answer swapped in (35 m² of laminate is also 35 m² of LVT) */
+const QTY_ALIAS = {
+  "Laminate flooring (m²)": ["LVT click (m²)", "Engineered oak (m²)", "Glue-down LVT (m²)"], "Underlay (m²)": ["LVT underlay 1.5mm (m²)"],
+  "Plasterboard 12.5mm 2.4x1.2": ["Acoustic plasterboard 12.5mm", "Moisture-resistant plasterboard", "Fire-rated plasterboard 12.5mm"],
+  "Skirting (per m)": ["Tall MDF skirting 219mm (per m)"], "Worktop 3m x 600 x 38": ["Solid oak worktop 3m x 620 x 40"],
+  "Internal door": ["FD30 fire door (certified)", "Glazed door (safety glass)", "Bi-fold door + track kit", "Intumescent strips + smoke seals", "Door closer (overhead or concealed)", "Fire door signs / labels"],
+  "Hinges 3\" (pair)": ["Fire-rated hinges (3, grade 13)"], "Tubular latch": ["Fire-rated latch"],
+  "Double socket": ["Single socket", "Double socket with USB A+C", "Brushed steel double socket"],
+};
 const kid = (prefix, it, i) => it.id || prefix + "-" + i;
 /* the materials list for an item, after its answers; the same array when nothing is answered */
 function fxKit(room, key, st, ln) {
@@ -2038,17 +3046,20 @@ function fxKit(room, key, st, ln) {
   const mod = (labels, patch) => (labels || []).forEach((l) => { list = list.map((x) => (x.l === l ? { ...x, ...patch(x) } : x)); });
   fx.forEach(({ e }) => {
     mod(e.off, () => ({ opt: true }));
+    if ((e.add || []).some((x) => x.s === "pci" && !x.l) && ((st && st.q) || {}).type !== "wh") mod(["Pan connector"], () => ({ opt: false }));
     mod(e.set, () => ({ opt: false }));
     Object.keys(e.qty || {}).forEach((l) => mod([l], () => ({ q: e.qty[l] })));
     (e.add || []).forEach((x) => {
       const id = "fq-" + key + "-" + ln + "-" + x.s, j = adds.findIndex((y) => y.id === id);
       /* a later answer replaces an earlier line of the same kind ("weak" ones only fill a gap); no label removes it */
       if (j > -1 && x.weak) return;
-      const row = x.l ? { l: x.l, p: x.p, id, ...(x.opt ? { opt: true } : {}) } : { id, del: true };
+      const row = x.l ? { l: x.l, p: x.p, id, ...(x.opt ? { opt: true } : {}), ...(x.q ? { q: x.q } : {}) } : { id, del: true };
       if (j > -1) adds.splice(j, 1, row); else adds.push(row);
     });
   });
-  return list.concat(adds.filter((x) => !x.del));
+  let out = list.concat(adds.filter((x) => !x.del));
+  fx.forEach(({ e }) => Object.keys(e.qty || {}).forEach((l) => { const ls = [l].concat(QTY_ALIAS[l] || []); out = out.map((x) => (ls.indexOf(x.l) > -1 ? { ...x, q: e.qty[l] } : x)); }));
+  return out;
 }
 /* extra time each answer adds: one hours box per answer, so it can be changed */
 const fxHrs = (key, st, ln) => fxFx(key, st, ln).filter(({ e }) => e.hours > 0).map(({ q, e, v }) => ({ hk: "fq-" + key + "-" + q.k + "-" + v, h: e.hours, label: (q.opts.find((o) => o[0] === v) || ["", v])[1] }));
@@ -2080,9 +3091,9 @@ const JOB_X = {
   chase: { verb: "Chase pipes into the solid floor and make good", h: 3, kit: [{ l: "Making good materials (type a price)", p: 15 }] },
   boxed: { verb: "Open up and remake boxing round the pipes", h: 1, kit: [{ l: "Boxing timber and board (type a price)", p: 20 }] },
 };
-function jobFx(fixtures) {
+function jobFx(fixtures, room) {
   const a = (fixtures && fixtures._job) || {}, xs = [], notes = [];
-  JOB_Q.forEach((q) => { const e = q.on && q.on[a[q.k]]; if (!e) return; if (e.x) xs.push(e.x); if (e.note) notes.push(e.note); });
+  ((room && room.jobQ) || JOB_Q).forEach((q) => { const e = q.on && q.on[a[q.k]]; if (!e) return; if (e.x) xs.push(e.x); if (e.note) notes.push(e.note); });
   return { xs, notes };
 }
 
@@ -2155,14 +3166,15 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
       o2.hours += ah - fh; o2.materials += amt - fm;
       o2.items.push({ label: fixtureScope(f.label, as) + " (instead of: " + fixtureScope(f.label, st).replace(/^./, (c) => c.toLowerCase()) + ")", hours: ah - fh, materials: amt - fm, swap: true, fullH: ah, fullM: amt, base: fl, m1: stateMode(st), m2: am, what: f.label.replace(/ \(.*\)/, "").replace(/ \/ TRVs/i, "") });
     }
-    if (tag === "in") { hours.plumbing += fh; materials += fm; scope.push(fl); route[f.label] = { tag: "in", swap: am ? o2.items[o2.items.length - 1] : null }; if (am) route[f.label + O2_SFX] = { tag: "alt", item: o2.items[o2.items.length - 1] }; }
+    if (tag === "in") { hours[room.hk || "plumbing"] += fh; materials += fm; scope.push(fl); route[f.label] = { tag: "in", swap: am ? o2.items[o2.items.length - 1] : null }; if (am) route[f.label + O2_SFX] = { tag: "alt", item: o2.items[o2.items.length - 1] }; }
     else { const b = tag === "o2" ? o2 : pv; const itm = { label: fl, hours: fh, materials: fm }; b.hours += fh; b.materials += fm; b.items.push(itm); route[f.label] = { tag, b, item: itm, group: grp }; }
   });
 
   const anyWork = room.fixtures.some((f) => fixtures[f.key] && (fixtures[f.key].remove || fixtures[f.key].fit || fixtures[f.key].repair)) || room.structural.some((x) => structural[x.key] && structural[x.key] !== "none");
-  const jf = anyWork ? jobFx(fixtures) : { xs: [], notes: [] };
+  const jf = anyWork ? jobFx(fixtures, room) : { xs: [], notes: [] };
+  const JX = room.jobX || JOB_X;
   jf.xs.forEach((xk) => {
-    const x = JOB_X[xk]; let mat = 0;
+    const x = JX[xk]; let mat = 0;
     x.kit.forEach((it, i) => {
       const id = "jx-" + xk + "-" + i;
       if (!kitOn(kit, id, it)) return;
@@ -2317,7 +3329,7 @@ function savePrefs(o) {
 }
 
 function labourRows(c) {
-  return [["Plumbing & fixtures", c.plumbHours], ["Joinery (floor/joists/ply)", c.joinerHours], ["Wet wall", c.wetWallHours],
+  return [["Plumbing & fixtures", c.plumbHours], ["Joinery", c.joinerHours], ["Wet wall", c.wetWallHours],
     ["Lino flooring", c.flooringHours], ["Tiling", c.tileHours], ["Electrical", c.elecHours], ["Plastering", c.plasterHours]].filter((r) => r[1] > 0);
 }
 const NOT_ORDER = (k) => /^Connect onto existing pipework$/.test(k.label || "") && !(Number(k.cost) > 0);
@@ -2591,6 +3603,9 @@ const ICONS = {
   folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
   tick: '<path d="m5 12 5 5 9-10"/>',
+  bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  saw: '<path d="M3 15 15 3l3 3-12 12H3z"/><path d="M7 11l2 2M10 8l2 2M13 5l2 2M15 15l6 6"/>',
+  drop: '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
   copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
 };
 function Icon({ name }) {
@@ -3545,6 +4560,73 @@ function KitList({ list, prefix, tier, kit, onToggle, hrs, setHr, skip0, fx }) {
 const FIX_MODES = [["none", "None"], ["repair", "Repair only"], ["remove", "Remove only"], ["fit", "Fit only"], ["new", "Remove & fit new"], ["old", "Remove & refit old"]];
 
 
+/* photos of an item, for reference later (never printed on quotes). The job only keeps each photo's id, caption and date;
+   the picture itself lives in this phone's photo store (IndexedDB) and, when signed in, is backed up to the person's own account,
+   so a job with many photos never fills the phone's draft storage. */
+const ITEM_PH_MAX = 4;
+const PH_BUCKET = "pricer-photos";
+let phDbP = null;
+const phDb = () => phDbP || (phDbP = new Promise((res, rej) => { try { const r = indexedDB.open("pricer-photos", 1); r.onupgradeneeded = () => r.result.createObjectStore("p"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }));
+const phTx = (mode, fn) => phDb().then((db) => new Promise((res, rej) => { const t = db.transaction("p", mode), st = t.objectStore("p"); const out = fn(st); t.oncomplete = () => res(out && out.result); t.onerror = () => rej(t.error); }));
+const phPut = (id, d) => phTx("readwrite", (st) => st.put(d, id));
+const phGetLocal = (id) => phTx("readonly", (st) => st.get(id));
+const dataToBlob = (d) => fetch(d).then((r) => r.blob());
+const blobToData = (b) => new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => rej(fr.error); fr.readAsDataURL(b); });
+const phUser = async () => { try { if (!sb) return null; const r = await sb.auth.getUser(); return (r && r.data && r.data.user) || null; } catch (e) { return null; } };
+async function phBackup(id, d) { const u = await phUser(); if (!u) return; try { await sb.storage.from(PH_BUCKET).upload(u.id + "/" + id + ".jpg", await dataToBlob(d), { upsert: true, contentType: "image/jpeg" }); } catch (e) { /* offline: stays on this phone */ } }
+async function phGet(id) {
+  try { const d = await phGetLocal(id); if (d) return d; } catch (e) { /* no photo store */ }
+  const u = await phUser(); if (!u) return null;
+  try { const r = await sb.storage.from(PH_BUCKET).download(u.id + "/" + id + ".jpg"); if (r && r.data) { const d = await blobToData(r.data); try { await phPut(id, d); } catch (e) { /* ignore */ } return d; } } catch (e) { /* offline */ }
+  return null;
+}
+const shrinkPh = (file) => new Promise((res, rej) => { const fr = new FileReader(); fr.onerror = () => rej(new Error("Could not read that photo.")); fr.onload = () => { const im = new Image(); im.onerror = () => rej(new Error("That file is not a photo I can open.")); im.onload = () => { const m = 1280, k = Math.min(1, m / Math.max(im.width, im.height)), w = Math.round(im.width * k), h = Math.round(im.height * k), cv = document.createElement("canvas"); cv.width = w; cv.height = h; const cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, w, h); cx.drawImage(im, 0, 0, w, h); res({ id: newId(), d: cv.toDataURL("image/jpeg", 0.72), w, h }); }; im.src = fr.result; }; fr.readAsDataURL(file); });
+function PhImg({ x, onClick }) {
+  const [d, setD] = useState(x.d || null);
+  const [miss, setMiss] = useState(false);
+  useEffect(() => { let live = true; if (!x.d) phGet(x.id).then((v) => { if (!live) return; if (v) setD(v); else setMiss(true); }); return () => { live = false; }; }, [x.id]);
+  return d ? html`<img src=${d} alt=${x.cap || "Item photo"} onClick=${() => onClick && onClick(d)} />`
+    : html`<div className="iph-miss">${miss ? "Photo not on this phone. Sign in to load it." : "Loading…"}</div>`;
+}
+function ItemPhotos({ pk, active }) {
+  const pc = React.useContext(PriceCtx);
+  const key = "ph:" + pk, list = Array.isArray(pc.prices[key]) ? pc.prices[key] : [];
+  const [msg, setMsg] = useState("");
+  const [big, setBig] = useState(null);
+  const [busy, setBusy] = useState(false);
+  if (!active && !list.length) return null;
+  const upd = (fn) => pc.updPrice(key, (cur) => fn(Array.isArray(cur) ? cur : []));
+  const add = async (files) => {
+    const room = ITEM_PH_MAX - list.length, all = Array.from(files || []), fs = all.slice(0, Math.max(0, room));
+    if (!fs.length) { setMsg("Up to " + ITEM_PH_MAX + " photos for each item."); return; }
+    setBusy(true);
+    try {
+      for (const f of fs) {
+        const ph = await shrinkPh(f);
+        try { await phPut(ph.id, ph.d); } catch (e) { setMsg("This phone would not store the photo."); continue; }
+        upd((cur) => cur.length >= ITEM_PH_MAX ? cur : cur.concat({ id: ph.id, cap: "", t: localYmd(), w: ph.w, h: ph.h }));
+        phBackup(ph.id, ph.d);
+      }
+      setMsg(all.length > fs.length ? "Only " + fs.length + " added: up to " + ITEM_PH_MAX + " photos for each item." : "");
+    } catch (e) { setMsg(e.message || "Could not add that photo."); }
+    setBusy(false);
+  };
+  return html`<${Drop} bare=${true} open=${false} title="Photos for reference" sub=${list.length ? list.length + (list.length === 1 ? " photo" : " photos") : "optional, not on the quote"}>
+    <p className="note" style=${{ marginTop: 0 }}>Kept with this job so you can see what you priced later on. They are not printed on quotes or invoices.${!active ? " This item is not in the job any more; remove the photos if you don't need them." : ""}</p>
+    <div className="iph-grid">${list.map((x) => html`<div key=${x.id} className="iph">
+      <${PhImg} x=${x} onClick=${(d) => setBig({ ...x, d })} />
+      <input className="text-in" type="text" placeholder="What is this?" value=${x.cap || ""} onChange=${(e) => { const v = e.target.value; upd((cur) => cur.map((q) => (q.id === x.id ? { ...q, cap: v } : q))); }} />
+      <button type="button" className="linkbtn" onClick=${() => upd((cur) => cur.filter((q) => q.id !== x.id))}>Remove</button></div>`)}</div>
+    ${list.length < ITEM_PH_MAX && active ? html`<div className="link-row" style=${{ marginTop: 6 }}>
+      <label className="btn" style=${{ cursor: "pointer" }}>Take a photo<input type="file" accept="image/*" capture="environment" style=${{ display: "none" }} onChange=${(e) => { add(e.target.files); e.target.value = ""; }} /></label>
+      <label className="btn" style=${{ cursor: "pointer" }}>Choose photos<input type="file" accept="image/*" multiple style=${{ display: "none" }} onChange=${(e) => { add(e.target.files); e.target.value = ""; }} /></label></div>` : null}
+    ${busy ? html`<p className="note" role="status">Adding photos…</p>` : null}
+    ${msg ? html`<p className="note" role="status">${msg}</p>` : null}
+    ${big ? html`<${Sheet} title=${big.cap || "Photo"} onClose=${() => setBig(null)} foot=${html`<button type="button" className="btn btn-accent" style=${{ width: "100%" }} onClick=${() => setBig(null)}>Done</button>`}>
+      <img src=${big.d} alt=${big.cap || "Item photo"} style=${{ width: "100%", borderRadius: 8, display: "block" }} />
+      ${big.t ? html`<p className="note">Added ${fmtDate(big.t)}</p>` : null}<//>` : null}
+  <//>`;
+}
 function DescField({ id }) {
   const pc = React.useContext(PriceCtx);
   const val = typeof pc.prices["desc:" + id] === "string" ? pc.prices["desc:" + id] : "";
@@ -3929,6 +5011,38 @@ const ITEM_CHECKS = {
   hfilt: ["Space on the return near the boiler", "Clean the system before fitting"],
   hexp: ["Vessel pre-charge pressure", "System pressure cold and hot", "Filling loop removed after use"],
 };
+Object.assign(ITEM_CHECKS, {
+eSocket:  ["Socket on a ring or radial? Spur count on that ring", "Earth present, box lugs OK, signs of scorching", "RCD protection on the circuit"],
+eNewPt:   ["Where the nearest socket or circuit is, and how many spurs it already feeds", "Route: floor void, chasing or trunking?", "Wall type: plaster on hard, lath, dry-lined or stone", "Bathroom or kitchen distances"],
+eLight:   ["Earth at the rose? (none means a Class II fitting only)", "Ceiling condition and fixing point (joist?)", "Loop-in rose or junction box", "Weight of the fitting and the IP rating needed"],
+eSwitch:  ["Neutral at the switch (for smart or PIR switches)", "Box depth, earth to the box", "1-way, 2-way or intermediate"],
+eDown:    ["Joist direction and depth, ceiling type (plasterboard or lath)", "Access above: loft, floorboards, or none", "Insulation over the ceiling (needs fire-rated, IC-rated)", "Number of lights and spacing"],
+eCU:      ["Earthing type and main bonding to gas and water", "Main fuse rating, condition of the cut-out and tails", "Insulation resistance of existing circuits (test before quoting)", "Old wiring (rubber, lead): may fail testing", "Board position, room for a metal enclosure"],
+eShower:  ["Shower kW and cable size or route", "Spare way, main fuse size (60A, 80A or 100A)", "Isolator outside zones, pull-cord in the bathroom", "Route under floors or through insulation (derating)"],
+eCooker:  ["Appliance rating (kW) from the data plate", "Existing cable size and cooker switch condition", "Switch within 2m but not above the hob"],
+eFan:     ["Room: bathroom zones, or kitchen", "Duct route and outside position (wall thickness)", "Supply from lights or a separate FCU, isolator position", "Building warrant: fan rate needed (15 l/s bath, 30 l/s kitchen hood / 60 l/s wall)"],
+eAlarm:   ["Rooms: living room, every hall and landing, kitchen", "Fixed combustion appliances or flues (CO alarm)", "Existing alarms, dates and interlinking", "Ceiling type for fixing; mains or sealed battery"],
+eOutside: ["Wall type and thickness, cable entry point", "RCD protection, IP rating", "Run to the garden or outbuilding: SWA and depth"],
+eEV:      ["Main fuse, supply type (looped?), spare capacity", "Earthing: TN-C-S (open-PEN), or TT rod", "Cable route and length to the parking spot", "Off-street parking the customer owns (no cables over the pavement)"],
+eEICR:    ["Access to all rooms and the board", "Previous EICR or EIC available", "Occupied: power off time agreed"],
+eFault:   ["What trips, when, and what was last plugged in or done", "Damp, outside sockets, garden or immersion", "Safe to leave on, or isolate now?"],
+jDoor:    ["Opening size: tenement doors are often non-standard", "Is it a fire door position? (flat entrance, HMO, off a protected hall)", "Lining square and solid; floor level and the new flooring height", "Which way it opens; handle side"],
+jFurn:    ["Door thickness and backset of the latch", "Fire door: ironmongery must match the certificate", "Locks: insurance needs BS3621 on the entrance"],
+jSkirt:   ["Measure the run; count external and internal corners", "Profile and height: match the existing?", "Wall type: plaster on hard, lath, dry-lined; grounds behind?", "Pipes or cables behind the skirting"],
+jArch:    ["Lining condition and reveal width", "Wall plumb and flat round the frame", "Profile to match the other doors"],
+jBoards:  ["Board type and thickness (T&G, square-edge, chipboard)", "Joist condition, spacing, notches from old pipework", "Pipes and cables under the floor before screwing down", "Damp or rot in ground-floor voids"],
+jFloor:   ["Room area plus 10% waste, number of doorways", "Sub-floor: level, solid, damp (concrete)?", "Door clearance after the new floor height", "Underfloor heating compatibility"],
+jStud:    ["Length, height, and which way the joists run (fixing at top and bottom)", "Door opening, sockets or switches in the wall (electrician)", "Fire separation or sound needed?", "Does it affect light or ventilation to a room? (building warrant)"],
+jBox:     ["What is being boxed: access needed for valves, stack or meter?", "Paint or tile finish", "Clearance round hot pipes"],
+jUnit:    ["Number and type of units: base, wall, tall", "Walls: plumb and solid for wall units (lath?)", "Floor level; services under the units", "Who supplies the units, and are they rigid or flat-pack?"],
+jWtop:    ["Lengths, joints, cut-outs", "Material: laminate, wood or stone (stone is by the supplier)", "Units level and fixed before templating", "Upstands or splashback"],
+jSash:    ["Do the sashes move? Cords broken, weights loose", "Rot: sill, bottom rail, box", "Glass and putty condition", "Listed building or conservation area: repair like-for-like"],
+jHatch:   ["Existing opening, or a new one needed", "Joist direction and size; avoid cutting a structural joist", "Loft ladder, insulation, fire-rated (flat)?"],
+jShelf:   ["Wall type and load", "Span, depth, cables or pipes in the wall (detect first)", "Finish: primed, painted or oiled"],
+jPanel:   ["Bath type and height, existing frame", "Access needed to the waste and taps", "Panel type to match the bathroom"],
+jDeck:    ["Size, levels and ground conditions", "Height: decking over 1.2m needs a warrant", "Access for materials", "Old deck to remove and dispose of"],
+jFence:   ["Boundary line agreed with neighbours", "Ground: roots, rubble, services (dig with care)", "Height: a fence over 2m needs a warrant", "Old fence and posts to remove"]
+});
 const JOB_CHECKS = [
   [/./, ["Ask what happens and when it started", "Find and test the stopcock and isolation valves", "Look for water damage below and around", "Note the pipe material (copper, plastic, lead)", "Take before and after photos"]],
   [/leak|drip|wet|damp|water coming/i, ["Dry the area and find the exact source", "Check joints, olives and washers nearby"]],
@@ -4152,8 +5266,9 @@ function FxQs({ room, def, state, onChange, lname, kit, tier, hrs, setHr, skip0,
   return html`<div className="fq">
     <div className="kit-head">${alt ? "Option 2 questions" : "Quick questions"} <span className="fq-sub">(they set the materials and time below)</span></div>
     ${qs.map((q) => { const h = hx.find((x) => x.hk.indexOf(hp + "-" + def.key + "-" + q.k + "-") === 0);
-      const opts = q.opts.filter((o) => { const e = q.on && q.on[o[0]]; return !(e && e.okIf && !e.okIf(jb)) || a[q.k] === o[0]; });
-      const bad = q.on && q.on[a[q.k]] && q.on[a[q.k]].okIf && !q.on[a[q.k]].okIf(jb) ? q.on[a[q.k]].warn : "";
+      const opts = q.opts.filter((o) => { const e = q.on && q.on[o[0]]; return (!(e && e.okIf && !e.okIf(jb)) && !(e && e.okIfQ && !e.okIfQ(a)) && !(q.hidden && q.hidden.indexOf(o[0]) > -1)) || a[q.k] === o[0]; });
+      const ce = q.on && q.on[a[q.k]];
+      const bad = ce && ce.okIf && !ce.okIf(jb) ? ce.warn : ce && ce.okIfQ && !ce.okIfQ(a) ? ce.warnQ : "";
       return html`<div key=${q.k} className="fq-row">
         <div className="fq-q">${q.q}</div>
         ${q.hint ? html`<div className="fq-hint">${q.hint}</div>` : null}
@@ -4164,18 +5279,19 @@ function FxQs({ room, def, state, onChange, lname, kit, tier, hrs, setHr, skip0,
   </div>`;
 }
 /* once per job: the property. Some answers add a line priced only if needed, or a note on the quote */
-function JobQs({ fixtures, updateFixture, hrs, setHr, kit, onToggle, tier }) {
+function JobQs({ fixtures, updateFixture, hrs, setHr, kit, onToggle, tier, room }) {
   const a = fixtures._job || {};
-  const jf = jobFx(fixtures);
-  const n = JOB_Q.filter((q) => a[q.k]).length;
-  return html`<${Drop} bare=${true} open=${n > 0} title="About the property" sub=${n ? n + " answered" : "once per job: pipes, stopcock, hot water"}>
+  const JQ = (room && room.jobQ) || JOB_Q, JX = (room && room.jobX) || JOB_X;
+  const jf = jobFx(fixtures, room);
+  const n = JQ.filter((q) => a[q.k]).length;
+  return html`<${Drop} bare=${true} open=${n > 0} title="About the property" sub=${n ? n + " answered" : (room && room.jobSub) || "once per job: pipes, stopcock, hot water"}>
     <div className="fq">
-      ${JOB_Q.map((q) => html`<div key=${q.k} className="fq-row"><div className="fq-q">${q.q}</div>
+      ${JQ.map((q) => html`<div key=${q.k} className="fq-row"><div className="fq-q">${q.q}</div>
         <${Segmented} options=${q.opts} value=${a[q.k] || ""} onChange=${(v) => updateFixture("_job", { [q.k]: a[q.k] === v ? "" : v })} /></div>`)}
       ${jf.xs.map((xk) => html`<div key=${xk} className="fq-x">
-        <div className="kit-head">${JOB_X[xk].verb} <span className="fq-sub">(only if needed)</span></div>
-        <${HoursInput} label="Time if needed" value=${hrRaw(hrs, "jx-" + xk, JOB_X[xk].h)} onChange=${(v) => setHr("jx-" + xk, v)} />
-        <${KitList} fx="job" list=${JOB_X[xk].kit} prefix=${"jx-" + xk} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />
+        <div className="kit-head">${JX[xk].verb} <span className="fq-sub">(only if needed)</span></div>
+        <${HoursInput} label="Time if needed" value=${hrRaw(hrs, "jx-" + xk, JX[xk].h)} onChange=${(v) => setHr("jx-" + xk, v)} />
+        <${KitList} fx="job" list=${JX[xk].kit} prefix=${"jx-" + xk} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />
       </div>`)}
       ${jf.notes.length ? html`<p className="note" style=${{ margin: "6px 0 0" }}>On the quote: ${jf.notes.join(" ")}</p>` : null}
     </div>
@@ -4267,6 +5383,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
       ${altCost > 0 ? html`<p className="note" style=${{ margin: "4px 0 0" }}>Option 2 materials for this item: ${fmtKit(altCost)}</p>` : null}
     </div>` : active ? html`<button type="button" className="linkbtn" style=${{ margin: "4px 0 6px" }} onClick=${() => pickAlt(mode === "repair" ? "new" : "repair")}>+ Also price ${mode === "repair" ? "replacing it" : "repairing it"} (Option 2)</button>` : null}
     <${DescField} id=${"fx-" + def.key} />
+    <${ItemPhotos} pk=${"fx-" + def.key} active=${active} />
   <//>`;
 }
 
@@ -4295,6 +5412,7 @@ function StructuralCard({ room, def, value, onChange, tier, kit, onToggle, hrs, 
       ${lumpOn ? html`<div className="suite-meta">Your total is used. The materials above are a guide and are not added.</div>` : null}
     <//>
     <${DescField} id=${"st-" + def.key} />
+    <${ItemPhotos} pk=${"st-" + def.key} active=${active} />
   <//>`;
 }
 
@@ -4588,7 +5706,7 @@ function SiteSurveyView(p) {
 
     ${room === HEATING ? html`<${BoilerBlock} fixtures=${fixtures} structural=${structural} updateFixture=${updateFixture} updateStructural=${updateStructural} hrs=${hrs} setHr=${setHr} />` : null}
     <${Sec} n="2">${room.fixturesLabel}<//>
-    <${JobQs} fixtures=${fixtures} updateFixture=${updateFixture} hrs=${hrs} setHr=${setHr} kit=${kit} onToggle=${toggleKit} tier=${tier} />
+    <${JobQs} room=${room} fixtures=${fixtures} updateFixture=${updateFixture} hrs=${hrs} setHr=${setHr} kit=${kit} onToggle=${toggleKit} tier=${tier} />
     ${room === HEATING && !TEAM ? html`<${RadSizer} fixtures=${fixtures} updateFixture=${updateFixture} hrs=${hrs} setHr=${setHr} kit=${kit} onToggle=${toggleKit} />` : null}
     ${room === BATHROOM && window.SUITE && fixtures._suite && (fixtures._suite.mode === "allow" || fixtures._suite.was) ? html`<${SuiteBar} fixtures=${fixtures} tier=${tier} onChange=${(patch) => updateFixture("_suite", patch)} />` : null}
     ${room === BATHROOM && window.SUITE && !suiteOn(room, fixtures) ? html`<${SuiteRange} fixtures=${fixtures} tier=${tier} />` : null}
@@ -4792,7 +5910,7 @@ async function makeAndSharePdf(sections, filename) {
 
   sections.forEach((text, si) => {
     if (si > 0) { doc.addPage(); y = M; }
-    const lines = String(text).replace(/²/g, "2").replace(/³/g, "3").split("\n");
+    const lines = String(text).replace(/²/g, "2").replace(/³/g, "3").replace(/[″”“]/g, '"').split("\n");
     let k = 0, isOrder = false, inInfo = [];
     const flushInfo = () => { if (inInfo.length) { infoBox(inInfo); inInfo = []; } };
     if (lines[0] && /^(MATERIALS TO ORDER|STILL TO GET)/.test(lines[0])) {
@@ -5107,7 +6225,7 @@ let sb = null;
    (PDF or copied text). Gaps over 5 minutes are breaks and are not counted. Saved on this phone and,
    when signed in, to the account (app_time_log) so the Materials Log can show time saved. */
 const TM_KEY = "pricer-timer-v1", TQ_KEY = "pricer-timeq-v1";
-const TM_KIND = { small: "Maintenance job", survey: "Bathroom quote", kitchen: "Kitchen quote", heating: "Heating quote" };
+const TM_KIND = { small: "Maintenance job", survey: "Bathroom quote", kitchen: "Kitchen quote", heating: "Heating quote", elec: "Electrical quote", join: "Joinery quote" };
 let tmMode = "small";
 const tmGet = (k) => { try { return JSON.parse(localStorage.getItem(k)) || (k === TQ_KEY ? [] : {}); } catch (e) { return k === TQ_KEY ? [] : {}; } };
 const tmPut = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } };
@@ -5159,7 +6277,7 @@ function useAuth() {
   return { user, ready };
 }
 
-const KIND_LABEL = { bathroom: "Bathroom", kitchen: "Kitchen", heating: "Heating & hot water", small: "Maintenance job" };
+const KIND_LABEL = { bathroom: "Bathroom", kitchen: "Kitchen", heating: "Heating & hot water", small: "Maintenance job", electrical: "Electrical", joinery: "Joinery" };
 
 function AuthForm() {
   const [email, setEmail] = useState("");
@@ -5929,7 +7047,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
 
     <${Sec} n="1">The job<//>
     <div className="card">
-      ${inp("jobType", "What is the job?", "e.g. Leaking tap repair", "mj-type")}
+      ${inp("jobType", "What is the job?", mjPh("type"), "mj-type")}
       <div className="field"><label className="field-label" htmlFor="mj-date">Date</label>
         <div className="link-row"><input id="mj-date" className="text-in grow" type="date" value=${job.date} onChange=${set("date")} />
           <button type="button" className="btn" onClick=${() => setJob((p) => ({ ...p, date: localYmd() }))}>Today</button>
@@ -5942,13 +7060,13 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
 
     <${Sec} n="2">What you found and did<//>
     <div className="card">
-      ${inp("issue", "What was the problem?", "e.g. Cartridge worn, dripping from spout", "mj-issue")}
-      ${inp("issueWhere", "Where is it?", "e.g. Main bathroom basin", "mj-iw")}
+      ${inp("issue", "What was the problem?", mjPh("issue"), "mj-issue")}
+      ${inp("issueWhere", "Where is it?", mjPh("where"), "mj-iw")}
       <${CheckTips} title="Checks to do" items=${jobChecks([job.jobType, job.issue, job.issueWhere].join(" "))} />
-      ${area("work", "e.g. Isolated water, replaced cartridge, tested", "What did you do?", "mj-work")}
+      ${area("work", mjPh("work"), "What did you do?", "mj-work")}
       <div className="field"><div className="field-label" id="mj-res-l">Has the issue been resolved?</div>
         <${Segmented} options=${[["yes", "Yes"], ["partly", "Partly"], ["no", "No"]]} value=${job.resolved || ""} onChange=${(v) => setJob((p) => ({ ...p, resolved: p.resolved === v ? "" : v }))} /></div>
-      ${job.resolved === "partly" || job.resolved === "no" ? area("resolvedNote", "e.g. Still dripping, new part needed", "What is still wrong?", "mj-resnote") : null}
+      ${job.resolved === "partly" || job.resolved === "no" ? area("resolvedNote", mjPh("still"), "What is still wrong?", "mj-resnote") : null}
       <${HoursInput} quick=${true} label="How long did it take?" value=${job.hours} onChange=${(v) => setJob((p) => ({ ...p, hours: v }))} />
     </div>
 
@@ -6014,7 +7132,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
         <${Segmented} options=${biz ? JOB_STATUS : [["progress", "In progress"], ["complete", "Complete"]]} value=${biz ? gx("jobstatus") || "" : job.complete ? "complete" : gx("jobstatus") === "progress" ? "progress" : ""}
           onChange=${(v) => { const cur = biz ? gx("jobstatus") : job.complete ? "complete" : gx("jobstatus"); const nv = cur === v ? "" : v; setJob((p) => ({ ...p, complete: biz ? ["done", "invoiced", "paid"].indexOf(nv) > -1 : nv === "complete", x: { ...(p.x || {}), jobstatus: nv } })); }} /></div>`}
       <${TickSection} on=${!!(job.further || "").trim() || !!gx("fw:on")} onToggle=${(v) => { sx("fw:on", v); if (!v) setJob((p) => ({ ...p, further: "", x: { ...(p.x || {}), "fw:on": false } })); }} title="More work needed" hint="Another visit, a part to order, or work to quote">
-        ${area("further", "e.g. Return to fit new valve once part arrives", "What still needs doing?", "mj-further")}
+        ${area("further", mjPh("further"), "What still needs doing?", "mj-further")}
       <//>
       <${Tick} checked=${!!job.tradeNeeded} onChange=${() => setJob((p) => ({ ...p, tradeNeeded: !p.tradeNeeded }))} label="Another trade is required to attend" />
       ${job.tradeNeeded ? html`<div className="mat-grid indent">
@@ -6157,11 +7275,11 @@ function useUse() {
   useEffect(() => { const f = () => setU(loadUse()); window.addEventListener("jobpricer:use", f); return () => window.removeEventListener("jobpricer:use", f); }, []);
   return u;
 }
-function AppHeader({ businessName, setBusinessName, onNew }) {
+function AppHeader({ businessName, setBusinessName, onNew, trade, onTrade }) {
   const [st, setSt] = useState(false);
   return html`<div className="apphead">
     <span className="brand-mark" aria-hidden="true"><${Icon} name="wrench" /></span>
-    <div className="brand-txt"><div className="brand-name">${(businessName || "").trim() || "Job Pricer"}</div><div className="brand-sub">${TEAM ? "Work version: job notes and surveys" : "Surveys, quotes and invoices"}</div></div>
+    <div className="brand-txt"><div className="brand-name">${(businessName || "").trim() || "Job Pricer"}</div><div className="brand-sub">${TEAM ? (trade ? html`${tradeOf(trade).label} · <button type="button" className="linkbtn brand-trade" onClick=${onTrade}>change</button>` : "Work version: job notes and surveys") : "Surveys, quotes and invoices"}</div></div>
     ${onNew ? html`<button type="button" className="btn" onClick=${onNew}>New job</button>` : null}
     ${TEAM ? null : html`<button type="button" className="btn" aria-label="Settings" aria-haspopup="dialog" onClick=${() => setSt(true)}>Settings</button>`}
     ${st ? html`<${SettingsSheet} businessName=${businessName} setBusinessName=${setBusinessName} onClose=${() => setSt(false)} />` : null}
@@ -6182,7 +7300,61 @@ function HomeCard() { return null; /* decluttered */
   </details>`;
 }
 
-const TABS = [["small", "wrench", "Maintenance"], ["survey", "bath", "Bathroom"], ["kitchen", "kitchen", "Kitchen"], ["heating", "heat", "Heat & HW"], ["book", "tag", "Price Book"], ["jobs", "folder", "My Jobs"]];
+const TABS = [["small", "wrench", "Maintenance"], ["survey", "bath", "Bathroom"], ["kitchen", "kitchen", "Kitchen"], ["heating", "heat", "Heat & HW"], ["elec", "bolt", "Electrical"], ["join", "saw", "Joinery"], ["book", "tag", "Price Book"], ["jobs", "folder", "My Jobs"]];
+/* the work version asks each person their trade once (kept on their phone) and shows the tabs for that trade.
+   Paul's full version keeps the plumbing tabs. A trade is just a list of tabs, so adding another is one line here. */
+const MY_TRADES = [
+  { id: "plumber", label: "Plumber", icon: "drop", blurb: "Bathrooms, kitchens, heating and maintenance", tabs: ["small", "survey", "kitchen", "heating", "book", "jobs"], start: "small" },
+  { id: "electrician", label: "Electrician", icon: "bolt", blurb: "Sockets, lighting, boards, alarms, testing", tabs: ["small", "elec", "book", "jobs"], start: "elec" },
+  { id: "joiner", label: "Joiner", icon: "saw", blurb: "Doors, floors, kitchens, windows, boxing in", tabs: ["small", "join", "book", "jobs"], start: "join" },
+];
+/* the trade picker and the Electrical / Joinery sections are switched off until they have been tried by an electrician and a joiner */
+const TRADES_ON = false;
+const TRADE_KEY = "pricer-trade-v1";
+/* example text in the Maintenance boxes, in each trade's own words */
+const MJ_PH = {
+  plumber: { type: "e.g. Leaking tap repair", issue: "e.g. Cartridge worn, dripping from spout", where: "e.g. Main bathroom basin", work: "e.g. Isolated water, replaced cartridge, tested", still: "e.g. Still dripping, new part needed", further: "e.g. Return to fit new valve once part arrives" },
+  electrician: { type: "e.g. Socket not working", issue: "e.g. Loose neutral, scorched terminal", where: "e.g. Kitchen, by the window", work: "e.g. Isolated, replaced socket, tested and labelled", still: "e.g. RCD still tripping intermittently", further: "e.g. Return to trace fault on the ring once access given" },
+  joiner: { type: "e.g. Door sticking", issue: "e.g. Hinges loose, door dropped and catching the frame", where: "e.g. Back bedroom door", work: "e.g. Re-screwed hinges with longer screws, planed and sealed the edge", still: "e.g. Frame out of square", further: "e.g. Return to refit lining once plasterer is done" },
+};
+let curTrade = "plumber";
+const mjPh = (k) => (MJ_PH[curTrade] || MJ_PH.plumber)[k];
+const loadTrade = () => { try { const t = localStorage.getItem(TRADE_KEY); return MY_TRADES.some((x) => x.id === t) ? t : ""; } catch (e) { return ""; } };
+const tradeOf = (id) => MY_TRADES.find((x) => x.id === id) || MY_TRADES[0];
+function TradePicker({ onPick, current }) {
+  return html`<div className="trade-pick">
+    <div className="trade-h">${current ? "Change your trade" : "What's your trade?"}</div>
+    <p className="note" style=${{ margin: "0 0 14px" }}>The app shows the parts that matter for your work. You can change this any time.</p>
+    ${MY_TRADES.map((t) => html`<button type="button" key=${t.id} className=${"trade-btn" + (current === t.id ? " on" : "")} onClick=${() => onPick(t.id)}>
+      <span className="trade-ico"><${Icon} name=${t.icon} /></span><span className="trade-txt"><b>${t.label}</b><span>${t.blurb}</span></span><${Icon} name="chevr" /></button>`)}
+  </div>`;
+}
+/* an extra trade section (electrical, joinery): the same survey, estimate and saving as Kitchen and Heating */
+function useXRoom(room, tier) {
+  const r = useRoom(room, tier);
+  const [view, setView] = useState("form");
+  const [cust, setCust] = useState("");
+  const [site, setSite] = useState("");
+  const [notes, setNotes] = useState("");
+  const calc = useMemo(() => {
+    const h = r.survey.hours;
+    const totalHours = h.plumbing + h.joinery + h.wetwall + h.flooring + h.tiling + (h.elec || 0);
+    const sundriesNeeded = totalHours > 0 && !sundOff(r.ctx.prices); const sundries = sundriesNeeded ? sundriesOf(r.survey.materials, r.ctx.prices) : 0;
+    const materialsBase = r.survey.materials + sundries;
+    return {
+      plumbHours: h.plumbing, joinerHours: h.joinery, wetWallHours: 0, flooringHours: h.flooring, tileHours: h.tiling, elecHours: h.elec || 0, plasterHours: 0,
+      totalHours, materialsBase, materialsWithMarkup: materialsBase, tileMaterials: 0, sundries, tileNeeded: false, sundriesNeeded, supply: 0, supplyLabel: "",
+      provHours: r.survey.prov.hours, provMaterials: r.survey.prov.materials, provItems: r.survey.prov.items,
+      o2Hours: r.survey.o2.hours, o2Materials: r.survey.o2.materials, o2Items: r.survey.o2.items,
+    };
+  }, [r.survey, r.ctx.prices]);
+  return {
+    r, view, setView, cust, setCust, site, setSite, notes, setNotes, calc,
+    snap: (tr) => ({ ...r.snap(), tier: tr, cust, site, notes }),
+    restore: (d) => { r.restore(d); setCust(d.cust || ""); setSite(d.site || ""); setNotes(d.notes || ""); setView("form"); },
+    clear: () => { r.clearAll(); setCust(""); setSite(""); setNotes(""); setView("form"); },
+  };
+}
 
 function App() {
   const prefs = useMemo(loadPrefs, []);
@@ -6192,7 +7364,13 @@ function App() {
   const [sjob, setSjob] = useState(emptyJob);
   const auth = useAuth();
   useEffect(() => { if (auth.user) { bookSync(); tmFlush(); } }, [auth.user && auth.user.id]);
-  const [jobIds, setJobIds] = useState({ bathroom: null, kitchen: null, heating: null, small: null });
+  const [jobIds, setJobIds] = useState({ bathroom: null, kitchen: null, heating: null, small: null, electrical: null, joinery: null });
+  /* work version: the person's trade decides the tabs and where the app opens */
+  const [trade, setTradeS] = useState(() => (TEAM && TRADES_ON ? loadTrade() : "plumber"));
+  const [pickTrade, setPickTrade] = useState(() => TEAM && TRADES_ON && !loadTrade());
+  const tabsOn = TEAM && TRADES_ON && trade ? tradeOf(trade).tabs : ["small", "survey", "kitchen", "heating", "book", "jobs"];
+  curTrade = TEAM && TRADES_ON && trade ? trade : "plumber";
+  const chooseTrade = (t) => { try { localStorage.setItem(TRADE_KEY, t); } catch (e) { /* ignore */ } setTradeS(t); setPickTrade(false); setMode(tradeOf(t).start); };
   const setJobId = (kind, id) => setJobIds((p) => ({ ...p, [kind]: id }));
 
   const [size, setSize] = useState("medium");
@@ -6231,6 +7409,11 @@ function App() {
   const [kSupplier, setKSupplier] = useState(typeof prefs.kSupplier === "string" && prefs.kSupplier ? prefs.kSupplier : "Howdens");
   const kSupplierName = (kSupplier || "").trim() || "supplier";
   const hr = useRoom(HEATING, tier);
+  const ex = useXRoom(ELECTRICAL, tier), jx = useXRoom(JOINERY, tier);
+  /* [tab id, saved-job kind, state, room, short name] for the extra trade sections */
+  const XR = [["elec", "electrical", ex, ELECTRICAL, "Electrical"], ["join", "joinery", jx, JOINERY, "Joinery"]];
+  const xrByKind = (kd) => XR.find((x) => x[1] === kd);
+  const xrByTab = (id) => XR.find((x) => x[0] === id);
   const [hview, setHview] = useState("form");
   const [hCustomer, setHCustomer] = useState("");
   const [hSite, setHSite] = useState("");
@@ -6249,6 +7432,8 @@ function App() {
     } else if (row.kind === "kitchen") {
       k.restore(d); if (d.tier) setTier(d.tier); setKCustomer(d.kCustomer || ""); setKSite(d.kSite || ""); setKNotes(d.kNotes || ""); setKSupply(d.kSupply || ""); setKSource(d.kSource || ""); setKSupplier(typeof d.kSupplier === "string" ? d.kSupplier : "Howdens");
       setKview("form"); setMode("kitchen");
+    } else if (xrByKind(row.kind)) {
+      const x = xrByKind(row.kind); x[2].restore(d); if (d.tier) setTier(d.tier); setMode(x[0]);
     } else if (row.kind === "heating") {
       hr.restore(d); if (d.tier) setTier(d.tier); setHCustomer(d.hCustomer || ""); setHSite(d.hSite || ""); setHNotes(d.hNotes || "");
       setHview("form"); setMode("heating");
@@ -6261,11 +7446,11 @@ function App() {
 
   /* baselines: what each screen looked like untouched, or as last saved / opened. Work that differs from them is worth keeping as a draft. */
   const initJ = useRef(null);
-  if (initJ.current === null) initJ.current = { bath: JSON.stringify(bathSnap()), kitchen: JSON.stringify(kitchenSnap()), heating: JSON.stringify(heatSnap()), small: JSON.stringify(sjob) };
+  if (initJ.current === null) initJ.current = { bath: JSON.stringify(bathSnap()), kitchen: JSON.stringify(kitchenSnap()), heating: JSON.stringify(heatSnap()), small: JSON.stringify(sjob), electrical: JSON.stringify(ex.snap(tier)), joinery: JSON.stringify(jx.snap(tier)) };
   const rebase = useRef(null);
   const baseKey = (kind) => (kind === "bathroom" ? "bath" : kind);
-  const snapJ = (kind) => JSON.stringify(kind === "bathroom" ? bathSnap() : kind === "kitchen" ? kitchenSnap() : kind === "heating" ? heatSnap() : sjob);
-  const isDirty = () => ["bathroom", "kitchen", "heating", "small"].some((kd) => snapJ(kd) !== initJ.current[baseKey(kd)]);
+  const snapJ = (kind) => JSON.stringify(kind === "bathroom" ? bathSnap() : kind === "kitchen" ? kitchenSnap() : kind === "heating" ? heatSnap() : xrByKind(kind) ? xrByKind(kind)[2].snap(tier) : sjob);
+  const isDirty = () => ["bathroom", "kitchen", "heating", "small", "electrical", "joinery"].some((kd) => snapJ(kd) !== initJ.current[baseKey(kd)]);
   const [draft, setDraft] = useState(() => loadDraft());
   const [oldD, setOldD] = useState(() => loadDraft(OLD_KEY));
   const saved = (kind, id) => { setJobId(kind, id); initJ.current[baseKey(kind)] = snapJ(kind);
@@ -6282,9 +7467,10 @@ function App() {
     if (d.small) setSjob({ ...EMPTY_JOB, ...d.small });
     if (d.kitchen) openSaved({ kind: "kitchen", data: d.kitchen, id: ids.kitchen || null });
     if (d.heating) openSaved({ kind: "heating", data: d.heating, id: ids.heating || null });
+    XR.forEach((x) => { if (d[x[1]]) openSaved({ kind: x[1], data: d[x[1]], id: ids[x[1]] || null }); });
     if (d.bath) openSaved({ kind: "bathroom", data: d.bath, id: ids.bathroom || null });
     setJobId("small", ids.small || null);
-    setMode(d.mode === "kitchen" || d.mode === "heating" || d.mode === "small" ? d.mode : "survey");
+    setMode(d.mode === "kitchen" || d.mode === "heating" || d.mode === "small" || xrByTab(d.mode) ? d.mode : "survey");
     if (isOld) { try { localStorage.removeItem(OLD_KEY); } catch (err) { /* ignore */ } setOldD(null); } else setDraft(null);
   };
   const discardDraft = (d, isOld) => {
@@ -6314,6 +7500,7 @@ function App() {
   });
   /* autosave a draft a moment after every change. If an unanswered draft is still waiting, it is moved to a backup key first, never overwritten. */
   const writeDraft = useRef(null);
+  const [draftFull, setDraftFull] = useState(false);
   useEffect(() => {
     const flush = () => { if (writeDraft.current) writeDraft.current(); };
     const vis = () => { if (document.visibilityState === "hidden") flush(); };
@@ -6326,8 +7513,10 @@ function App() {
         const cur = loadDraft();
         if (!isDirty()) { if (cur && (!draft || cur.ts !== draft.ts)) localStorage.removeItem(DRAFT_KEY); return; }
         if (draft && cur && cur.ts === draft.ts) { localStorage.setItem(OLD_KEY, JSON.stringify(cur)); setOldD(cur); setDraft(null); }
-        localStorage.setItem(DRAFT_KEY, JSON.stringify({ ts: Date.now(), mode: mode === "kitchen" || mode === "heating" || mode === "small" ? mode : "survey", bath: bathSnap(), kitchen: kitchenSnap(), heating: heatSnap(), small: sjob, ids: jobIds }));
-      } catch (err) { /* storage unavailable */ }
+        try { localStorage.removeItem("__q"); } catch (e) { /* ignore */ }
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ ts: Date.now(), mode: mode === "kitchen" || mode === "heating" || mode === "small" || xrByTab(mode) ? mode : "survey", bath: bathSnap(), kitchen: kitchenSnap(), heating: heatSnap(), small: sjob, electrical: ex.snap(tier), joinery: jx.snap(tier), ids: jobIds }));
+        if (draftFull) setDraftFull(false);
+      } catch (err) { if (err && (err.name === "QuotaExceededError" || err.code === 22 || err.code === 1014)) setDraftFull(true); }
     };
     writeDraft.current = write;
     const t = setTimeout(write, 800);
@@ -6336,7 +7525,7 @@ function App() {
 
   useEffect(() => { savePrefs({ tier, businessName: TEAM ? prefs.businessName || "" : businessName, kSupplier }); }, [tier, businessName, kSupplier]);
   /* every screen opens at the top */
-  useEffect(() => { try { window.scrollTo(0, 0); } catch (e) { /* ignore */ } }, [mode, view, kview, hview]);
+  useEffect(() => { try { window.scrollTo(0, 0); } catch (e) { /* ignore */ } }, [mode, view, kview, hview, ex.view, jx.view]);
   /* hide the bottom bars while a keyboard is up (phones only, see CSS) */
   useEffect(() => {
     const isText = (t) => !!t && (t.tagName === "TEXTAREA" || t.tagName === "SELECT" || (t.tagName === "INPUT" && !/^(checkbox|radio|button|range|submit)$/.test(t.type)));
@@ -6439,14 +7628,21 @@ function App() {
   const surveyHours = survey.hours.plumbing + calc.joinerHours + calc.wetWallHours + calc.flooringHours;
 
   /* which jobs have work on screen that differs from untouched or last saved (shown as a dot on the tab and a resume strip on the other tabs) */
-  const dirtyMap = { survey: snapJ("bathroom") !== initJ.current.bath, kitchen: snapJ("kitchen") !== initJ.current.kitchen, heating: snapJ("heating") !== initJ.current.heating, small: snapJ("small") !== initJ.current.small };
-  const resumeList = [["small", "Maintenance"], ["survey", "Bathroom"], ["kitchen", "Kitchen"], ["heating", "Heating"]].filter(([id]) => dirtyMap[id] && !(id === "survey" ? (mode === "survey" || mode === "calculator") : mode === id));
+  const dirtyMap = { survey: snapJ("bathroom") !== initJ.current.bath, kitchen: snapJ("kitchen") !== initJ.current.kitchen, heating: snapJ("heating") !== initJ.current.heating, small: snapJ("small") !== initJ.current.small,
+    elec: snapJ("electrical") !== initJ.current.electrical, join: snapJ("joinery") !== initJ.current.joinery };
+  const resumeList = [["small", "Maintenance"], ["survey", "Bathroom"], ["kitchen", "Kitchen"], ["heating", "Heating"], ["elec", "Electrical"], ["join", "Joinery"]].filter(([id]) => tabsOn.indexOf(id) > -1 && dirtyMap[id] && !(id === "survey" ? (mode === "survey" || mode === "calculator") : mode === id));
 
+  /* first page of the work version (and "change"): pick a trade */
+  if (pickTrade) return html`<div className="wrap"><${AppHeader} businessName=${businessName} setBusinessName=${setBusinessName} trade="" />
+    <${TradePicker} current=${trade} onPick=${chooseTrade} />
+    ${trade ? html`<button type="button" className="btn" style=${{ width: "100%" }} onClick=${() => setPickTrade(false)}>Keep ${tradeOf(trade).label}</button>` : null}</div>`;
   return html`<div className="wrap">
     <${AppHeader} businessName=${businessName} setBusinessName=${setBusinessName} onNew=${mode === "small" ? withUndo("small", () => { setSjob(emptyJob()); setJobId("small", null); })
       : mode === "survey" || mode === "calculator" ? withUndo("bathroom", () => { clearAll(); setCustomerName(""); setSiteAddress(""); setOfficeNotes(""); setJobId("bathroom", null); setMode("survey"); })
       : mode === "kitchen" ? withUndo("kitchen", () => { k.clearAll(); setKCustomer(""); setKSite(""); setKNotes(""); setKSupply(""); setKSource(""); setJobId("kitchen", null); setKview("form"); })
-      : mode === "heating" ? withUndo("heating", () => { hr.clearAll(); setHCustomer(""); setHSite(""); setHNotes(""); setJobId("heating", null); setHview("form"); }) : null} />
+      : mode === "heating" ? withUndo("heating", () => { hr.clearAll(); setHCustomer(""); setHSite(""); setHNotes(""); setJobId("heating", null); setHview("form"); })
+      : xrByTab(mode) ? withUndo(xrByTab(mode)[1], () => { xrByTab(mode)[2].clear(); setJobId(xrByTab(mode)[1], null); }) : null}
+      trade=${TEAM && TRADES_ON ? trade : ""} onTrade=${() => setPickTrade(true)} />
     ${[[draft, false], [oldD, true]].map(([d, isOld]) => (d ? html`<div key=${isOld ? "old" : "cur"} className="tip" role="alert">
       <b>${isOld ? "Older draft found" : "Unsaved work found"}</b>
       <p className="note" style=${{ margin: "4px 0 10px" }}>A draft from ${new Date(d.ts).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })} was kept on this phone. Carry on with it, or start fresh.</p>
@@ -6455,6 +7651,7 @@ function App() {
         <${ConfirmBtn} label="Discard" armedLabel="Tap again to discard" onConfirm=${() => discardDraft(d, isOld)} />
       </div>
     </div>` : null))}
+    ${draftFull ? html`<div className="tip" role="alert"><b>This phone's storage is full</b><p className="note" style=${{ margin: "4px 0 0" }}>Your latest changes can't be kept on the phone. Save the job to My Jobs now, then clear old drafts or free some space.</p></div>` : null}
     ${resumeList.length > 0 ? html`<div className="resume" role="status"><span>Jobs in progress:</span>
       ${resumeList.map(([id, lbl]) => html`<button type="button" key=${id} className="rchip" onClick=${() => setMode(id)}>${lbl}: carry on</button>`)}</div>` : null}
     ${mode === "book" && html`<${PriceBookView} auth=${auth} />`}
@@ -6500,6 +7697,17 @@ function App() {
     ${mode === "heating" && html`<${SavePanel} bottom=${true} kind="heating" auth=${auth} autoTitle=${true} defaultTitle=${hSite.trim() || hCustomer.trim()} getData=${heatSnap}
       currentId=${jobIds.heating} onSaved=${(id) => saved("heating", id)} onNeedLogin=${() => setMode("jobs")} />`}
 
+    ${XR.map(([id, kd, x, room, nm]) => mode !== id || pickTrade ? null : x.view === "form" ? html`<${PriceCtx.Provider} key=${id} value=${x.r.ctx}><${SiteSurveyView} room=${room} fixtures=${x.r.fixtures} structural=${x.r.structural} kit=${x.r.kit} tier=${tier} setTier=${setTier}
+      updateFixture=${x.r.updateFixture} updateStructural=${x.r.updateStructural} toggleKit=${x.r.toggleKit}
+      customerName=${x.cust} setCustomerName=${x.setCust} siteAddress=${x.site} setSiteAddress=${x.setSite}
+      survey=${x.r.survey} calc=${x.calc} isExample=${false} onClear=${withUndo(kd, () => { x.clear(); setJobId(kd, null); })} hrs=${x.r.hrs} setHr=${x.r.setHr} prov=${x.r.prov} toggleProv=${x.r.toggleProv}
+      onViewQuote=${() => x.setView("quote")} /><//>`
+      : html`<${QuoteView} key=${id} calc=${x.calc} survey=${x.r.survey} markup=${markup} tier=${tier} scopeItems=${x.r.survey.scope} sizeLabel=${nm}
+      businessName=${businessName} setBusinessName=${setBusinessName} customerName=${x.cust} setCustomerName=${x.setCust}
+      siteAddress=${x.site} setSiteAddress=${x.setSite} officeNotes=${x.notes} setOfficeNotes=${x.setNotes}
+      todayStr=${todayStr} ticks=${x.r.ctx.prices} setTick=${x.r.ctx.setPrice} onBack=${() => x.setView("form")} />`)}
+    ${XR.map(([id, kd, x]) => mode !== id || pickTrade ? null : html`<${SavePanel} key=${"sp-" + id} bottom=${true} kind=${kd} auth=${auth} autoTitle=${true} defaultTitle=${x.site.trim() || x.cust.trim()} getData=${() => x.snap(tier)}
+      currentId=${jobIds[kd]} onSaved=${(nid) => saved(kd, nid)} onNeedLogin=${() => setMode("jobs")} />`)}
     ${(mode === "survey" || mode === "calculator") && html`<${SavePanel} bottom=${true} kind="bathroom" auth=${auth} autoTitle=${true} defaultTitle=${siteAddress.trim() || customerName.trim()} getData=${bathSnap}
       currentId=${jobIds.bathroom} onSaved=${(id) => saved("bathroom", id)} onNeedLogin=${() => setMode("jobs")} />`}
     ${mode === "kitchen" && html`<${SavePanel} bottom=${true} kind="kitchen" auth=${auth} autoTitle=${true} defaultTitle=${kSite.trim() || kCustomer.trim()} getData=${kitchenSnap}
@@ -6514,10 +7722,10 @@ function App() {
       <button type="button" className="btn go" onClick=${doUndo}>Undo</button>
       <button type="button" className="btn" aria-label="Dismiss" onClick=${() => setUndo(null)}>OK</button></div>` : null}
     <nav className="tabbar" aria-label="Main">
-      ${TABS.map(([id, icon, lbl]) => {
+      ${TABS.filter(([id]) => tabsOn.indexOf(id) > -1).map(([id, icon, lbl]) => {
         const on = id === "survey" ? (mode === "survey" || mode === "calculator") : mode === id;
         return html`<button type="button" key=${id} aria-pressed=${on} aria-label=${lbl + (dirtyMap[id] ? " (job in progress)" : "")} aria-current=${on ? "page" : undefined} className=${"tabbtn" + (on ? " on" : "")}
-          onClick=${() => { if (on && mode === id && !(id === "kitchen" && kview === "quote") && !(id === "heating" && hview === "quote")) { try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { /* ignore */ } } else { setMode(id); if (id === "kitchen") setKview("form"); if (id === "heating") setHview("form"); } }}><span className="tabico"><${Icon} name=${icon} />${dirtyMap[id] ? html`<i className="tabdot" aria-hidden="true" title="Job in progress"></i>` : null}</span><span>${lbl}</span></button>`;
+          onClick=${() => { setPickTrade(TEAM && TRADES_ON && !trade); if (xrByTab(id)) xrByTab(id)[2].setView("form"); if (on && mode === id && !(id === "kitchen" && kview === "quote") && !(id === "heating" && hview === "quote")) { try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { /* ignore */ } } else { setMode(id); if (id === "kitchen") setKview("form"); if (id === "heating") setHview("form"); } }}><span className="tabico"><${Icon} name=${icon} />${dirtyMap[id] ? html`<i className="tabdot" aria-hidden="true" title="Job in progress"></i>` : null}</span><span>${lbl}</span></button>`;
       })}
     </nav>
   </div>`;
