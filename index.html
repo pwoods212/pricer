@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610261845"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610262113"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -3132,6 +3132,8 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
   const kitLines = [];
   const scope = [];
   const pv = { hours: 0, materials: 0, items: [] };
+  /* every line of time, as priced: { key, label, hk (hours key), def, h, tag: in / pv / o2 / alt (option 2 workings) } */
+  const hl = [];
   const o2 = { hours: 0, materials: 0, items: [] };
   /* where each item's own "extra materials" belong: the main price, provisional, option 2, or an option 2 swap */
   const route = {};
@@ -3144,6 +3146,7 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
     const tf = tag === "in" ? {} : { prov: true, o2: tag === "o2" };
     const nQ = fxCount(f.key, st), nM = suiteFx(room, fixtures, f.key) ? 1 : nQ;
     let fh = hrOf(hrs, "fx-" + f.key, fxDefH(st, f.key) * nQ), fm = 0;
+    const hl0 = [{ key: f.key, label: f.label + ": main time", hk: "fx-" + f.key, def: fxDefH(st, f.key) * nQ, h: fh }];
     const lname = fixtureListName(st);
     if (suiteFx(room, fixtures, f.key)) suiteItems(fixtures, tier, f.key).forEach((it) => {
       const cov = !!(prices && prices["cov:" + it.id]);
@@ -3151,14 +3154,14 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
       fm += cost;
       kitLines.push({ ...tf, group: grp, label: nameOf(prices, it.id, it.label), cost, id: it.id, qty: 1, code: (prices && prices["code:" + it.id]) || "", source: srcs[it.id] || it.source || "", covered: cov });
     });
-    if (!suiteFx(room, fixtures, f.key)) fxHrs(f.key, st, lname).forEach((x) => { fh += hrOf(hrs, x.hk, x.h * nQ); });
+    if (!suiteFx(room, fixtures, f.key)) fxHrs(f.key, st, lname).forEach((x) => { const v = hrOf(hrs, x.hk, x.h * nQ); fh += v; hl0.push({ key: f.key, label: f.label + ": extra for " + String(x.label).toLowerCase(), hk: x.hk, def: x.h * nQ, h: v, fq: true }); });
     (suiteFx(room, fixtures, f.key) ? [] : fxKit(room, f.key, st, lname)).forEach((it, i) => {
       const id = kid(f.key + "-" + lname, it, i);
       if (!kitOn(kit, id, it) || custSkip(st.cust, lname, i) || it.cw) return;
       const cov = !!(prices && prices["cov:" + id]);
       const cost = cov ? 0 : costOf(prices, id, it, tier) * qtyOf(prices, id, it, size) * nM;
       fm += cost;
-      if (it.d) fh += hrOf(hrs, "kit-" + id, DEF_H);
+      if (it.d) { const v = hrOf(hrs, "kit-" + id, DEF_H); fh += v; hl0.push({ key: f.key, label: f.label + ": " + cleanL(it.l).toLowerCase(), hk: "kit-" + id, def: DEF_H, h: v, kitd: it.l }); }
       kitLines.push({ ...tf, group: grp, label: cleanL(nameOf(prices, id, it.l)), cost, id, qty: qtyOf(prices, id, it, size) * nM, code: (prices && prices["code:" + id]) || "", source: srcs[id] || catSrc(it), covered: cov });
     });
     (st.repair ? [] : room.extras[f.key] || []).forEach((e) => {
@@ -3173,6 +3176,7 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
         kitLines.push({ group: f.label + " — provisional", label: cleanL(nameOf(prices, id, it.l)), cost, prov: true, id, qty: qtyOf(prices, id, it, size), code: (prices && prices["code:" + id]) || "", source: srcs[id] || catSrc(it), covered: cov });
       });
       const h = hrOf(hrs, "bx-" + e.key, DEF_H);
+      hl.push({ key: f.key, label: e.verb, hk: "bx-" + e.key, def: DEF_H, h, tag: "pv", bx: e.key });
       pv.hours += h; pv.materials += mat; pv.items.push({ label: e.verb, hours: h, materials: mat });
     });
     const fl = (suiteFx(room, fixtures, f.key) ? fixtureScope(f.label, st) : fxWords(f.key, st, lname, fixtureScope(f.label, st))) + noteOf(prices, "fx-" + f.key);
@@ -3181,19 +3185,22 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
       /* a second price for option 2 (for example replace instead of repair): option 2 swaps this item's work for the other */
       const as = { ...modeState(am), cust: st.cust, n: st.n, q: st.q }, an = fixtureListName(as);
       let ah = hrOf(hrs, "fxa-" + f.key, fxDefH(as, f.key) * nQ), amt = 0;
-      fxHrs(f.key, as, an).forEach((x) => { ah += hrOf(hrs, "fqa" + x.hk.slice(2), x.h * nQ); });
+      const al = [{ key: f.key, label: f.label + ": time for option 2", hk: "fxa-" + f.key, def: fxDefH(as, f.key) * nQ, h: ah }];
+      fxHrs(f.key, as, an).forEach((x) => { const v = hrOf(hrs, "fqa" + x.hk.slice(2), x.h * nQ); ah += v; al.push({ key: f.key, label: f.label + " (option 2): extra for " + String(x.label).toLowerCase(), hk: "fqa" + x.hk.slice(2), def: x.h * nQ, h: v }); });
       fxKit(room, f.key, as, an).forEach((it, i) => {
         const id = kid(f.key + "-" + an, it, i);
         if (!kitOn(kit, id, it) || custSkip(st.cust, an, i) || it.cw) return;
         const cov = !!(prices && prices["cov:" + id]);
         const cost = cov ? 0 : costOf(prices, id, it, tier) * qtyOf(prices, id, it, size) * nM;
         amt += cost;
-        if (it.d) ah += hrOf(hrs, "kit-" + id, DEF_H);
+        if (it.d) { const v = hrOf(hrs, "kit-" + id, DEF_H); ah += v; al.push({ key: f.key, label: f.label + " (option 2): " + cleanL(it.l).toLowerCase(), hk: "kit-" + id, def: DEF_H, h: v }); }
         kitLines.push({ prov: true, o2: true, group: f.label + O2_SFX, label: cleanL(nameOf(prices, id, it.l)), cost, id, qty: qtyOf(prices, id, it, size) * nM, code: (prices && prices["code:" + id]) || "", source: srcs[id] || catSrc(it), covered: cov });
       });
       o2.hours += ah - fh; o2.materials += amt - fm;
+      al.forEach((x) => hl.push({ ...x, tag: "alt" }));
       o2.items.push({ label: fixtureScope(f.label, as) + " (instead of: " + fixtureScope(f.label, st).replace(/^./, (c) => c.toLowerCase()) + ")", hours: ah - fh, materials: amt - fm, swap: true, fullH: ah, fullM: amt, base: fl, m1: stateMode(st), m2: am, what: f.label.replace(/ \(.*\)/, "").replace(/ \/ TRVs/i, "") });
     }
+    hl0.forEach((x) => hl.push({ ...x, tag }));
     if (tag === "in") { hours[room.hk || "plumbing"] += fh; materials += fm; scope.push(fl); route[f.label] = { tag: "in", swap: am ? o2.items[o2.items.length - 1] : null }; if (am) route[f.label + O2_SFX] = { tag: "alt", item: o2.items[o2.items.length - 1] }; }
     else { const b = tag === "o2" ? o2 : pv; const itm = { label: fl, hours: fh, materials: fm }; b.hours += fh; b.materials += fm; b.items.push(itm); route[f.label] = { tag, b, item: itm, group: grp }; }
   });
@@ -3212,6 +3219,7 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
       kitLines.push({ group: "Whole job — provisional", label: cleanL(nameOf(prices, id, it.l)), cost, prov: true, id, qty: qtyOf(prices, id, it, size), code: (prices && prices["code:" + id]) || "", source: srcs[id] || "", covered: cov });
     });
     const h = hrOf(hrs, "jx-" + xk, x.h);
+    hl.push({ key: "_job", label: x.verb, hk: "jx-" + xk, def: x.h, h, tag: "pv" });
     pv.hours += h; pv.materials += mat; pv.items.push({ label: x.verb, hours: h, materials: mat });
   });
   if (suiteOn(room, fixtures)) suiteItems(fixtures, tier, "room").forEach((it) => {
@@ -3226,6 +3234,7 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
     const isO2 = !isProv && !!prov["o2-st-" + s.key];
     const sg = s.label + (isProv ? " — provisional" : isO2 ? O2_SFX : "");
     const h = hrOf(hrs, "st-" + s.key + "-" + val, stDefH(s.key, val));
+    hl.push({ key: "st-" + s.key, label: s.label + " (" + String((s.options.find((o) => o[0] === val) || ["", val])[1]).toLowerCase() + ")", hk: "st-" + s.key + "-" + val, def: stDefH(s.key, val), h, tag: isProv ? "pv" : isO2 ? "o2" : "in" });
     const optLabel = s.options.find((o) => o[0] === val)[1].toLowerCase();
     let mat = 0;
     const lump = Math.max(0, Number(prices && prices["stlump:" + s.key]) || 0);
@@ -3275,7 +3284,7 @@ function computeSurvey(room, fixtures, structural, kit, tier, hrs, prov, prices,
   if (structural && structural.bGas && structural.bGas !== "none" && !(hrOf(hrs, "st-bGas-" + structural.bGas, 0) > 0)) warn.push("put in the hours for the gas run");
   const unpriced = bulkOnly ? 0 : lines.filter((k) => !k.prov && !(Number(k.cost) > 0) && !k.covered && !k.tbc && !k.unkFlag && !NOT_ORDER(k)).length;
   if (unpriced) warn.push(unpriced + (unpriced === 1 ? " material has" : " materials have") + " no price");
-  return { hours, materials: (bulkOnly ? 0 : materials) + bulkTotal, kitLines: lines, scope, prov: pv, o2, bulkTotal, tbc, warn, unpriced };
+  return { hours, materials: (bulkOnly ? 0 : materials) + bulkTotal, kitLines: lines, scope, prov: pv, o2, bulkTotal, tbc, warn, unpriced, hl };
 }
 /* how an item is priced: "in" the main price, "pv" only if needed (provisional), "o2" only in option 2 (e.g. full renovation) */
 const O2_SFX = " — option 2";
@@ -3774,7 +3783,7 @@ function DisclaimerEdit({ ticks, setTick }) {
   </div>`;
 }
 /* subcontract trades: one total figure each, kept in the prices map so it saves with the job. Add more rows here later if needed. */
-const TRADES = [["silicone", "Silicone / sealing tradesman", "Silicone and sealing by a specialist tradesman (subcontract)"], ["lino", "Lino fitter", "Lino laid by a specialist flooring fitter (subcontract)"]];
+const TRADES = [["silicone", "Silicone / sealing tradesman", "Silicone and sealing by a specialist tradesman (subcontract)"], ["lino", "Floor fitter (supply and fit)", "Floor covering supplied and fitted by a specialist flooring fitter (subcontract)"], ["tiler", "Tiler", "Tiling by a specialist tiler (subcontract)"], ["elec", "Electrician", "Electrical work by a registered electrician (subcontract)"]];
 const tradeList = (prices) => TRADES.map(([k, l, s]) => ({ key: k, tag: "(subcontract)", label: l, scope: s, cost: Math.max(0, Number(prices && prices["trade:" + k]) || 0), ref: String((prices && prices["traderef:" + k]) || "").trim() }))
   .concat((prices && Array.isArray(prices.trades) ? prices.trades : []).map((x) => { const nm = String(x.name || "").trim() || "Other trade"; return { key: "x-" + x.id, tag: "(subcontract)", label: nm, scope: nm + " (subcontract)", cost: Math.max(0, Number(x.cost) || 0), ref: String(x.ref || "").trim() }; }))
   .concat((prices && Array.isArray(prices.gas) ? prices.gas : []).map((x) => { const nm = (String(x.appliance || "").trim() || "Gas appliance") + ": " + (GAS_WORK[x.work] || GAS_WORK.fit).toLowerCase(); const sub = x.who !== "me";
@@ -4553,6 +4562,7 @@ function PriceBookView({ auth }) {
 
 function KitList({ list, prefix, tier, kit, onToggle, hrs, setHr, skip0, fx }) {
   const pc = React.useContext(PriceCtx);
+  const onSite = React.useContext(SiteCtx);
   return html`${list.map((it, i) => {
     if (skip0 && i === 0) return null;
     const id = kid(prefix, it, i);
@@ -4566,6 +4576,7 @@ function KitList({ list, prefix, tier, kit, onToggle, hrs, setHr, skip0, fx }) {
     const code = pc.prices["code:" + id] || "";
     const src = pc.srcs[id] || catSrc(it);
     const shown = nameOf(pc.prices, id, it.l);
+    if (onSite) return html`<${Tick} key=${id} checked=${on} onChange=${() => onToggle(id, it, altId)} label=${shown} />`;
     /* "your usual" shows only while the filled-in product is still the one on the line */
     const autoNow = pc.prices["auto:" + id] !== undefined && String(pc.prices[id]) === String(pc.prices["auto:" + id]) && on;
     return html`<div key=${id}>
@@ -4581,7 +4592,7 @@ function KitList({ list, prefix, tier, kit, onToggle, hrs, setHr, skip0, fx }) {
           <input className="text-in" type="text" placeholder=${it.l} value=${pc.prices["name:" + id] || ""} onChange=${(e) => pc.setPrice("name:" + id, e.target.value)} /><//>
         ${pc.bulk.length > 0 || cov ? html`<${Tick} checked=${cov} onChange=${() => pc.setPrice("cov:" + id, !cov)} label="Already bought in a bulk buy (don't add this price)" />` : null}
       <//>
-      ${on && it.d ? html`<${HoursInput} label=${"Extra time: " + shown} value=${hrRaw(hrs, "kit-" + id, DEF_H)} onChange=${(v) => setHr("kit-" + id, v)} />` : null}
+      ${on && it.d ? html`<div className="fq-hint">Adds ${fmtHrs(Number(hrRaw(hrs, "kit-" + id, DEF_H)) || 0)} hrs to the item's time</div>` : null}
     </div>`;
   })}`;
 }
@@ -5304,7 +5315,7 @@ function FxQs({ room, def, state, onChange, lname, kit, tier, hrs, setHr, skip0,
         <${Segmented} options=${opts} value=${a[q.k] || ""} onChange=${(v) => set(q.k, v)} />
         ${bad ? html`<p className="note warn-t" style=${{ margin: "4px 0 0" }}>${bad}</p>` : null}
         ${ce && ce.say ? (() => { const w = !!(ce.sayIf && ce.sayIf(fixtures)); return html`<p className=${"note" + (w ? " warn-t" : "")} style=${{ margin: "4px 0 0" }}>${w ? ce.sayWarn : ce.say}</p>`; })() : null}
-        ${h ? html`<${HoursInput} label=${"Extra time: " + h.label.toLowerCase() + (nQ > 1 ? " (all " + nQ + ")" : "")} value=${hrRaw(hrs, h.hk, h.h * nQ)} onChange=${(v) => setHr(h.hk, v)} />` : null}
+        ${h && alt ? html`<${HoursInput} label=${"Extra time: " + h.label.toLowerCase() + (nQ > 1 ? " (all " + nQ + ")" : "")} value=${hrRaw(hrs, h.hk, h.h * nQ)} onChange=${(v) => setHr(h.hk, v)} />` : h ? html`<div className="fq-hint">Adds ${fmtHrs(Number(hrRaw(hrs, h.hk, h.h * nQ)) || 0)} hrs to the item's time</div>` : null}
       </div>`; })}
   </div>`;
 }
@@ -5321,6 +5332,84 @@ function CwTicks({ room, def, state, onChange, lname, fixtures }) {
     ${parts.map((p) => html`<${Tick} key=${p[0]} checked=${!!cw[p[0]]} onChange=${() => flip(p[0])} label=${p[1]} />`)}
   </div>`;
 }
+/* one time box per item: the time shown is all-in (main time + answers + pipework lines). Typing a new total changes only the main time,
+   so the answers' own times stay as they are and can still be changed in the Time check. */
+function ItemTime({ label, survey, def, hk, hrs, setHr, defH }) {
+  const ls = ((survey && survey.hl) || []).filter((x) => x.key === def.key && x.tag !== "alt" && !x.bx);
+  const main = ls.find((x) => x.hk === hk), ex = ls.filter((x) => x.hk !== hk);
+  const exH = ex.reduce((t, x) => t + x.h, 0), mainH = main ? main.h : hrOf(hrs, hk, defH);
+  const tot = Math.round((mainH + exH) * 100) / 100;
+  const [txt, setTxt] = useState(null);
+  const [low, setLow] = useState(0);
+  const commit = (v) => {
+    setTxt(null);
+    if (v === null || String(v).trim() === "") return;
+    const n = Number(v); if (isNaN(n)) return;
+    setLow(n < exH ? exH : 0);
+    setHr(hk, String(Math.max(0, Math.round((n - exH) * 4) / 4)));
+  };
+  const nm = (x) => x.label.replace(def.label + ": ", "").replace(/^extra for /, "");
+  return html`<div className="hrs"><span className="lbl">${label}${ex.length ? " (all in)" : ""}</span>
+    <span className="stepper">
+      <button type="button" className="step-btn" aria-label=${"Less time: " + label} onClick=${() => commit(String(Math.max(0, tot - 0.5)))}>−</button>
+      <input className="num-in" type="number" inputMode="decimal" min="0" step="0.25" value=${txt !== null ? txt : String(fmtHrs(tot))} aria-label=${label + " in hours"}
+        onFocus=${(e) => { try { e.target.select(); } catch (err) { /* ignore */ } }} onChange=${(e) => setTxt(e.target.value)}
+        onBlur=${() => commit(txt)} onKeyDown=${(e) => { if (e.key === "Enter") { try { e.target.blur(); } catch (err) { /* ignore */ } } }} />
+      <button type="button" className="step-btn" aria-label=${"More time: " + label} onClick=${() => commit(String(tot + 0.5))}>+</button>
+      <span className="hrs-u">hrs</span>
+    </span>
+    ${ex.length ? html`<div className="fq-hint" style=${{ width: "100%" }}>${fmtHrs(mainH)} main + ${ex.map((x) => nm(x) + " " + fmtHrs(x.h)).join(" + ")}. Change the parts in the Time check.</div>` : null}
+    ${low > 0 ? html`<div className="note warn-t" style=${{ width: "100%" }}>The extras alone come to ${fmtHrs(low)} hrs, so the main time is set to 0.</div>` : null}
+  </div>`;
+}
+/* things that may be charged twice. Warnings only: nothing is taken off, so every price stays as you set it. */
+function dblWarn(room, fixtures, structural, survey, extra, prices) {
+  const out = [], hl = (survey && survey.hl) || [];
+  const q = (k) => (fixtures && fixtures[k] && fixtures[k].q) || {};
+  const live = (k) => hl.some((x) => x.key === k && x.tag !== "alt");
+  if (extra && extra.layoutChange && live("toilet") && q("toilet").stack === "move")
+    out.push("Moving the toilet: \"Reroute to new position\" on the toilet and \"Layout change\" both add time for the soil pipe. Check it isn't charged twice.");
+  if (extra && extra.electrical === "shower" && hl.some((x) => x.kitd === "Electrical supply (electric shower)" && x.tag !== "alt"))
+    out.push("Electric shower: time is in twice, once as \"Electrical supply\" on the shower and again as the shower circuit under Electrics.");
+  room.fixtures.forEach((f) => {
+    const ls = hl.filter((x) => x.key === f.key && (x.tag === "in" || x.tag === "pv" || x.tag === "o2") && !x.bx);
+    const pw = ls.find((x) => x.kitd === "Pipework alterations"), fq = ls.filter((x) => x.fq && x.h > 0);
+    if (pw && pw.h > 0 && fq.length) out.push(f.label.replace(/ \(.*\)/, "") + ": the answer" + (fq.length > 1 ? "s" : "") + " (" + fq.map((x) => x.label.replace(f.label + ": extra for ", "")).join(", ") + ")" + (fq.length > 1 ? " add " : " adds ") + fmtHrs(fq.reduce((t, x) => t + x.h, 0)) + " hrs and Pipework alterations adds " + fmtHrs(pw.h) + " more. Check the pipework isn't counted twice.");
+  });
+  const bx = (k) => hl.some((x) => x.bx === k);
+  if (bx("bathWetWall") && structural && structural.wetwall && structural.wetwall !== "none") out.push("\"Wet wall may be needed behind bath\" is ticked as well as the Wet Wall card.");
+  if (bx("bathTiles") && extra && extra.tiling && extra.tiling !== "none") out.push("\"Re-tile around bath\" is ticked as well as Tiling.");
+  if (bx("kitchenTiles") && structural && structural.splash && structural.splash !== "none") out.push("\"Re-tile splashback around sink\" is ticked as well as the Splashback card.");
+  if (bx("kitchenFloor") && structural && structural.floor && structural.floor !== "none") out.push("\"Floor may be damaged under sink\" is ticked as well as the Floor card.");
+  if (extra && extra.tiling && extra.tiling !== "none") {
+    const named = (n) => /til/i.test(String(n || ""));
+    const has = Number(prices && prices["trade:tiler"]) > 0 || ((prices && prices.trades) || []).some((x) => named(x.name) && Number(x.cost) > 0) || ((prices && prices.xtra) || []).some((x) => named(x.item) && Number(x.price) > 0);
+    if (!has) out.push("Tiling is ticked but there are no tiles or tiler's price in the total. Add the tiler's price under Trades, or the tiles under Extra materials.");
+  }
+  return out;
+}
+/* Time check: every line of time in the job in one list. It is built from the price itself, so it always matches the total. */
+function TimeCheck({ survey, calc, hrs, setHr, warns, onClose }) {
+  const hl = ((survey && survey.hl) || []).concat((calc && calc.xl) || []);
+  const grp = [["in", "In the price", calc.totalHours], ["pv", "Only if needed", calc.provHours], ["o2", "Option 2", calc.o2Hours]];
+  const rows = (g) => hl.filter((x) => (g === "o2" ? x.tag === "o2" || x.tag === "alt" : x.tag === g));
+  return html`<${Sheet} title="Time check" onClose=${onClose}>
+    ${warns.length ? html`<div style=${{ marginBottom: 10 }}>${warns.map((w, i) => html`<p key=${i} className="note warn-t" style=${{ margin: "0 0 6px" }}>${w}</p>`)}</div>` : null}
+    <p className="note" style=${{ margin: "0 0 8px" }}>Every bit of time in this job. Change a line here or on its item: it is the same figure.</p>
+    ${hl.length ? null : html`<p className="note">No time yet: choose what needs doing on the items.</p>`}
+    ${grp.map(([g, t, tot]) => { const r = rows(g); if (!r.length) return null; return html`<div key=${g} style=${{ marginBottom: 12 }}>
+      <div className="kit-head">${t}: ${fmtHrs(Number(tot) || 0)} hrs</div>
+      ${g === "o2" ? html`<p className="note" style=${{ margin: "0 0 6px" }}>Option 2 lines show the full time for that option. Where it replaces option 1 work, the price adds only the difference.</p>` : null}
+      ${r.map((x, i) => html`<${HoursInput} key=${g + "-" + i + "-" + x.hk} label=${x.label} value=${hrRaw(hrs, x.hk, x.def)} onChange=${(v) => setHr(x.hk, v)} />`)}
+    </div>`; })}
+  <//>`;
+}
+/* "On site" hides prices, codes and the materials sections while surveying; "Pricing" shows everything. Kept on this phone only, never in the job. */
+const SiteCtx = React.createContext(false);
+const ONSITE_KEY = "pricer-onsite";
+const onSiteLoad = () => { try { return localStorage.getItem(ONSITE_KEY) === "1"; } catch (e) { return false; } };
+const onSiteSave = (v) => { try { localStorage.setItem(ONSITE_KEY, v ? "1" : "0"); } catch (e) { /* storage unavailable */ } };
+const BTN0 = { background: "none", border: 0, padding: 0, margin: 0, color: "inherit", font: "inherit", textAlign: "left", cursor: "pointer" };
 /* once per job: the property. Some answers add a line priced only if needed, or a note on the quote */
 function JobQs({ fixtures, updateFixture, hrs, setHr, kit, onToggle, tier, room }) {
   const a = fixtures._job || {};
@@ -5349,6 +5438,7 @@ function SuiteRange({ fixtures, tier }) {
   return html`<p className="note fq-range">Guide: fittings for these items usually come to £${f.from} to £${f.to} (not counting the bath, basin, toilet and other main items). Use it to check your list.</p>`;
 }
 function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, setHr, prov, toggleProv, survey, fixtures }) {
+  const onSite = React.useContext(SiteCtx);
   const su = suiteFx(room, fixtures, def.key);
   const pc = React.useContext(PriceCtx);
   const lname = fixtureListName(state);
@@ -5368,7 +5458,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
   const cost = sumGroups(survey, [def.label + tagSfx(tag)]);
   const nQ = fxCount(def.key, state);
   const qH = active && !su ? fxHrs(def.key, state, lname).reduce((t, x) => t + hrOf(hrs, x.hk, x.h * nQ), 0) : 0;
-  const sub = active ? [(nQ > 1 ? nQ + " × · " : "") + fmtHrs(hrOf(hrs, hk, fxDefH(state, def.key) * nQ) + qH) + " hrs", cost > 0 ? fmtKit(cost) : pc.bulkOnly ? "in bulk buy" : altCost > 0 ? "" : "no prices yet", tag === "pv" ? "only if needed" : tag === "o2" ? "option 2" : "", nProv ? nProv + " provisional" : "", alt ? "or " + altName.toLowerCase() + " (option 2" + (altCost > 0 ? ", " + fmtKit(altCost) : "") + ")" : ""].filter(Boolean).join(" · ") : "";
+  const sub = active ? [(nQ > 1 ? nQ + " × · " : "") + fmtHrs((survey.hl || []).filter((x) => x.key === def.key && x.tag !== "alt" && !x.bx).reduce((t, x) => t + x.h, 0)) + " hrs", cost > 0 ? fmtKit(cost) : pc.bulkOnly ? "in bulk buy" : altCost > 0 ? "" : "no prices yet", tag === "pv" ? "only if needed" : tag === "o2" ? "option 2" : "", nProv ? nProv + " provisional" : "", alt ? "or " + altName.toLowerCase() + " (option 2" + (altCost > 0 ? ", " + fmtKit(altCost) : "") + ")" : ""].filter(Boolean).join(" · ") : "";
   const modeName = (FIX_MODES.find((m) => m[0] === mode) || FIX_MODES[0])[1];
   const fillFor = (v) => { if (v === "none" || su) return; const ms = { ...state, ...modeState(v) }, ln = fixtureListName(ms); fillUsual(pc, def.key, fxKit(room, def.key, ms, ln), def.key + "-" + ln, tier, kit, custSkip(state.cust, ln, 0)); };
   const pick = (v) => ((v !== mode || v === state.alt) && fillFor(v), v === state.alt ? onChange({ ...modeState(v), alt: "" }) : v === "none" ? onChange({ remove: false, fit: false, repair: false })
@@ -5399,7 +5489,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
     ${def.key === "hrad" && active ? (() => { const d = String(pc.prices["desc:fx-hrad"] || ""), i = d.indexOf("Radiators sized for each room:"); if (i < 0) return null;
       const ls = (pc.extras || []).filter((x) => x.rs), m = ls.length ? ls.reduce((t, x) => t + (Math.max(1, Math.floor(Number(x.qty)) || 1)), 0) : [...d.slice(i).matchAll(/: (\d+) × /g)].reduce((t, x) => t + Number(x[1]), 0);
       return m && m !== nQ ? html`<p className="note warn-t" style=${{ margin: "0 0 6px" }}>${m} radiator${m === 1 ? " is" : "s are"} sized for this job but the quantity is ${nQ}. Change the quantity, or tick the sizes in "Radiator sizes by room" and add them again.</p>` : null; })() : null}
-    <${HoursInput} label=${nQ > 1 ? hrsLabel + " (for " + nQ + ")" : hrsLabel} value=${hrRaw(hrs, hk, fxDefH(state, def.key) * nQ)} onChange=${(v) => setHr(hk, v)} />
+    <${ItemTime} label=${nQ > 1 ? hrsLabel + " (for " + nQ + ")" : hrsLabel} survey=${survey} def=${def} hk=${hk} hrs=${hrs} setHr=${setHr} defH=${fxDefH(state, def.key) * nQ} />
     ${mode === "fit" || mode === "new" ? custTick : null}
     ${active && !alt ? html`<${PriceAs} value=${tag} onPick=${(v) => setTag(toggleProv, tag, v, "pv-fx-" + def.key, "o2-fx-" + def.key)} />` : null}
     ${su && active ? html`<${SuitePanel} def=${def} state=${state} onChange=${onChange} fixtures=${fixtures} tier=${tier} />` : null}
@@ -5414,7 +5504,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
       ${prov["bx-" + e.key] ? html`<${HoursInput} label=${"Provisional time: " + e.label} value=${hrRaw(hrs, "bx-" + e.key, DEF_H)} onChange=${(v) => setHr("bx-" + e.key, v)} />` : null}
       ${prov["bx-" + e.key] ? html`<${KitList} fx=${def.key} list=${e.kit} prefix=${"bx-" + e.key} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} />` : null}
     </div>`)}
-    <${ExtraBlock} group=${def.label} hint=${def.label.toLowerCase().replace(/ \(.*\)/, "")} title=${alt ? "Option 1 extra materials (" + modeName.toLowerCase() + ")" : ""} />
+    ${onSite ? null : html`<${ExtraBlock} group=${def.label} hint=${def.label.toLowerCase().replace(/ \(.*\)/, "")} title=${alt ? "Option 1 extra materials (" + modeName.toLowerCase() + ")" : ""} />` }
     ${alt ? html`<div className="alt-box">
       <div className="alt-head"><span><b>Option 2:</b> ${altName.toLowerCase()} instead</span><button type="button" className="linkbtn" onClick=${() => onChange({ alt: "" })}>Remove</button></div>
       ${(alt === "fit" || alt === "new") && !(mode === "fit" || mode === "new") ? custTick : null}
@@ -5705,11 +5795,19 @@ function SiteSurveyView(p) {
   const supplyNum = Math.max(0, Number(supply) || 0);
   const miss = missingPrices(room, fixtures, structural, kit, tier, prov, pc.prices, pc.bulkOnly);
   const missGroups = Object.entries(miss.reduce((a, m) => { a[m.group] = (a[m.group] || 0) + 1; return a; }, {}));
+  const [onSite, setOnSiteS] = useState(onSiteLoad);
+  const setOnSite = (v) => { setOnSiteS(v); onSiteSave(v); };
+  const [tc, setTc] = useState(false);
+  const warns = dblWarn(room, fixtures, structural, survey, extra, pc.prices);
+  const toDo = [["sv-cust", "customer", !String(customerName || "").trim()], ["sv-addr", "address", !String(siteAddress || "").trim()], ["sv-fix", "choose the work", !(survey.kitLines.length > 0 || calc.totalHours > 0)],
+    ["sv-miss", miss.length + (miss.length === 1 ? " price" : " prices"), !onSite && miss.length > 0], ["sv-miss", warns.length + (warns.length === 1 ? " thing" : " things") + " to check", warns.length > 0]].filter((x) => x[2]);
   const barSub = [calc.sundries > 0 ? "materials incl. sundries" : "materials at cost", calc.supply > 0 ? "+ " + String(calc.supplyLabel).split(" — ")[0] + " " + fmt(calc.supply) : "", calc.provHours > 0 ? "if needed: +" + fmtHrs(calc.provHours) + " hrs, " + fmt(calc.provMaterials) : "", calc.o2Hours > 0 || calc.o2Materials > 0 ? "option 2: +" + fmtHrs(calc.o2Hours || 0) + " hrs, " + fmt(calc.o2Materials || 0) : ""].filter(Boolean).join(" · ");
 
-  return html`<div>
+  return html`<${SiteCtx.Provider} value=${onSite}><div>
     <div className="title-row"><h1>${room.title}</h1></div>
     <p className="lead">Tick what needs doing, set the hours and enter prices. The estimate is at the bottom.</p>
+    <${Segmented} options=${[["site", "On site"], ["price", "Pricing"]]} value=${onSite ? "site" : "price"} onChange=${(v) => setOnSite(v === "site")} />
+    ${onSite ? html`<p className="note" style=${{ margin: "6px 0 0" }}>On site: prices, codes and the materials sections are hidden. Switch to Pricing to add them. Nothing is lost.</p>` : null}
     <${FirstTip} />
     <${JobProgress} title="What is left" steps=${[
       { id: "sv-cust", label: "Customer", next: "add the customer name", done: !!String(customerName || "").trim() },
@@ -5768,6 +5866,7 @@ function SiteSurveyView(p) {
       ${room !== BATHROOM || (Array.isArray(pc.prices.gas) && pc.prices.gas.length > 0) ? html`<${GasBlock} />` : null}
     </div>
 
+    <div style=${{ display: onSite ? "none" : "" }}>
     <${Sec} n="4">${setSupply ? "Units and extra materials" : "Extra materials and bulk buys"}<//>
     <div className="group">
       ${setSupply ? html`<${Fold} title=${supplyLabel} sub=${supplyNum > 0 ? fmt(supplyNum) : "price from the supplier quote"}>
@@ -5800,8 +5899,13 @@ function SiteSurveyView(p) {
       <//>
     </div>
 
+    </div>
     <${Sec} n="5">Check and send<//>
-    <div className="group">
+    <div className="card">
+      <button type="button" className="btn" style=${{ width: "100%" }} onClick=${() => setTc(true)}>Time check: ${fmtHrs(calc.totalHours)} hrs${warns.length ? " · " + warns.length + " to check" : ""}</button>
+      ${warns.map((w, i) => html`<p key=${i} className="note warn-t" style=${{ margin: "8px 0 0" }}>${w}</p>`)}
+    </div>
+    <div className="group" style=${{ display: onSite ? "none" : "" }}>
       <${Fold} title="Materials list so far" sub=${survey.kitLines.length ? survey.kitLines.length + " lines · " + fmtKit(survey.materials) : "nothing selected yet"}>
         ${grouped.length === 0
           ? html`<p className="note" style=${{ margin: 0 }}>Nothing selected yet. Set an item above and its kit appears here.</p>`
@@ -5827,12 +5931,14 @@ function SiteSurveyView(p) {
 
     <div className="actionbar"><div className="bar-in">
       <div className="bar-tot">
-        <div className="bar-main">${fmtHrs(calc.totalHours)} hrs · ${fmt(calc.materialsWithMarkup)}</div>
+        <button type="button" className="bar-main" style=${BTN0} aria-label="Open the time check" onClick=${() => setTc(true)}>${fmtHrs(calc.totalHours)} hrs ▾ · ${fmt(calc.materialsWithMarkup)}</button>
         <div className="bar-sub">${barSub}</div>
+        ${toDo.length ? html`<button type="button" className="bar-sub" style=${{ ...BTN0, textDecoration: "underline" }} onClick=${() => goTo(toDo[0][0])}>To do: ${toDo.map((x) => x[1]).join(", ")}</button>` : null}
       </div>
       <button type="button" className="btn btn-accent bar-go" onClick=${onViewQuote}>Estimate <${Icon} name="arrow" /></button>
     </div></div>
-  </div>`;
+    ${tc ? html`<${TimeCheck} survey=${survey} calc=${calc} hrs=${hrs} setHr=${setHr} warns=${warns} onClose=${() => setTc(false)} />` : null}
+  </div><//>`;
 }
 
 /* =====================================================================
@@ -7060,7 +7166,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
   const setOrd = (id, patch) => setJob((p) => ({ ...p, orders: (p.orders || []).map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
   const text = jobNoteText(job);
   const nChecks = CHECKS.filter((c) => job.checks && job.checks[c[0]]).length;
-  const MJ_STARTERS = { issue: ["Dripping from spout", "Leak from joint", "Slow drain", "No hot water", "Low pressure"], issueWhere: ["Main bathroom", "Kitchen sink", "WC"] };
+  const MJ_STARTERS = { jobType: JOB_QUICK, issue: ["Dripping from spout", "Leak from joint", "Slow drain", "No hot water", "Low pressure"], issueWhere: ["Main bathroom", "Kitchen sink", "WC"] };
   const inp = (k, label, ph, id) => html`<div className="field"><label className="field-label" htmlFor=${id}>${label}</label>
     <input id=${id} className="text-in" style=${{ margin: 0 }} type="text" placeholder=${ph} value=${job[k]} onChange=${set(k)} onBlur=${() => pushRecent(k === "where" ? "addr" : "mj-" + k, job[k])} />
     <${RecentChips} kind=${k === "where" ? "addr" : "mj-" + k} value=${job[k]} starters=${MJ_STARTERS[k]} onPick=${(v) => setJob((p) => ({ ...p, [k]: v }))} label="Quick fill" /></div>`;
@@ -7082,12 +7188,16 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
   const invText = buildInvoiceText({ businessName: bizName, customerName: (job.x || {})["inv:cust"] || "", siteAddress: job.noAddr ? "" : job.where, get: gx,
     work: [job.jobType, job.work], charges: [["Labour", jh * jr], ["Materials", matTotal]].concat(extraLines(gx)), minCharge: jc.min, pay, terms });
   const qFixed = Math.max(0, Number(gx("q:fixed")) || 0);
+  /* quote or job done: old jobs (no choice saved) open as "job done", exactly as before */
+  const mode = biz && gx("mj:mode") === "quote" ? "quote" : "done";
+  const qHrs = gx("q:hrs"), qhN = qHrs !== undefined && qHrs !== null && String(qHrs).trim() !== "" && !isNaN(Number(qHrs)) ? Number(qHrs) : null;
   const qText = buildSmallQuote({ businessName: bizName, customerName: gx("inv:cust") || "", siteAddress: job.noAddr ? "" : job.where, get: gx,
     work: String(gx("q:work") || "").trim() ? [gx("q:work")] : [job.jobType, [job.issue, job.issueWhere ? "(" + job.issueWhere + ")" : ""].filter((x) => String(x || "").trim()).join(" ")],
-    charges: (qFixed > 0 ? [["Price for the work", qFixed]] : [["Labour", jh * jr], ["Materials", matTotal]]).concat(extraLines(gx)), minCharge: jc.min, terms });
+    charges: (qFixed > 0 ? [["Price for the work", qFixed]] : [["Labour", (qhN !== null ? qhN : jh) * jr], ["Materials", matTotal]]).concat(extraLines(gx)), minCharge: jc.min, terms });
   return html`<div>
     <div className="title-row"><h1>Maintenance Jobs</h1></div>
-    <p className="lead">${biz ? "Record the job, then send a quote or invoice." : "Record the job, then copy or send the job notes."}</p>
+    <p className="lead">${biz ? (mode === "quote" ? "Price the job and send the quote. Once it's done, switch to Job done to record it and invoice." : "Record the job, then send a quote or invoice.") : "Record the job, then copy or send the job notes."}</p>
+    ${biz ? html`<${Segmented} options=${[["quote", "Quote a job"], ["done", "Job done"]]} value=${mode} onChange=${(v) => sx("mj:mode", v)} />` : null}
 
     <${Sec} n="1">The job<//>
     <div className="card">
@@ -7100,20 +7210,25 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
         <input id="mj-cust" className="text-in" style=${{ margin: 0 }} type="text" autoComplete="name" placeholder="Name" value=${gx("inv:cust") || ""} onChange=${(e) => sx("inv:cust", e.target.value)} /></div>
       <${Tick} checked=${!!job.noAddr} onChange=${() => setJob((p) => ({ ...p, noAddr: !p.noAddr }))} label="No address needed (it is held in another app)" />
       ${job.noAddr ? null : inp("where", "Address", "e.g. 2/1, 14 Example Street, G11", "mj-where")}
+      ${biz ? html`<${ClientBlock} get=${gx} set=${sx} />` : null}
     </div>
 
-    <${Sec} n="2">What you found and did<//>
+    <${Sec} n="2">${mode === "quote" ? "What needs doing" : "What you found and did"}<//>
     <div className="card">
       ${inp("issue", "What was the problem?", mjPh("issue"), "mj-issue")}
       ${inp("issueWhere", "Where is it?", mjPh("where"), "mj-iw")}
       <${CheckTips} title="Checks to do" items=${jobChecks([job.jobType, job.issue, job.issueWhere].join(" "))} />
+      ${mode === "quote" ? html`<${HoursInput} quick=${true} label="How long will it take?" value=${gx("q:hrs") || ""} onChange=${(v) => sx("q:hrs", v)} />
+      <p className="note" style=${{ margin: "4px 0 0" }}>Used for the quote. The time you record once the job is done is kept separately, so the quote doesn't change.</p>` : html`
       ${area("work", mjPh("work"), "What did you do?", "mj-work")}
       <div className="field"><div className="field-label" id="mj-res-l">Has the issue been resolved?</div>
         <${Segmented} options=${[["yes", "Yes"], ["partly", "Partly"], ["no", "No"]]} value=${job.resolved || ""} onChange=${(v) => setJob((p) => ({ ...p, resolved: p.resolved === v ? "" : v }))} /></div>
       ${job.resolved === "partly" || job.resolved === "no" ? area("resolvedNote", mjPh("still"), "What is still wrong?", "mj-resnote") : null}
       <${HoursInput} quick=${true} label="How long did it take?" value=${job.hours} onChange=${(v) => setJob((p) => ({ ...p, hours: v }))} />
+      ${qhN !== null ? html`<p className="note" style=${{ margin: "4px 0 0" }}>Quoted: ${fmtHrs(qhN)} hrs.</p>` : null}`}
     </div>
 
+    <div style=${{ display: mode === "quote" ? "none" : "" }}>
     <${Sec} n="3">Property checks<//>
     <div className="card">
       <p className="note" style=${{ marginTop: 0 }}>Tap any check you looked at on this visit. Write down what you saw so the customer, landlord or agent knows the state of things.</p>
@@ -7136,7 +7251,8 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <div className="link-row" style=${{ marginTop: 12 }}><button type="button" className="btn" onClick=${() => setReportId("job")}>${reportStarted(job, "job") ? "Open the job report" : "Write a report for the customer"}</button></div>
     </div>
 
-    <${Sec} n="4">Materials<//>
+    </div>
+    <${Sec} n="4">${mode === "quote" ? "Parts" : "Materials"}<//>
     <div className="card">
       ${job.mats.map((m) => html`<${MatEditor} key=${m.id} item=${m.item} onItem=${(v) => setMat(m.id, { item: v })} itemPh="What (e.g. cartridge, washers)" startOpen=${!m.item && !m.cost}
         price=${m.cost} onPrice=${(v) => setMat(m.id, { cost: v })} qty=${m.qty || ""} onQty=${(v) => setMat(m.id, { qty: v })} unk=${!!m.unk} onUnk=${(v) => setMat(m.id, { unk: v })} code=${m.code || ""} onCode=${(v) => setMat(m.id, { code: v })} where=${m.where} onWhere=${(v) => setMat(m.id, { where: v })}
@@ -7172,7 +7288,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
 
     <${Sec} n=${TEAM || !biz ? "5" : "6"}>Finish<//>
     <div className="card">
-      ${TEAM ? null : html`<div className="field"><div className="field-label">Where is this job at?</div>
+      ${TEAM || mode === "quote" ? null : html`<div className="field"><div className="field-label">Where is this job at?</div>
         <${Segmented} options=${biz ? JOB_STATUS : [["progress", "In progress"], ["complete", "Complete"]]} value=${biz ? gx("jobstatus") || "" : job.complete ? "complete" : gx("jobstatus") === "progress" ? "progress" : ""}
           onChange=${(v) => { const cur = biz ? gx("jobstatus") : job.complete ? "complete" : gx("jobstatus"); const nv = cur === v ? "" : v; setJob((p) => ({ ...p, complete: biz ? ["done", "invoiced", "paid"].indexOf(nv) > -1 : nv === "complete", x: { ...(p.x || {}), jobstatus: nv } })); }} /></div>`}
       <${TickSection} on=${!!(job.further || "").trim() || !!gx("fw:on")} onToggle=${(v) => { sx("fw:on", v); if (!v) setJob((p) => ({ ...p, further: "", x: { ...(p.x || {}), "fw:on": false } })); }} title="More work needed" hint="Another visit, a part to order, or work to quote">
@@ -7184,14 +7300,13 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
         <${Lbl} label="What they need to do" wide=${true}><input className="text-in" type="text" placeholder="e.g. Move socket before tiling" value=${job.tradeNote || ""} onChange=${set("tradeNote")} /><//>
       </div>` : null}
       ${biz && !String(bizName || "").trim() ? html`<p className="note warn-t">Add your business name, phone and payment details in Settings before sending a quote or invoice.</p>` : null}
-      ${biz ? html`<${ClientBlock} get=${gx} set=${sx} />` : null}
-      ${biz ? html`<${Drop} bare=${true} title="Quote details" sub="optional: wording or a fixed price">
+      ${biz ? html`<${Drop} bare=${true} open=${mode === "quote"} title="Quote details" sub="optional: wording or a fixed price">
         <${Lbl} label="Work to be done" wide=${true}><textarea className="manual note-ta" placeholder=${[job.jobType, job.issue].filter((x) => String(x || "").trim()).join(": ") || "e.g. Replace the fill valve in the main bathroom toilet"} value=${gx("q:work") || ""} onChange=${(e) => sx("q:work", e.target.value)}></textarea><//>
         <${Lbl} label="Fixed price for the work (£, optional)"><input className="text-in" type="number" inputMode="decimal" min="0" placeholder="Leave blank to use hours and materials" value=${gx("q:fixed") || ""} onChange=${(e) => sx("q:fixed", e.target.value)} /><//>
         <p className="note">The quote uses your labour, materials and charges above, unless you type a fixed price. Send it with Quote PDF at the bottom. Valid for 30 days.</p>
         <div className="link-row" style=${{ marginTop: 8 }}><${CopyQuote} text=${qText} label="Copy quote as text" btnCls="btn" onSend=${claimNo(gx, sx, "q:ref", "pricer-qno", defQuoteNo)} /></div>
       <//>` : null}
-      ${biz ? html`<${InvoiceBlock} fold=${true} get=${gx} set=${sx} profit=${Math.max(jh * jr + extraLines(gx).reduce((a, c) => a + c[1], 0), jc.min - matTotal)} text=${invText} filename=${"Invoice-" + invMeta(gx).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf"} pay=${pay} setPay=${setPay}>
+      ${biz && mode !== "quote" ? html`<${InvoiceBlock} fold=${true} get=${gx} set=${sx} profit=${Math.max(jh * jr + extraLines(gx).reduce((a, c) => a + c[1], 0), jc.min - matTotal)} text=${invText} filename=${"Invoice-" + invMeta(gx).no.replace(/[^A-Za-z0-9-]+/g, "") + ".pdf"} pay=${pay} setPay=${setPay}>
       <//>` : null}
     </div>
 
@@ -7617,7 +7732,13 @@ function App() {
     const sundriesNeeded = totalHours > 0 && !sundOff(bathCtx.prices); const sundries = sundriesNeeded ? sundriesOf(survey.materials + tileMaterials, bathCtx.prices) : 0;
     const materialsBase = survey.materials + tileMaterials + sundries;
     const materialsWithMarkup = materialsBase * (1 + markup / 100);
+    const xl = [], xt = (k) => (xTag(prov, k) === "o2" ? "o2" : "in");
+    if (layoutChange) xl.push({ key: "x", label: "Layout change: soil pipe reroute", hk: "x-layout", def: DEF_H, h: hrOf(hrs, "x-layout", DEF_H), tag: xt("layout") });
+    if (tiling !== "none") xl.push({ key: "x", label: tiling === "full" ? "Full retile" : "Part-tiling", hk: "x-tile-" + tiling + "-" + size, def: DEF_H, h: hrOf(hrs, "x-tile-" + tiling + "-" + size, DEF_H), tag: xt("tile") });
+    if (electrical !== "none") xl.push({ key: "x", label: electrical === "shower" ? "Electrics: shower circuit" : "Electrics: lighting", hk: "x-elec-" + electrical, def: DEF_H, h: hrOf(hrs, "x-elec-" + electrical, DEF_H), tag: xt("elec") });
+    if (plastering) xl.push({ key: "x", label: "Plastering / making good", hk: "x-plaster-" + tiling + "-" + size, def: DEF_H, h: hrOf(hrs, "x-plaster-" + tiling + "-" + size, DEF_H), tag: xt("plaster") });
     return {
+      xl,
       plumbHours, joinerHours, wetWallHours, flooringHours, tileHours, elecHours, plasterHours, totalHours,
       materialsBase, materialsWithMarkup,
       provHours: survey.prov.hours,
