@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610262221"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610270605"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -18,6 +18,7 @@
 body { margin: 0; font: 14px/1.4 system-ui, -apple-system, 'Segoe UI', sans-serif; }
 img { max-width: 100%; }
 [hidden] { display: none !important; }
+html.team .help, html.team .lead { display: none !important; }
 </style>
 <title>Bathroom Job Pricer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3879,6 +3880,7 @@ const DISCLAIMER_DIRECT = "This quote is for the work described in the scope abo
 const USE_KEY = "pricer-use-v1";
 /* the work version for colleagues: employed work only, no own-business quotes, invoices, rates or settings */
 const TEAM = !!window.PRICER_TEAM;
+if (TEAM) { try { document.documentElement.classList.add("team"); } catch (e) { /* ignore */ } }
 const loadUse = () => { if (TEAM) return "emp"; try { return localStorage.getItem(USE_KEY) === "biz" ? "biz" : "emp"; } catch (e) { return "emp"; } };
 const isDirect = (ticks) => (TEAM ? false : ticks && ticks["direct:on"] !== undefined ? !!ticks["direct:on"] : loadUse() === "biz");
 const disclaimerOf = (ticks) => (ticks && ticks["disc:off"] ? "" : (ticks && typeof ticks["disc:text"] === "string" && ticks["disc:text"].trim() ? ticks["disc:text"].trim() : isDirect(ticks) ? DISCLAIMER_DIRECT : DISCLAIMER_DEFAULT));
@@ -3914,7 +3916,7 @@ function TradesBlock({ room } = {}) {
   const extras = Array.isArray(pc.prices.trades) ? pc.prices.trades : [];
   const setExtras = (fn) => pc.setPrice("trades", fn(extras));
   const upd = (id, patch) => setExtras((a) => a.map((x) => (x.id === id ? { ...x, ...patch } : x)));
-  return html`<${Drop} open=${list.length > 0 || extras.length > 0} title="Trades (subcontract)" sub=${tot > 0 ? fmt(tot) : "e.g. silicone tradesman, one total"}>
+  return html`<${Drop} open=${list.length > 0 || extras.length > 0} title="Trades (subcontract)" sub=${tot > 0 ? fmt(tot) : "one total price per trade"}>
     ${TRADES.filter(([k, l, sc, old]) => !(old && !(Number(pc.prices["trade:" + k]) > 0)) && !(room === ELECTRICAL && k === "elec") && !((room === ELECTRICAL || room === JOINERY) && k === "silicone")).map(([k, l]) => html`<div key=${k} className="mat-grid" style=${{ marginBottom: 8 }}>
       <div className="mat-f wide"><span>${l}</span></div>
       <${Lbl} label="Total cost (£)"><input className="text-in" type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" aria-label=${l + " total cost in pounds"}
@@ -3930,7 +3932,7 @@ function TradesBlock({ room } = {}) {
     </div>`)}
     <datalist id="trade-names">${["Electrician", "Plasterer", "Tiler", "Carpenter", "Joiner", "Gas engineer", "Decorator", "Builder", "Plumber", "Roofer", "Floor fitter"].map((n) => html`<option key=${n} value=${n} />`)}</datalist>
     <${AddBtn} onClick=${() => setExtras((a) => [...a, { id: newId(), name: "", cost: "", ref: "" }])}>Add another trade<//>
-    <p className="note" style=${{ margin: "8px 0 0" }}>One total figure per trade. Each shows on the estimate as its own line, not as materials, and adds a line to the scope of work.</p>
+    <p className="note help" style=${{ margin: "8px 0 0" }}>One total figure per trade. Each shows on the estimate as its own line, not as materials, and adds a line to the scope of work.</p>
   <//>`;
 }
 function GasBlock() {
@@ -4259,7 +4261,7 @@ function KitsManager() {
   useBook();
   const [name, setName] = useState("");
   return html`<div>
-    <p className="note">Build a kit such as "Standard bathroom" with everything you normally need. On any survey you can add the whole kit in one tap. Kits are saved on this device.</p>
+    <p className="note help">Build a kit such as "Standard bathroom" with everything you normally need. On any survey you can add the whole kit in one tap. Kits are saved on this device.</p>
     <datalist id="book-items">${[...new Set(bookData.map((e) => e.item))].map((n) => html`<option key=${n} value=${n} />`)}</datalist>
     ${kits.length > 0 ? html`<div className="group">${kits.map((k) => html`<${KitBlock} key=${k.id} k=${k} />`)}</div>` : null}
     <div className="link-row" style=${{ marginTop: 8 }}>
@@ -4468,7 +4470,7 @@ function ReceiptImport() {
   const chosen = rows.filter((r) => r.on && r.item.trim() && Number(r.price) > 0);
   const save = () => { chosen.forEach((r) => bookAdd(r.item.trim(), Number(r.price), sup, "", (r.code || "").trim())); setMsg(chosen.length + " price" + (chosen.length === 1 ? "" : "s") + " saved to your Price Book."); setRows([]); setRaw(""); setState("idle"); };
   return html`<div>
-    <p className="note">Take a photo of a receipt, or choose one from your gallery. The app reads it on your phone, then you check each line before it is saved. Prices are saved as printed on the receipt, one item at a time.</p>
+    <p className="note help">Take a photo of a receipt, or choose one from your gallery. The app reads it on your phone, then you check each line before it is saved. Prices are saved as printed on the receipt, one item at a time.</p>
     <${Lbl} label="Supplier" wide=${true}><input className="text-in" type="text" value=${sup} onChange=${(e) => setSup(e.target.value)} /><//>
     <div className="link-row" style=${{ margin: "8px 0" }}>
       <label className="btn btn-accent" style=${{ cursor: "pointer" }}>Take a photo<input type="file" accept="image/*" capture="environment" style=${{ display: "none" }} onChange=${(e) => { run(e.target.files && e.target.files[0]); e.target.value = ""; }} /></label>
@@ -4586,7 +4588,7 @@ function RestockPanel() {
       </div>
       <datalist id="van-items-b">${van.map((x) => html`<option key=${x.id} value=${x.name} />`)}</datalist>
       <${Drop} bare=${true} title="My van stock list" sub=${van.length + " items · names, codes and prices"}>
-        <p className="note">The items you carry. Add your usual price and code once and they fill in when you use them on a job.</p>
+        <p className="note help">The items you carry. Add your usual price and code once and they fill in when you use them on a job.</p>
         ${van.map((x) => html`<div key=${x.id} className="mat-grid" style=${{ borderTop: "1px solid var(--line)", paddingTop: 8 }}>
           <${Lbl} label="Item" wide=${true}><input className="text-in" type="text" value=${x.name} onChange=${(e) => setV(x.id, { name: e.target.value })} /><//>
           <${Lbl} label="Code"><input className="text-in" type="text" placeholder="e.g. 1043W" value=${x.code || ""} onChange=${(e) => setV(x.id, { code: e.target.value })} /><//>
@@ -4710,6 +4712,7 @@ function KitList({ list, prefix, tier, kit, onToggle, hrs, setHr, skip0, fx, alt
   })}`;
 }
 
+const FIX_MODES_FOR = { eEICR: [["none", "None"], ["fit", "Book it in"]], eFault: [["none", "None"], ["repair", "Find and fix"]] };
 const FIX_MODES = [["none", "None"], ["repair", "Repair only"], ["remove", "Remove only"], ["fit", "Fit only"], ["new", "Remove & fit new"], ["old", "Remove & refit old"]];
 
 
@@ -4832,7 +4835,7 @@ function SuiteBar({ fixtures, tier, onChange }) {
   const sel = (label, key, opts, def) => html`<${Lbl} label=${label}><select className="text-in" value=${su[key] || def} onChange=${(e) => onChange({ [key]: e.target.value })}>${opts.map(([v, l]) => html`<option key=${v} value=${v}>${l}</option>`)}</select><//>`;
   return html`<div className="suite-bar">
     <div className="kit-head">Fittings for each fixture (older job)</div>
-    <p className="note" style=${{ margin: "0 0 6px" }}>This job was priced with the suggested allowance. Switch to the quick questions to get a full materials list with codes.</p>
+    <p className="note help" style=${{ margin: "0 0 6px" }}>This job was priced with the suggested allowance. Switch to the quick questions to get a full materials list with codes.</p>
     <${Segmented} options=${[["list", "Quick questions"], ["allow", "Suggested allowance"]]} value=${on ? "allow" : "list"} onChange=${(v) => onChange({ mode: v, was: true })} />
     ${on ? html`<div className="suite-grid">
       ${sel("House age", "age", [["post1990", "After 1990"], ["1950-1990", "1950 to 1990"], ["pre1950", "Before 1950"]], "post1990")}
@@ -5215,7 +5218,9 @@ const JOB_CHECKS_T = {
     [/floor|board|creak/i, ["Joists under the boards: rot or notches", "Pipes and cables under the boards before fixing"]]],
 };
 const jobChecks = (txt) => { const out = []; (JOB_CHECKS_T[curTrade] || JOB_CHECKS).forEach(([re, l]) => { if (re.test(txt || "")) l.forEach((x) => { if (out.indexOf(x) < 0) out.push(x); }); }); return out; };
+/* help and guidance (checks, guides, tips) are in the personal version only; the work version keeps to the job itself */
 function CheckTips({ items, title }) {
+  if (TEAM) return null;
   if (!items || !items.length) return null;
   return html`<${Drop} bare=${true} title=${title || "Checks before you price"} sub=${items.length + " to look at"}>
     <ul className="chk-list">${items.map((t, i) => html`<li key=${i}>${t}</li>`)}</ul>
@@ -5248,7 +5253,7 @@ function BoilerBlock({ fixtures, structural, updateFixture, updateStructural, hr
     return html`<div className="blr-hrs"><${HoursInput} label=${label} value=${hrRaw(hrs || {}, hk, stDefH(key, v))} onChange=${(x) => setHr(hk, x)} />${ST_NOTE[key + ":" + v] ? html`<p className=${"note" + (key === "bGas" && !(hrOf(hrs || {}, hk, 0) > 0) ? " warn-t" : "")} style=${{ margin: "0 0 4px" }}>${ST_NOTE[key + ":" + v]}</p>` : null}</div>`; };
   const bHk = "fx-boiler", bSt = fixtures.boiler || {};
   return html`<div className="card blr"><${TickSection} on=${on} onToggle=${(v) => sv("on", v)} title="Boiler install or replacement" hint=${TEAM ? "Quick questions for a boiler estimate" : "Quick questions for a boiler quote"}>
-    <p className="note" style=${{ marginTop: 0 }}>Answer what you can. Your answers set the boiler, gas, pipework, flue and condensate items below, which you can still change.</p>
+    <p className="note help" style=${{ marginTop: 0 }}>Answer what you can. Your answers set the boiler, gas, pipework, flue and condensate items below, which you can still change.</p>
     ${q("What is there now?", seg("now", BLR_NOW, (v) => conv(v, g("new"))))}
     ${q("New boiler", seg("new", BLR_NEW, (v) => { conv(g("now"), v); if (v && !active) updateFixture("boiler", modeState(g("now") && g("now") !== "none" ? "new" : "fit")); }))}
     <${Lbl} label="Make and model (optional)" wide=${true}><input className="text-in" type="text" placeholder="e.g. Worcester Bosch 4000 30kW" value=${g("model") || ""} onChange=${(e) => sv("model", e.target.value)} /><//>
@@ -5433,7 +5438,7 @@ function FxQs({ room, def, state, onChange, lname, kit, tier, hrs, setHr, skip0,
       const bad = ce && ce.okIf && !ce.okIf(jb) ? ce.warn : ce && ce.okIfQ && !ce.okIfQ(a) ? ce.warnQ : "";
       return html`<div key=${q.k} className="fq-row">
         <div className="fq-q">${q.q}</div>
-        ${q.hint ? html`<div className="fq-hint">${q.hint}</div>` : null}
+        ${q.hint && !TEAM ? html`<div className="fq-hint">${q.hint}</div>` : null}
         <${Segmented} options=${opts} value=${a[q.k] || ""} onChange=${(v) => set(q.k, v)} />
         ${bad ? html`<p className="note warn-t" style=${{ margin: "4px 0 0" }}>${bad}</p>` : null}
         ${ce && ce.say ? (() => { const w = !!(ce.sayIf && ce.sayIf(fixtures)); return html`<p className=${"note" + (w ? " warn-t" : "")} style=${{ margin: "4px 0 0" }}>${w ? ce.sayWarn : ce.say}</p>`; })() : null}
@@ -5530,11 +5535,11 @@ function TimeCheck({ survey, calc, hrs, setHr, warns, onClose }) {
   const rows = (g) => hl.filter((x) => !(x.def === 0 && x.h === 0 && /^jx-/.test(x.hk || "")) && (g === "o2" ? x.tag === "o2" || x.tag === "alt" : x.tag === g));
   return html`<${Sheet} title="Time check" onClose=${onClose}>
     ${warns.length ? html`<div style=${{ marginBottom: 10 }}>${warns.map((w, i) => html`<p key=${i} className="note warn-t" style=${{ margin: "0 0 6px" }}>${w}</p>`)}</div>` : null}
-    <p className="note" style=${{ margin: "0 0 8px" }}>Every bit of time in this job. Change a line here or on its item: it is the same figure.</p>
+    <p className="note help" style=${{ margin: "0 0 8px" }}>Every bit of time in this job. Change a line here or on its item: it is the same figure.</p>
     ${hl.length ? null : html`<p className="note">No time yet: choose what needs doing on the items.</p>`}
     ${grp.map(([g, t, tot]) => { const r = rows(g); if (!r.length) return null; return html`<div key=${g} style=${{ marginBottom: 12 }}>
       <div className="kit-head">${t}: ${fmtHrs(Number(tot) || 0)} hrs</div>
-      ${g === "o2" ? html`<p className="note" style=${{ margin: "0 0 6px" }}>Option 2 lines show the full time for that option. Where it replaces option 1 work, the price adds only the difference.</p>` : null}
+      ${g === "o2" ? html`<p className="note help" style=${{ margin: "0 0 6px" }}>Option 2 lines show the full time for that option. Where it replaces option 1 work, the price adds only the difference.</p>` : null}
       ${r.map((x, i) => x.ro ? html`<div key=${g + "-" + i + "-ro"} className="hrs"><span className="lbl">${x.label} (sent by the trade)</span><b>${fmtHrs(x.h)} hrs</b></div>` : html`<${HoursInput} key=${g + "-" + i + "-" + x.hk} label=${x.label} value=${hrRaw(hrs, x.hk, x.def)} onChange=${(v) => setHr(x.hk, v)} />`)}
     </div>`; })}
   <//>`;
@@ -5604,7 +5609,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
   const custTick = html`<${Tick} checked=${!!state.cust} onChange=${() => { if (state.cust && !su) [mode, state.alt].forEach((m) => { if (m === "fit" || m === "new") { const ln = fixtureListName(modeState(m)), l2 = fxKit(room, def.key, { ...modeState(m), q: state.q }, ln); if (l2.length) fillUsual(pc, def.key, l2, def.key + "-" + ln, tier, kit, false, def.key + "-" + ln + "-0"); } }); onChange({ cust: !state.cust }); }} label=${"Customer is supplying the " + def.label.toLowerCase().replace(/ \(.*\)/, "").replace(/\btrvs\b/, "TRVs") + " (or it comes with their kitchen or bathroom pack)"} />
       ${state.cust ? html`<p className="note" style=${{ margin: "0 0 6px" }}>The ${def.label.toLowerCase().replace(/ \(.*\)/, "")} itself is left out of the price and the quote says "supplied by the customer". Fittings to connect it are still included.</p>` : null}`;
   const pickAlt = (v) => { if (v) fillFor(v); onChange({ alt: v }); if (v && tag !== "in") setTag(toggleProv, tag, "in", "pv-fx-" + def.key, "o2-fx-" + def.key); };
-  return html`<${ItemCard} title=${def.label} valueLabel=${modeName} active=${active} sub=${sub} options=${FIX_MODES} value=${mode} onPick=${pick} altValue=${alt} onAlt=${pickAlt}>
+  return html`<${ItemCard} title=${def.label} valueLabel=${modeName} active=${active} sub=${sub} options=${FIX_MODES_FOR[def.key] || (def.key === "eNewPt" ? FIX_MODES.filter((m) => m[0] !== "repair") : FIX_MODES)} value=${mode} onPick=${pick} altValue=${alt} onAlt=${pickAlt}>
     ${false ? html`<p className="gla-hint">${GLA_HINTS[def.key]}</p>` : null}
     <${CheckTips} items=${ITEM_CHECKS[def.key]} />
     ${active && !su ? html`<${FxQs} room=${room} def=${def} state=${state} onChange=${onChange} lname=${lname} kit=${kit} tier=${tier} hrs=${hrs} setHr=${setHr} skip0=${custSkip(state.cust, lname, 0)} job=${fixtures._job} fixtures=${fixtures} />` : null}
@@ -5650,7 +5655,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
         <${KitList} alt=${true} fx=${def.key} list=${altList} prefix=${def.key + "-" + fixtureListName(altSt)} tier=${tier} kit=${kit} onToggle=${onToggle} hrs=${hrs} setHr=${setHr} skip0=${custSkip(state.cust, fixtureListName(altSt), 0)} />` : null}
       <${ExtraBlock} group=${def.label + O2_SFX} title=${"Option 2 extra materials (" + altName.toLowerCase() + ")"} />
       ${altCost > 0 ? html`<p className="note" style=${{ margin: "4px 0 0" }}>Option 2 materials for this item: ${fmtKit(altCost)}</p>` : null}
-    </div>` : active ? html`<button type="button" className="linkbtn" style=${{ margin: "4px 0 6px" }} onClick=${() => pickAlt(mode === "repair" ? "new" : "repair")}>+ Also price ${mode === "repair" ? "replacing it" : "repairing it"} (Option 2)</button>` : null}
+    </div>` : active && !FIX_MODES_FOR[def.key] ? html`<button type="button" className="linkbtn" style=${{ margin: "4px 0 6px" }} onClick=${() => pickAlt(mode === "repair" ? "new" : "repair")}>+ Also price ${mode === "repair" ? "replacing it" : "repairing it"} (Option 2)</button>` : null}
     <${DescField} id=${"fx-" + def.key} />
     <${ItemPhotos} pk=${"fx-" + def.key} active=${active} />
   <//>`;
@@ -5742,7 +5747,7 @@ function PasteList({ onAdd }) {
   const [txt, setTxt] = useState("");
   const rows = useMemo(() => parseMatList(txt), [txt]);
   return html`<${Drop} bare=${true} title="Paste a materials list" sub="quantity, name and code on each line">
-    <p className="note">Paste the list (from a message or notes). One item per line, like "2 x 15mm copper elbow 12345". A supplier line such as "Screwfix" sets the supplier, and the address line is skipped. Prices are filled in from your Price Book where it knows the item.</p>
+    <p className="note help">Paste the list (from a message or notes). One item per line, like "2 x 15mm copper elbow 12345". A supplier line such as "Screwfix" sets the supplier, and the address line is skipped. Prices are filled in from your Price Book where it knows the item.</p>
     <textarea className="manual note-ta" id="paste-mats" rows="6" placeholder=${"12 Example Street\nScrewfix\n2 x 15mm copper elbow 12345\n1 x Fill valve 6789F"} value=${txt} onChange=${(e) => setTxt(e.target.value)}></textarea>
     ${rows.length ? html`<div className="paste-prev">${rows.map((r, i) => html`<div key=${i} className="paste-row"><span className="ord-qty">${r.qty} ×</span> ${r.item}${r.code ? html` <span className="fold-sub">· ${r.code}</span>` : null}${r.where ? html` <span className="fold-sub">· ${r.where}</span>` : null}</div>`)}</div>` : null}
     <div className="link-row" style=${{ marginTop: 8 }}>
@@ -5782,6 +5787,7 @@ function KitPicker({ pc }) {
 
 const TIP_KEY = "pricer-tip-v1";
 function FirstTip() {
+  if (TEAM) return null;
   const [gone, setGone] = useState(() => { try { return localStorage.getItem(TIP_KEY) === "1"; } catch (e) { return false; } });
   if (gone) return null;
   const hide = () => { setGone(true); try { localStorage.setItem(TIP_KEY, "1"); } catch (e) { /* storage unavailable */ } };
@@ -6052,7 +6058,7 @@ function SiteSurveyView(p) {
     <div className="title-row"><h1>${room.title}</h1></div>
     <p className="lead">Tick what needs doing, set the hours and enter prices. The estimate is at the bottom.</p>
     <${Segmented} options=${[["site", "On site"], ["price", "Pricing"]]} value=${onSite ? "site" : "price"} onChange=${(v) => setOnSite(v === "site")} />
-    ${onSite ? html`<p className="note" style=${{ margin: "6px 0 0" }}>On site: prices, codes and the materials sections are hidden. Switch to Pricing to add them. Nothing is lost.</p>` : null}
+    ${onSite ? html`<p className="note help" style=${{ margin: "6px 0 0" }}>On site: prices, codes and the materials sections are hidden. Switch to Pricing to add them. Nothing is lost.</p>` : null}
     <${FirstTip} />
     <${JobProgress} title="What is left" steps=${[
       { id: "sv-cust", label: "Customer", next: "add the customer name", done: !!String(customerName || "").trim() },
@@ -6096,7 +6102,7 @@ function SiteSurveyView(p) {
     <${JobQs} room=${room} fixtures=${fixtures} updateFixture=${updateFixture} hrs=${hrs} setHr=${setHr} kit=${kit} onToggle=${toggleKit} tier=${tier} />
     ${room === HEATING && !TEAM ? html`<${RadSizer} fixtures=${fixtures} updateFixture=${updateFixture} hrs=${hrs} setHr=${setHr} kit=${kit} onToggle=${toggleKit} />` : null}
     ${room === BATHROOM && window.SUITE && fixtures._suite && (fixtures._suite.mode === "allow" || fixtures._suite.was) ? html`<${SuiteBar} fixtures=${fixtures} tier=${tier} onChange=${(patch) => updateFixture("_suite", patch)} />` : null}
-    ${room === BATHROOM && window.SUITE && !suiteOn(room, fixtures) ? html`<${SuiteRange} fixtures=${fixtures} tier=${tier} />` : null}
+    ${room === BATHROOM && window.SUITE && !TEAM && !suiteOn(room, fixtures) ? html`<${SuiteRange} fixtures=${fixtures} tier=${tier} />` : null}
     <div className="group" id="sv-fix">
       ${room.fixtures.map((item) => html`<${FixtureCard} room=${room} key=${item.key} def=${item} state=${fixtures[item.key]} fixtures=${fixtures} tier=${tier} kit=${kit} survey=${survey}
         onChange=${(patch) => updateFixture(item.key, patch)} onToggle=${toggleKit} hrs=${hrs} setHr=${setHr} prov=${prov} toggleProv=${toggleProv} />`)}
@@ -6108,7 +6114,7 @@ function SiteSurveyView(p) {
         onChange=${(v) => updateStructural(item.key, v)} onToggle=${toggleKit} hrs=${hrs} setHr=${setHr} prov=${prov} toggleProv=${toggleProv} />`)}
       ${extra ? html`<${OtherWork} x=${extra} size=${size} hrs=${hrs} setHr=${setHr} />` : null}
       <${TradesBlock} room=${room} />
-      <${ShareOwner} room=${room} siteAddress=${siteAddress} customerName=${customerName} />
+      ${room === ELECTRICAL || room === JOINERY ? null : html`<${ShareOwner} room=${room} siteAddress=${siteAddress} customerName=${customerName} />`}
       ${room === KITCHEN || room === HEATING || (Array.isArray(pc.prices.gas) && pc.prices.gas.length > 0) ? html`<${GasBlock} />` : null}
     </div>
 
@@ -6124,17 +6130,17 @@ function SiteSurveyView(p) {
           <${Lbl} label=${setSupplier ? "Quote ref (optional)" : "Supplier or quote ref"}><input className="text-in" type="text" placeholder=${setSupplier ? "Quote or order ref" : "e.g. Howdens, quote ref"} aria-label=${supplyLabel + " source"}
             value=${supplySource} onChange=${(e) => setSupplySource(e.target.value)} /><//>
         </div>
-        <p className="note">Type in the figure you're given. It is shown as its own line, separate from the kit materials and with no markup added.</p>
+        <p className="note help">Type in the figure you're given. It is shown as its own line, separate from the kit materials and with no markup added.</p>
       <//>` : null}
       <${Fold} title="Extra materials" sub=${nExtra ? nExtra + " added" : "anything not in the lists"}>
-        <p className="note">Anything else you need to buy. The price is added to the total and saved to your Price Book.</p>
+        <p className="note help">Anything else you need to buy. The price is added to the total and saved to your Price Book.</p>
         <${ExtraBlock} group="" />
         <${PasteList} onAdd=${(rows) => rows.forEach((r) => pc.addExtra({ item: r.item, qty: r.qty, code: r.code, where: r.where, price: r.price, group: "" }))} />
         <div className="kit-head">Kits: add or save a reusable list</div>
         <${KitPicker} pc=${pc} />
       <//>
       <${Fold} title="Bulk buys" sub=${pc.bulk.length ? pc.bulk.length + " · " + fmtKit(bulkSum) : "one price for a whole order"}>
-        <p className="note">Once you have a price for all the materials from one supplier, enter the total and where it's from here for a more accurate figure.</p>
+        <p className="note help">Once you have a price for all the materials from one supplier, enter the total and where it's from here for a more accurate figure.</p>
         ${pc.bulk.map((b) => html`<${RepRow} key=${b.id} onRemove=${() => pc.removeBulk(b.id)} removeLabel="Remove this bulk buy">
           <${Lbl} label="Supplier"><input className="text-in" type="text" placeholder="e.g. Screwfix" aria-label="Supplier of the bulk buy" value=${b.where} onChange=${(e) => pc.updateBulk(b.id, { where: e.target.value })} /><//>
           <${Lbl} label="Total (£)"><input className="text-in" type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" aria-label="Bulk buy total in pounds" value=${b.total} onChange=${(e) => pc.updateBulk(b.id, { total: e.target.value })} /><//>
@@ -7264,16 +7270,16 @@ function ReportSheet({ id, job, setJob, biz, onClose }) {
       <button type="button" className="btn btn-accent grow" onClick=${send} disabled=${busy}>${busy ? "Making PDF..." : "Make PDF"}</button>
       <${CopyQuote} cls="grow" text=${text} label="Copy as text" />
       <button type="button" className="btn" onClick=${onClose}>Done</button></div>`}>
-    <p className="note">${def.intro}</p>
+    <p className="note help">${def.intro}</p>
     <div className="mini-label">Where and who for</div>
     ${plain("site", "Property address")}${plain("date", "Date", "date")}${plain("tenant", "Customer or tenant")}${plain("landlord", "Landlord or agent (if any)")}
     <div style=${{ marginTop: 14 }}><div className="mini-label">The report</div>
-      <p className="note">Write it as you would explain it to the customer. Leave out anything that does not apply: empty boxes are not printed. The same report works for the customer, the landlord and the agent.</p>
+      <p className="note help">Write it as you would explain it to the customer. Leave out anything that does not apply: empty boxes are not printed. The same report works for the customer, the landlord and the agent.</p>
       ${REPORT_NARR.map(([k, h, ph]) => html`<div key=${k} className="field"><label className="field-label">${h}</label><textarea className="manual note-ta" placeholder=${ph} value=${v[k]} onChange=${(e) => setF(k, e.target.value)}></textarea>
         ${k === "now" && String(v.now || "").trim() ? html`<div style=${{ marginTop: 6 }}><div className="field-label">How soon?</div>${seg({ t: "sg", o: SOON_OPTS }, v.soon, (nv) => setF("soon", nv))}</div>` : null}</div>`)}</div>
     <div style=${{ marginTop: 14 }}><div className="mini-label">Overall result</div>
       ${seg({ t: "sg", o: OUTCOME_OPTS }, v.outcome, (nv) => setF("outcome", nv))}
-      ${OUTCOME_HELP[id] ? html`<${Drop} bare=${true} title="What each result means" sub="">
+      ${OUTCOME_HELP[id] ? html`<${Drop} bare=${true} cls="help" title="What each result means" sub="">
         <ul className="note" style=${{ margin: "6px 0 0", paddingLeft: 18 }}>${OUTCOME_HELP[id].map((t, i) => html`<li key=${i}>${t}</li>`)}</ul><//>` : null}</div>
     ${def.sections.length ? html`<div style=${{ marginTop: 6 }}><${Drop} bare=${true} title="Quick checklist" sub="optional">
       ${def.sections.map(([h, fields]) => html`<div key=${h} style=${{ marginTop: 8 }}><div className="mini-label">${h}</div>${fields.map(field)}</div>`)}
@@ -7517,7 +7523,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
     <div style=${{ display: mode === "quote" ? "none" : "" }}>
     <${Sec} n="3">Property checks<//>
     <div className="card">
-      <p className="note" style=${{ marginTop: 0 }}>Tap any check you looked at on this visit. Write down what you saw so the customer, landlord or agent knows the state of things.</p>
+      <p className="note help" style=${{ marginTop: 0 }}>Tap any check you looked at on this visit. Write down what you saw so the customer, landlord or agent knows the state of things.</p>
       <div className="chk-chips" role="group" aria-label="Property checks">
         ${CHECKS.map((c) => html`<button type="button" key=${c[0]} aria-pressed=${!!job.checks[c[0]]} className=${"chk-chip" + (job.checks[c[0]] ? " on" : "")} onClick=${() => setJob((pp) => ({ ...pp, checks: { ...pp.checks, [c[0]]: !pp.checks[c[0]] } }))}>${CHECK_SHORT[c[0]] || c[1]}</button>`)}
       </div>
@@ -7530,7 +7536,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
           <${Lbl} label="Next due (optional)"><input className="text-in" type="date" value=${dueOf(job, c)} onChange=${(e) => { const v = e.target.value; setJob((pp) => ({ ...pp, due: { ...pp.due, [c[0]]: v } })); }} /><//>
         </div>
         <div className="link-row" style=${{ marginTop: 6 }}>
-          ${CHECK_GUIDE[c[0]] ? html`<button type="button" className="btn" onClick=${() => setGuideId(c[0])}>What to look at</button>` : null}
+          ${CHECK_GUIDE[c[0]] && !TEAM ? html`<button type="button" className="btn" onClick=${() => setGuideId(c[0])}>What to look at</button>` : null}
           ${REPORT_FORMS[c[0]] ? html`<button type="button" className="btn" onClick=${() => setReportId(c[0])}>${reportStarted(job, c[0]) ? "Open write-up" : "Write-up with photos"}</button>` : null}
         </div>
       </div>`)}
@@ -7540,7 +7546,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
     </div>
     <${Sec} n="4">${mode === "quote" ? "Parts" : "Materials"}<//>
     <div className="card">
-      ${job.mats.map((m) => html`<${MatEditor} key=${m.id} item=${m.item} onItem=${(v) => setMat(m.id, { item: v })} itemPh="What (e.g. cartridge, washers)" startOpen=${!m.item && !m.cost}
+      ${job.mats.map((m) => html`<${MatEditor} key=${m.id} item=${m.item} onItem=${(v) => setMat(m.id, { item: v })} itemPh=${curTrade === "electrician" ? "What (e.g. socket, Wagos)" : curTrade === "joiner" ? "What (e.g. hinges, screws)" : "What (e.g. cartridge, washers)"} startOpen=${!m.item && !m.cost}
         price=${m.cost} onPrice=${(v) => setMat(m.id, { cost: v })} qty=${m.qty || ""} onQty=${(v) => setMat(m.id, { qty: v })} unk=${!!m.unk} onUnk=${(v) => setMat(m.id, { unk: v })} code=${m.code || ""} onCode=${(v) => setMat(m.id, { code: v })} where=${m.where} onWhere=${(v) => setMat(m.id, { where: v })}
         onCommit=${(f, v) => { if (f === "item") bookAdd(v.trim(), m.cost, m.where, "", m.code); else if (f === "price") { bookAdd((m.item || "").trim(), v, m.where, "", m.code); if (Number(v) > 0) usualAdd("grp:Maintenance", m.item, v, m.where, m.code); } else if (f === "where") bookAdd((m.item || "").trim(), m.cost, v, "", m.code); else bookAdd((m.item || "").trim(), m.cost, m.where, "", v); }}
         pickLabel=${m.item || ""} onPick=${(pr, sup, name, url, mycode, itemName) => {
@@ -7553,7 +7559,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
       <${PasteList} onAdd=${(rows) => setJob((p) => ({ ...p, mats: [...p.mats, ...rows.map((r) => ({ id: newId(), item: r.item, qty: r.qty, code: r.code, where: r.where, cost: r.price }))] }))} />
       <${VanUsed} job=${job} setJob=${setJob} gx=${gx} sx=${sx} />
       <${Drop} bare=${true} open=${(job.bulk || []).length > 0} title="Materials already bought / bulk buy" sub=${(job.bulk || []).length ? (job.bulk || []).length + " · " + fmtKit(bulkTotal) : "stock or a lump sum"}>
-      <p className="note">Quick way to add stock you already had or a bulk buy: just a short description and the amount, no need to list every item.</p>
+      <p className="note help">Quick way to add stock you already had or a bulk buy: just a short description and the amount, no need to list every item.</p>
       ${(job.bulk || []).map((x) => html`<${RepRow} key=${x.id} onRemove=${() => setJob((p) => ({ ...p, bulk: (p.bulk || []).filter((y) => y.id !== x.id) }))} removeLabel="Remove this bulk buy">
         <${Lbl} label="What" wide=${true}><input className="text-in" type="text" placeholder="e.g. Fittings from bulk buy, van stock" value=${x.what || ""} onChange=${(e) => setBulk(x.id, { what: e.target.value })} /><//>
         <${Lbl} label="Supplier"><input className="text-in" type="text" placeholder="e.g. Screwfix (optional)" value=${x.where || ""} onChange=${(e) => setBulk(x.id, { where: e.target.value })} /><${QuickChips} items=${SUPPLIER_CHIPS} value=${x.where} label="Common suppliers" onPick=${(v) => setBulk(x.id, { where: v })} /><//>
@@ -7600,7 +7606,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
     <${Sec} n=${TEAM || !biz ? "6" : "7"}>Orders and notes<//>
     <div className="group">
       <${Drop} open=${(job.orders || []).length > 0} title="Orders placed" sub=${(job.orders || []).length ? (job.orders || []).length + " placed" : "supplier, reference, address"}>
-      <p className="note">Anything ordered from a supplier for this job, with the order reference and where it is going.</p>
+      <p className="note help">Anything ordered from a supplier for this job, with the order reference and where it is going.</p>
       ${(job.orders || []).map((o) => html`<${RepRow} key=${o.id} onRemove=${() => setJob((p) => ({ ...p, orders: (p.orders || []).filter((x) => x.id !== o.id) }))} removeLabel="Remove this order">
         <${Lbl} label="Supplier"><input className="text-in" type="text" placeholder="e.g. Screwfix, City Plumbing" value=${o.from || ""} onChange=${(e) => setOrd(o.id, { from: e.target.value })} /><${QuickChips} items=${SUPPLIER_CHIPS} value=${o.from} label="Common suppliers" onPick=${(v) => setOrd(o.id, { from: v })} /><//>
         <${Lbl} label="Order reference"><input className="text-in" type="text" placeholder="Order no. / ref" value=${o.ref || ""} onChange=${(e) => setOrd(o.id, { ref: e.target.value })} /><//>
@@ -7754,8 +7760,8 @@ const MY_TRADES = [
   { id: "electrician", label: "Electrician", icon: "bolt", blurb: "Sockets, lighting, boards, alarms, testing", tabs: ["small", "elec", "book", "jobs"], start: "elec" },
   { id: "joiner", label: "Joiner", icon: "saw", blurb: "Doors, floors, kitchens, windows, boxing in", tabs: ["small", "join", "book", "jobs"], start: "join" },
 ];
-/* the trade picker and the Electrical / Joinery sections are switched off until they have been tried by an electrician and a joiner */
-const TRADES_ON = false;
+/* the trade picker and the Electrical / Joinery sections (work version only). Switched on for the electrician and joiner to try. */
+const TRADES_ON = true;
 const TRADE_KEY = "pricer-trade-v1";
 /* example text in the Maintenance boxes, in each trade's own words */
 const MJ_PH = {
@@ -7916,7 +7922,7 @@ function App() {
     XR.forEach((x) => { if (d[x[1]]) openSaved({ kind: x[1], data: d[x[1]], id: ids[x[1]] || null }); });
     if (d.bath) openSaved({ kind: "bathroom", data: d.bath, id: ids.bathroom || null });
     setJobId("small", ids.small || null);
-    setMode(d.mode === "kitchen" || d.mode === "heating" || d.mode === "small" || xrByTab(d.mode) ? d.mode : "survey");
+    { const m0 = d.mode === "kitchen" || d.mode === "heating" || d.mode === "small" || xrByTab(d.mode) ? d.mode : "survey"; setMode(tabsOn.indexOf(m0) > -1 ? m0 : tradeOf(trade).start); }
     if (isOld) { try { localStorage.removeItem(OLD_KEY); } catch (err) { /* ignore */ } setOldD(null); } else setDraft(null);
   };
   const discardDraft = (d, isOld) => {
@@ -7960,7 +7966,7 @@ function App() {
         if (!isDirty()) { if (cur && (!draft || cur.ts !== draft.ts)) localStorage.removeItem(DRAFT_KEY); return; }
         if (draft && cur && cur.ts === draft.ts) { localStorage.setItem(OLD_KEY, JSON.stringify(cur)); setOldD(cur); setDraft(null); }
         try { localStorage.removeItem("__q"); } catch (e) { /* ignore */ }
-        localStorage.setItem(DRAFT_KEY, JSON.stringify({ ts: Date.now(), mode: mode === "kitchen" || mode === "heating" || mode === "small" || xrByTab(mode) ? mode : "survey", bath: bathSnap(), kitchen: kitchenSnap(), heating: heatSnap(), small: sjob, electrical: ex.snap(tier), joinery: jx.snap(tier), ids: jobIds }));
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ ts: Date.now(), mode: mode === "kitchen" || mode === "heating" || mode === "small" || xrByTab(mode) ? mode : mode === "survey" || mode === "calculator" || tabsOn.indexOf("survey") > -1 ? "survey" : tradeOf(trade).start, bath: bathSnap(), kitchen: kitchenSnap(), heating: heatSnap(), small: sjob, electrical: ex.snap(tier), joinery: jx.snap(tier), ids: jobIds }));
         if (draftFull) setDraftFull(false);
       } catch (err) { if (err && (err.name === "QuotaExceededError" || err.code === 22 || err.code === 1014)) setDraftFull(true); }
     };
