@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <script>
 /* always open the newest version: if the copy on this phone is older than the one on the site, reload once with a fresh address */
-(function () { var B = "202610270605"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
+(function () { var B = "202610280457"; try { if (location.protocol.indexOf("http") !== 0) return; var k = "pricer-build-tried";
   fetch(location.pathname + "?check=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.text(); }).then(function (t) {
     var m = /var B = "([^"]+)"/.exec(t); if (m && m[1] !== B && sessionStorage.getItem(k) !== m[1]) { sessionStorage.setItem(k, m[1]); location.replace(location.pathname + "?v=" + m[1]); } }).catch(function () {}); } catch (e) {} })();
 </script>
@@ -2396,7 +2396,8 @@ const fmtKit = fmt;
 const fmtDays = (d) => Number(d.toFixed(2));
 const fixtureListName = (st) => (st.repair ? "repair" : st.fit ? (st.condition === "old" ? "fitOld" : "fitNew") : "removedOnly");
 /* the customer supplies the item itself (or it comes in their kitchen pack): the first line of the "fit new" kit is the item, so it is left out */
-const custSkip = (cust, lname, i) => !!cust && lname === "fitNew" && i === 0;
+const APPLIANCE_FX = { washer: 1, dishwasher: 1 };
+const custSkip = (cust, lname, i, key) => !!cust && lname === "fitNew" && i === 0 && !(key && APPLIANCE_FX[key]);
 
 /* items that are often done more than one at a time: a "How many?" box multiplies the time and the materials */
 const QTY_FX = { radiator: 1, hrad: 1, htowel: 1, hvalve: 1, otap: 1, toilet: 1, basin: 1 };
@@ -2410,7 +2411,13 @@ const SCOPE_SVC = { "EICR / Testing": "Electrical installation condition report 
 const CNT_LABEL = {};
 ELEC_FIXTURE_ITEMS.concat(JOIN_FIXTURE_ITEMS).forEach((x) => { CNT_LABEL[x.label] = x.key; });
 const scopeName = (label) => label.replace(/ \(.*\)/, "").split(" ").map((w) => (/^[A-Z0-9]{2,}s?$/.test(w) ? w : w.toLowerCase())).join(" ").replace(/\btrvs\b/, "TRVs");
+const APPLIANCE_LABEL = { "Washing Machine": 1, Dishwasher: 1 };
 function fixtureScope1(label, st) {
+  if (APPLIANCE_LABEL[label] && !st.repair) {
+    const nm = label.toLowerCase();
+    if (st.remove && st.fit) return st.condition === "old" ? "Disconnect and reconnect existing " + nm : "Disconnect existing " + nm + "; plumb in and connect new " + nm + " (appliance supplied by the customer)";
+    if (st.fit) return "Plumb in and connect " + nm + " (appliance supplied by the customer)";
+  }
   if (SCOPE_SVC[label] && (st.fit || st.repair)) return SCOPE_SVC[label];
   const name = scopeName(label);
   if (st.repair) return "Repair / service existing " + name + " (no removal or refit)";
@@ -3218,6 +3225,18 @@ const JOB_X_NEW = {
   fridge: { main: true, verb: "Fridge water feed", h: 1, kit: [{ l: "Fridge feed kit (valve, pipe, connectors)", p: 20 }] },
 };
 const JOB_X_ALL = { ...JOB_X, ...JOB_X_NEW };
+/* work version, plumbers: one Plumbing screen with the bathroom, kitchen and heating items (the personal version keeps the three screens) */
+const PLUMBING = (() => {
+  const fx = BATHROOM.fixtures.concat(KITCHEN.fixtures.filter((f) => f.key !== "otap"), HEATING.fixtures.filter((f) => f.key !== "hrad"));
+  const kits = {}; fx.forEach((f) => { kits[f.key] = FIXTURE_KITS[f.key] || KITCHEN_FIXTURE_KITS[f.key] || HEAT_FIXTURE_KITS[f.key]; });
+  const st = BATHROOM.structural.concat(KITCHEN.structural.filter((x) => x.key === "splash"), HEATING.structural);
+  const sk = {}; st.forEach((x) => { sk[x.key] = BATHROOM.structuralKits[x.key] || KITCHEN.structuralKits[x.key] || HEATING.structuralKits[x.key]; });
+  const bk = JOB_Q_BATH.map((q) => q.k);
+  return { title: "Plumbing Survey", fixturesLabel: "Plumbing, heating and appliances", structLabel: "Floor, walls and heating system", hk: "plumbing",
+    fixtures: fx, fixtureKits: kits, structural: st, structuralKits: sk,
+    extras: { bath: BATH_EXTRAS, sink: KITCHEN_EXTRAS, hcyl: HEAT_EXTRAS.hcyl },
+    jobQ: JOB_Q_BATH.concat(JOB_Q_KIT.filter((q) => bk.indexOf(q.k) < 0)), jobX: JOB_X_ALL, jobSub: "once per job: access, pipes, waste, walls, fan, sink" };
+})();
 BATHROOM.jobQ = JOB_Q_BATH; BATHROOM.jobX = JOB_X_ALL; BATHROOM.jobSub = "once per job: access, pipes, waste, walls, fan";
 KITCHEN.jobQ = JOB_Q_KIT; KITCHEN.jobX = JOB_X_ALL; KITCHEN.jobSub = "once per job: access, pipes, waste, who fits the units";
 function jobFx(fixtures, room) {
@@ -5630,7 +5649,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
       const ls = (pc.extras || []).filter((x) => x.rs), m = ls.length ? ls.reduce((t, x) => t + (Math.max(1, Math.floor(Number(x.qty)) || 1)), 0) : [...d.slice(i).matchAll(/: (\d+) × /g)].reduce((t, x) => t + Number(x[1]), 0);
       return m && m !== nQ ? html`<p className="note warn-t" style=${{ margin: "0 0 6px" }}>${m} radiator${m === 1 ? " is" : "s are"} sized for this job but the quantity is ${nQ}. Change the quantity, or tick the sizes in "Radiator sizes by room" and add them again.</p>` : null; })() : null}
     <${ItemTime} label=${nQ > 1 ? hrsLabel + " (for " + nQ + ")" : hrsLabel} survey=${survey} def=${def} hk=${hk} hrs=${hrs} setHr=${setHr} defH=${fxDefH(state, def.key) * nQ} />
-    ${mode === "fit" || mode === "new" ? custTick : null}
+    ${(mode === "fit" || mode === "new") && !APPLIANCE_FX[def.key] ? custTick : null}
     ${active && !alt ? html`<${PriceAs} value=${tag} onPick=${(v) => setTag(toggleProv, tag, v, "pv-fx-" + def.key, "o2-fx-" + def.key)} />` : null}
     ${su && active ? html`<${SuitePanel} def=${def} state=${state} onChange=${onChange} fixtures=${fixtures} tier=${tier} />` : null}
     ${!su && list.length > 0 ? html`<div>
@@ -5647,7 +5666,7 @@ function FixtureCard({ room, def, state, onChange, tier, kit, onToggle, hrs, set
     ${onSite ? null : html`<${ExtraBlock} group=${def.label} hint=${def.label.toLowerCase().replace(/ \(.*\)/, "")} title=${alt ? "Option 1 extra materials (" + modeName.toLowerCase() + ")" : ""} />` }
     ${alt ? html`<div className="alt-box">
       <div className="alt-head"><span><b>Option 2:</b> ${altName.toLowerCase()} instead</span><button type="button" className="linkbtn" onClick=${() => onChange({ alt: "" })}>Remove</button></div>
-      ${(alt === "fit" || alt === "new") && !(mode === "fit" || mode === "new") ? custTick : null}
+      ${(alt === "fit" || alt === "new") && !(mode === "fit" || mode === "new") && !APPLIANCE_FX[def.key] ? custTick : null}
       <${HoursInput} label=${"Time to " + altName.toLowerCase()} value=${hrRaw(hrs, "fxa-" + def.key, fxDefH(altSt, def.key) * nQ)} onChange=${(v) => setHr("fxa-" + def.key, v)} />
       ${!su ? html`<${FxQs} alt=${true} room=${room} def=${def} state=${{ ...altSt, n: state.n }} onChange=${onChange} lname=${fixtureListName(altSt)} kit=${kit} tier=${tier} hrs=${hrs} setHr=${setHr} skip0=${custSkip(state.cust, fixtureListName(altSt), 0)} job=${fixtures._job}
         skipKeys=${(FX_Q[def.key] || []).filter((q) => q.lists.indexOf(lname) > -1 && (!q.when || q.when(state.q || {}, state))).map((q) => q.k)} />` : null}
@@ -5929,7 +5948,7 @@ const SHARE_JOINED_KEY = "pricer-shares-joined";
 const shareCode = () => { const a = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; const r = new Uint32Array(6); try { crypto.getRandomValues(r); } catch (e) { for (let i = 0; i < 6; i++) r[i] = Math.floor(Math.random() * 1e9); } let c = ""; r.forEach((x) => { c += a[x % a.length]; }); return c; };
 const joinedLoad = () => { try { const v = JSON.parse(localStorage.getItem(SHARE_JOINED_KEY)); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
 const joinedSave = (v) => { try { localStorage.setItem(SHARE_JOINED_KEY, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } };
-const roomTrade = (room) => (room === ELECTRICAL ? "Electrician" : room === JOINERY ? "Joiner" : "Plumber");
+const roomTrade = (room) => (room === ELECTRICAL ? "Electrician" : room === JOINERY ? "Joiner" : curTrade === "gas" ? "Gas engineer" : "Plumber");
 function ShareOwner({ room, siteAddress, customerName }) {
   const pc = React.useContext(PriceCtx);
   const auth = useAuth();
@@ -6097,7 +6116,7 @@ function SiteSurveyView(p) {
       <//>
     </div>
 
-    ${room === HEATING ? html`<${BoilerBlock} fixtures=${fixtures} structural=${structural} updateFixture=${updateFixture} updateStructural=${updateStructural} hrs=${hrs} setHr=${setHr} />` : null}
+    ${room === HEATING || room === PLUMBING ? html`<${BoilerBlock} fixtures=${fixtures} structural=${structural} updateFixture=${updateFixture} updateStructural=${updateStructural} hrs=${hrs} setHr=${setHr} />` : null}
     <${Sec} n="2">${room.fixturesLabel}<//>
     <${JobQs} room=${room} fixtures=${fixtures} updateFixture=${updateFixture} hrs=${hrs} setHr=${setHr} kit=${kit} onToggle=${toggleKit} tier=${tier} />
     ${room === HEATING && !TEAM ? html`<${RadSizer} fixtures=${fixtures} updateFixture=${updateFixture} hrs=${hrs} setHr=${setHr} kit=${kit} onToggle=${toggleKit} />` : null}
@@ -6115,7 +6134,7 @@ function SiteSurveyView(p) {
       ${extra ? html`<${OtherWork} x=${extra} size=${size} hrs=${hrs} setHr=${setHr} />` : null}
       <${TradesBlock} room=${room} />
       ${room === ELECTRICAL || room === JOINERY ? null : html`<${ShareOwner} room=${room} siteAddress=${siteAddress} customerName=${customerName} />`}
-      ${room === KITCHEN || room === HEATING || (Array.isArray(pc.prices.gas) && pc.prices.gas.length > 0) ? html`<${GasBlock} />` : null}
+      ${room === KITCHEN || room === HEATING || room === PLUMBING || (Array.isArray(pc.prices.gas) && pc.prices.gas.length > 0) ? html`<${GasBlock} />` : null}
     </div>
 
     <div style=${{ display: onSite ? "none" : "" }}>
@@ -6681,7 +6700,7 @@ function useAuth() {
   return { user, ready };
 }
 
-const KIND_LABEL = { bathroom: "Bathroom", kitchen: "Kitchen", heating: "Heating & hot water", small: "Maintenance job", electrical: "Electrical", joinery: "Joinery" };
+const KIND_LABEL = { bathroom: "Bathroom", kitchen: "Kitchen", heating: "Heating & hot water", small: "Maintenance job", electrical: "Electrical", joinery: "Joinery", plumbing: "Plumbing" };
 
 function AuthForm() {
   const [email, setEmail] = useState("");
@@ -7303,6 +7322,29 @@ const fmtDate = (iso) => (iso ? iso.split("-").reverse().join("/") : "");
 const dueOf = (j, c) => (j.due && j.due[c[0]]) || addMonths(j.done && j.done[c[0]], c[2]);
 const emptyJob = () => ({ ...EMPTY_JOB, date: localYmd() });
 const EMPTY_JOB = { jobType: "", date: "", where: "", issue: "", issueWhere: "", work: "", hours: "", x: {}, mats: [], checks: {}, done: {}, due: {}, noAddr: false, orders: [], bulk: [], rateOn: false, rate: "", complete: false, reports: {}, resolved: "", resolvedNote: "", further: "", tradeNeeded: false, trade: "", tradeNote: "" };
+/* more than one issue at a property: issue 1 uses the original boxes, issues 2+ are a list on the job */
+const mjIssues = (j) => (Array.isArray(j && j.issues) ? j.issues : []).filter((x) => x && (String(x.issue || "").trim() || String(x.where || "").trim() || String(x.work || "").trim() || x.resolved));
+function MoreIssues({ job, setJob, quote }) {
+  const ls = Array.isArray(job.issues) ? job.issues : [];
+  const upd = (id, patch) => setJob((p) => ({ ...p, issues: (p.issues || []).map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
+  const ta = (x, k, label, ph) => html`<div className="field"><label className="field-label">${label}</label>
+    <textarea className="manual note-ta" placeholder=${ph} value=${x[k] || ""} onChange=${(e) => upd(x.id, { [k]: e.target.value })}></textarea></div>`;
+  const tx = (x, k, label, ph) => html`<div className="field"><label className="field-label">${label}</label>
+    <input className="text-in" style=${{ margin: 0 }} type="text" placeholder=${ph} value=${x[k] || ""} onChange=${(e) => upd(x.id, { [k]: e.target.value })} /></div>`;
+  return html`<div>
+    ${ls.map((x, i) => html`<div key=${x.id} className="chk-card" style=${{ marginTop: 10 }}>
+      <div className="kit-head" style=${{ marginTop: 0 }}>Issue ${i + 2}</div>
+      ${tx(x, "issue", quote ? "What's the problem?" : "What was the problem?", mjPh("issue"))}
+      ${tx(x, "where", "Where is it?", mjPh("where"))}
+      ${quote ? null : html`${ta(x, "work", "What did you do?", mjPh("work"))}
+        <div className="field"><div className="field-label">Has this issue been resolved?</div>
+          <${Segmented} options=${[["yes", "Yes"], ["partly", "Partly"], ["no", "No"]]} value=${x.resolved || ""} onChange=${(v) => upd(x.id, { resolved: x.resolved === v ? "" : v })} /></div>
+        ${x.resolved === "partly" || x.resolved === "no" ? ta(x, "still", "What is still wrong?", mjPh("still")) : null}`}
+      <div className="link-row" style=${{ marginTop: 6 }}><${RemoveBtn} onClick=${() => setJob((p) => ({ ...p, issues: (p.issues || []).filter((y) => y.id !== x.id) }))} label=${"Remove issue " + (i + 2)} /></div>
+    </div>`)}
+    <${AddBtn} onClick=${() => setJob((p) => ({ ...p, issues: [...(p.issues || []), { id: newId(), issue: "", where: "", work: "", resolved: "", still: "" }] }))}>Add another issue<//>
+  </div>`;
+}
 function jobNoteText(j) {
   const L = [];
   const d = j.date ? ymdGB(j.date) : new Date().toLocaleDateString("en-GB");
@@ -7315,6 +7357,13 @@ function jobNoteText(j) {
   if (j.issueWhere.trim()) L.push("Where in property: " + j.issueWhere.trim());
   if (j.work.trim()) L.push("Work carried out: " + j.work.trim());
   if (j.resolved) L.push("Issue resolved: " + (j.resolved === "yes" ? "Yes" : j.resolved === "partly" ? "Partly" : "No") + ((j.resolved !== "yes" && (j.resolvedNote || "").trim()) ? " — " + j.resolvedNote.trim() : ""));
+  mjIssues(j).forEach((x, i) => {
+    L.push(""); L.push("ISSUE " + (i + 2) + (String(x.issue || "").trim() ? ": " + x.issue.trim() : ""));
+    if (String(x.where || "").trim()) L.push("Where in property: " + x.where.trim());
+    if (String(x.work || "").trim()) L.push("Work carried out: " + x.work.trim());
+    if (x.resolved) L.push("Issue resolved: " + (x.resolved === "yes" ? "Yes" : x.resolved === "partly" ? "Partly" : "No") + (x.resolved !== "yes" && String(x.still || "").trim() ? " — " + x.still.trim() : ""));
+  });
+  if (mjIssues(j).length) L.push("");
   const h = Number(j.hours);
   if (j.hours !== "" && !isNaN(h)) L.push("Time taken: " + fmtDays(h) + (h === 1 ? " hour" : " hours"));
   if (false && j.rateOn && Number(j.rate) > 0 && j.hours !== "" && !isNaN(h)) L.push("Labour at £" + Math.min(100, Number(j.rate)) + " an hour: " + fmtKit(h * Math.min(100, Number(j.rate))));
@@ -7408,6 +7457,7 @@ function JobStatus({ job }) { return null; /* decluttered */
   const states = ticked.map((c) => [c, checkState(job, c)]);
   const worst = states.length ? states.slice().sort((a, b) => a[1].rank - b[1].rank)[0][1] : null;
   const pills = [];
+  if (mjIssues(job).length) { const all = [{ resolved: job.resolved }].concat(mjIssues(job)), ok = all.filter((x) => x.resolved === "yes").length; pills.push([ok + " of " + all.length + " issues resolved", ok === all.length ? "ok" : "warn"]); }
   if (job.resolved) pills.push(["Resolved: " + (job.resolved === "yes" ? "Yes" : job.resolved === "partly" ? "Partly" : "No"), job.resolved === "yes" ? "ok" : "warn"]);
   if ((job.orders || []).length) pills.push([(job.orders || []).length + (job.orders.length === 1 ? " order placed" : " orders placed"), "warn"]);
   if (job.tradeNeeded) pills.push(["Trade: " + ((job.trade || "").trim() || "to confirm"), "warn"]);
@@ -7473,14 +7523,15 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
   const jc = chargeOf(gx);
   const [terms, setTerms] = useTerms();
   const invText = buildInvoiceText({ businessName: bizName, customerName: (job.x || {})["inv:cust"] || "", siteAddress: job.noAddr ? "" : job.where, get: gx,
-    work: [job.jobType, job.work].concat(qlRows(gx).map((l) => qlName(l) + (l.who === "me" ? "" : " (by " + (QL_BY[l.trade] || "a specialist tradesman") + ")"))),
+    work: [job.jobType, job.work].concat(mjIssues(job).map((x) => String(x.work || "").trim() || String(x.issue || "").trim())).concat(qlRows(gx).map((l) => qlName(l) + (l.who === "me" ? "" : " (by " + (QL_BY[l.trade] || "a specialist tradesman") + ")"))),
     charges: [[qlRows(gx).length ? "Plumbing labour" : "Labour", jh * jr], ["Materials", matTotal]].concat(qlRows(gx).map((l) => [qlName(l), qlCost({ ...l, who: l.who || "sub" }, jr)])).concat(extraLines(gx)), minCharge: jc.min, pay, terms });
   const qFixed = Math.max(0, Number(gx("q:fixed")) || 0);
   /* quote or job done: old jobs (no choice saved) open as "job done", exactly as before */
   const mode = biz && gx("mj:mode") === "quote" ? "quote" : "done";
   const qHrs = gx("q:hrs"), qhN = qHrs !== undefined && qHrs !== null && String(qHrs).trim() !== "" && !isNaN(Number(qHrs)) ? Number(qHrs) : null;
   const qText = buildSmallQuote({ businessName: bizName, customerName: gx("inv:cust") || "", siteAddress: job.noAddr ? "" : job.where, get: gx,
-    work: (String(gx("q:work") || "").trim() ? [gx("q:work")] : [job.jobType, [job.issue, job.issueWhere ? "(" + job.issueWhere + ")" : ""].filter((x) => String(x || "").trim()).join(" ")])
+    work: (String(gx("q:work") || "").trim() ? [gx("q:work")] : [job.jobType, [job.issue, job.issueWhere ? "(" + job.issueWhere + ")" : ""].filter((x) => String(x || "").trim()).join(" ")]
+      .concat(mjIssues(job).map((x) => [x.issue, String(x.where || "").trim() ? "(" + x.where.trim() + ")" : ""].filter((y) => String(y || "").trim()).join(" "))))
       .concat(qlRows(gx).map((l) => qlName(l) + (l.who === "me" ? "" : " (by " + (QL_BY[l.trade] || "a specialist tradesman") + ")"))),
     charges: (qFixed > 0 ? [["Price for the work", qFixed]] : [[qlRows(gx).length ? "Plumbing labour" : "Labour", (qhN !== null ? qhN : gx("mj:mode") === "quote" ? 0 : jh) * jr], ["Materials", matTotal]].concat(qlRows(gx).map((l) => [qlName(l), qlCost({ ...l, who: l.who || "sub" }, jr)]))).concat(extraLines(gx)), minCharge: jc.min, terms });
   return html`<div>
@@ -7506,17 +7557,20 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
 
     <${Sec} n="2">${mode === "quote" ? "What needs doing" : "What you found and did"}<//>
     <div className="card">
+      ${(job.issues || []).length ? html`<div className="kit-head" style=${{ marginTop: 0 }}>Issue 1</div>` : null}
       ${inp("issue", "What was the problem?", mjPh("issue"), "mj-issue")}
       ${inp("issueWhere", "Where is it?", mjPh("where"), "mj-iw")}
       <${CheckTips} title="Checks to do" items=${jobChecks([job.jobType, job.issue, job.issueWhere].join(" "))} />
-      ${mode === "quote" ? html`<${HoursInput} quick=${true} label="How long will your plumbing take?" value=${gx("q:hrs") || ""} onChange=${(v) => sx("q:hrs", v)} />
+      ${mode === "quote" ? html`<${MoreIssues} job=${job} setJob=${setJob} quote=${true} />
+      <${HoursInput} quick=${true} label="How long will your plumbing take?" value=${gx("q:hrs") || ""} onChange=${(v) => sx("q:hrs", v)} />
       <p className="note" style=${{ margin: "4px 0 0" }}>Used for the quote. The time you record once the job is done is kept separately, so the quote doesn't change.</p>
       <${QuoteLines} get=${gx} set=${sx} rate=${jr} />` : html`
       ${area("work", mjPh("work"), "What did you do?", "mj-work")}
       <div className="field"><div className="field-label" id="mj-res-l">Has the issue been resolved?</div>
         <${Segmented} options=${[["yes", "Yes"], ["partly", "Partly"], ["no", "No"]]} value=${job.resolved || ""} onChange=${(v) => setJob((p) => ({ ...p, resolved: p.resolved === v ? "" : v }))} /></div>
       ${job.resolved === "partly" || job.resolved === "no" ? area("resolvedNote", mjPh("still"), "What is still wrong?", "mj-resnote") : null}
-      <${HoursInput} quick=${true} label="How long did it take?" value=${job.hours} onChange=${(v) => setJob((p) => ({ ...p, hours: v }))} />
+      <${MoreIssues} job=${job} setJob=${setJob} />
+      <${HoursInput} quick=${true} label=${(job.issues || []).length ? "How long did the visit take (all issues)?" : "How long did it take?"} value=${job.hours} onChange=${(v) => setJob((p) => ({ ...p, hours: v }))} />
       ${qhN !== null ? html`<p className="note" style=${{ margin: "4px 0 0" }}>Quoted: ${fmtHrs(qhN)} hrs.</p>` : null}`}
     </div>
 
@@ -7546,7 +7600,7 @@ function SmallJobView({ job, setJob, onClear, bizName }) {
     </div>
     <${Sec} n="4">${mode === "quote" ? "Parts" : "Materials"}<//>
     <div className="card">
-      ${job.mats.map((m) => html`<${MatEditor} key=${m.id} item=${m.item} onItem=${(v) => setMat(m.id, { item: v })} itemPh=${curTrade === "electrician" ? "What (e.g. socket, Wagos)" : curTrade === "joiner" ? "What (e.g. hinges, screws)" : "What (e.g. cartridge, washers)"} startOpen=${!m.item && !m.cost}
+      ${job.mats.map((m) => html`<${MatEditor} key=${m.id} item=${m.item} onItem=${(v) => setMat(m.id, { item: v })} itemPh=${curTrade === "electrician" ? "What (e.g. socket, Wagos)" : curTrade === "joiner" ? "What (e.g. hinges, screws)" : curTrade === "gas" ? "What (e.g. electrode, fan, PCB)" : "What (e.g. cartridge, washers)"} startOpen=${!m.item && !m.cost}
         price=${m.cost} onPrice=${(v) => setMat(m.id, { cost: v })} qty=${m.qty || ""} onQty=${(v) => setMat(m.id, { qty: v })} unk=${!!m.unk} onUnk=${(v) => setMat(m.id, { unk: v })} code=${m.code || ""} onCode=${(v) => setMat(m.id, { code: v })} where=${m.where} onWhere=${(v) => setMat(m.id, { where: v })}
         onCommit=${(f, v) => { if (f === "item") bookAdd(v.trim(), m.cost, m.where, "", m.code); else if (f === "price") { bookAdd((m.item || "").trim(), v, m.where, "", m.code); if (Number(v) > 0) usualAdd("grp:Maintenance", m.item, v, m.where, m.code); } else if (f === "where") bookAdd((m.item || "").trim(), m.cost, v, "", m.code); else bookAdd((m.item || "").trim(), m.cost, m.where, "", v); }}
         pickLabel=${m.item || ""} onPick=${(pr, sup, name, url, mycode, itemName) => {
@@ -7752,13 +7806,14 @@ function HomeCard() { return null; /* decluttered */
   </details>`;
 }
 
-const TABS = [["small", "wrench", "Maintenance"], ["survey", "bath", "Bathroom"], ["kitchen", "kitchen", "Kitchen"], ["heating", "heat", "Heat & HW"], ["elec", "bolt", "Electrical"], ["join", "saw", "Joinery"], ["book", "tag", "Price Book"], ["jobs", "folder", "My Jobs"]];
+const TABS = [["small", "wrench", "Maintenance"], ["survey", "bath", "Bathroom"], ["kitchen", "kitchen", "Kitchen"], ["heating", "heat", "Heat & HW"], ["elec", "bolt", "Electrical"], ["join", "saw", "Joinery"], ["plumb", "drop", "Plumbing"], ["book", "tag", "Price Book"], ["jobs", "folder", "My Jobs"]];
 /* the work version asks each person their trade once (kept on their phone) and shows the tabs for that trade.
    Paul's full version keeps the plumbing tabs. A trade is just a list of tabs, so adding another is one line here. */
 const MY_TRADES = [
-  { id: "plumber", label: "Plumber", icon: "drop", blurb: "Bathrooms, kitchens, heating and maintenance", tabs: ["small", "survey", "kitchen", "heating", "book", "jobs"], start: "small" },
+  { id: "plumber", label: "Plumber", icon: "drop", blurb: "Bathrooms, kitchens, heating and maintenance", tabs: ["small", "plumb", "book", "jobs"], start: "small" },
   { id: "electrician", label: "Electrician", icon: "bolt", blurb: "Sockets, lighting, boards, alarms, testing", tabs: ["small", "elec", "book", "jobs"], start: "elec" },
   { id: "joiner", label: "Joiner", icon: "saw", blurb: "Doors, floors, kitchens, windows, boxing in", tabs: ["small", "join", "book", "jobs"], start: "join" },
+  { id: "gas", label: "Gas engineer", icon: "heat", blurb: "Boilers, heating, gas appliances and maintenance", tabs: ["small", "heating", "book", "jobs"], start: "heating" },
 ];
 /* the trade picker and the Electrical / Joinery sections (work version only). Switched on for the electrician and joiner to try. */
 const TRADES_ON = true;
@@ -7767,6 +7822,7 @@ const TRADE_KEY = "pricer-trade-v1";
 const MJ_PH = {
   plumber: { type: "e.g. Leaking tap repair", issue: "e.g. Cartridge worn, dripping from spout", where: "e.g. Main bathroom basin", work: "e.g. Isolated water, replaced cartridge, tested", still: "e.g. Still dripping, new part needed", further: "e.g. Return to fit new valve once part arrives" },
   electrician: { type: "e.g. Socket not working", issue: "e.g. Loose neutral, scorched terminal", where: "e.g. Kitchen, by the window", work: "e.g. Isolated, replaced socket, tested and labelled", still: "e.g. RCD still tripping intermittently", further: "e.g. Return to trace fault on the ring once access given" },
+  gas: { type: "e.g. Boiler not firing", issue: "e.g. Ignition lockout, flame not detected", where: "e.g. Kitchen cupboard boiler", work: "e.g. Cleaned electrode and burner, tested gas rate and flue, reset and checked", still: "e.g. Fault returns intermittently", further: "e.g. Return to fit new fan once the part arrives" },
   joiner: { type: "e.g. Door sticking", issue: "e.g. Hinges loose, door dropped and catching the frame", where: "e.g. Back bedroom door", work: "e.g. Re-screwed hinges with longer screws, planed and sealed the edge", still: "e.g. Frame out of square", further: "e.g. Return to refit lining once plasterer is done" },
 };
 let curTrade = "plumber";
@@ -7816,7 +7872,7 @@ function App() {
   const [sjob, setSjob] = useState(emptyJob);
   const auth = useAuth();
   useEffect(() => { if (auth.user) { bookSync(); tmFlush(); } }, [auth.user && auth.user.id]);
-  const [jobIds, setJobIds] = useState({ bathroom: null, kitchen: null, heating: null, small: null, electrical: null, joinery: null });
+  const [jobIds, setJobIds] = useState({ bathroom: null, kitchen: null, heating: null, small: null, electrical: null, joinery: null, plumbing: null });
   /* work version: the person's trade decides the tabs and where the app opens */
   const [trade, setTradeS] = useState(() => (TEAM && TRADES_ON ? loadTrade() : "plumber"));
   const [pickTrade, setPickTrade] = useState(() => TEAM && TRADES_ON && !loadTrade());
@@ -7861,9 +7917,9 @@ function App() {
   const [kSupplier, setKSupplier] = useState(typeof prefs.kSupplier === "string" && prefs.kSupplier ? prefs.kSupplier : "Howdens");
   const kSupplierName = (kSupplier || "").trim() || "supplier";
   const hr = useRoom(HEATING, tier);
-  const ex = useXRoom(ELECTRICAL, tier), jx = useXRoom(JOINERY, tier);
+  const ex = useXRoom(ELECTRICAL, tier), jx = useXRoom(JOINERY, tier), px = useXRoom(PLUMBING, tier);
   /* [tab id, saved-job kind, state, room, short name] for the extra trade sections */
-  const XR = [["elec", "electrical", ex, ELECTRICAL, "Electrical"], ["join", "joinery", jx, JOINERY, "Joinery"]];
+  const XR = [["elec", "electrical", ex, ELECTRICAL, "Electrical"], ["join", "joinery", jx, JOINERY, "Joinery"], ["plumb", "plumbing", px, PLUMBING, "Plumbing"]];
   const xrByKind = (kd) => XR.find((x) => x[1] === kd);
   const xrByTab = (id) => XR.find((x) => x[0] === id);
   const [hview, setHview] = useState("form");
@@ -7898,11 +7954,11 @@ function App() {
 
   /* baselines: what each screen looked like untouched, or as last saved / opened. Work that differs from them is worth keeping as a draft. */
   const initJ = useRef(null);
-  if (initJ.current === null) initJ.current = { bath: JSON.stringify(bathSnap()), kitchen: JSON.stringify(kitchenSnap()), heating: JSON.stringify(heatSnap()), small: JSON.stringify(sjob), electrical: JSON.stringify(ex.snap(tier)), joinery: JSON.stringify(jx.snap(tier)) };
+  if (initJ.current === null) initJ.current = { bath: JSON.stringify(bathSnap()), kitchen: JSON.stringify(kitchenSnap()), heating: JSON.stringify(heatSnap()), small: JSON.stringify(sjob), electrical: JSON.stringify(ex.snap(tier)), joinery: JSON.stringify(jx.snap(tier)), plumbing: JSON.stringify(px.snap(tier)) };
   const rebase = useRef(null);
   const baseKey = (kind) => (kind === "bathroom" ? "bath" : kind);
   const snapJ = (kind) => JSON.stringify(kind === "bathroom" ? bathSnap() : kind === "kitchen" ? kitchenSnap() : kind === "heating" ? heatSnap() : xrByKind(kind) ? xrByKind(kind)[2].snap(tier) : sjob);
-  const isDirty = () => ["bathroom", "kitchen", "heating", "small", "electrical", "joinery"].some((kd) => snapJ(kd) !== initJ.current[baseKey(kd)]);
+  const isDirty = () => ["bathroom", "kitchen", "heating", "small", "electrical", "joinery", "plumbing"].some((kd) => snapJ(kd) !== initJ.current[baseKey(kd)]);
   const [draft, setDraft] = useState(() => loadDraft());
   const [oldD, setOldD] = useState(() => loadDraft(OLD_KEY));
   const saved = (kind, id) => { setJobId(kind, id); initJ.current[baseKey(kind)] = snapJ(kind);
@@ -7922,7 +7978,7 @@ function App() {
     XR.forEach((x) => { if (d[x[1]]) openSaved({ kind: x[1], data: d[x[1]], id: ids[x[1]] || null }); });
     if (d.bath) openSaved({ kind: "bathroom", data: d.bath, id: ids.bathroom || null });
     setJobId("small", ids.small || null);
-    { const m0 = d.mode === "kitchen" || d.mode === "heating" || d.mode === "small" || xrByTab(d.mode) ? d.mode : "survey"; setMode(tabsOn.indexOf(m0) > -1 ? m0 : tradeOf(trade).start); }
+    { const m0 = d.mode === "kitchen" || d.mode === "heating" || d.mode === "small" || xrByTab(d.mode) ? d.mode : "survey"; setMode(tabsOn.indexOf(m0) > -1 ? m0 : tabsOn.indexOf(tradeOf(trade).start) > -1 ? tradeOf(trade).start : tabsOn[0]); }
     if (isOld) { try { localStorage.removeItem(OLD_KEY); } catch (err) { /* ignore */ } setOldD(null); } else setDraft(null);
   };
   const discardDraft = (d, isOld) => {
@@ -7966,7 +8022,7 @@ function App() {
         if (!isDirty()) { if (cur && (!draft || cur.ts !== draft.ts)) localStorage.removeItem(DRAFT_KEY); return; }
         if (draft && cur && cur.ts === draft.ts) { localStorage.setItem(OLD_KEY, JSON.stringify(cur)); setOldD(cur); setDraft(null); }
         try { localStorage.removeItem("__q"); } catch (e) { /* ignore */ }
-        localStorage.setItem(DRAFT_KEY, JSON.stringify({ ts: Date.now(), mode: mode === "kitchen" || mode === "heating" || mode === "small" || xrByTab(mode) ? mode : mode === "survey" || mode === "calculator" || tabsOn.indexOf("survey") > -1 ? "survey" : tradeOf(trade).start, bath: bathSnap(), kitchen: kitchenSnap(), heating: heatSnap(), small: sjob, electrical: ex.snap(tier), joinery: jx.snap(tier), ids: jobIds }));
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ ts: Date.now(), mode: mode === "kitchen" || mode === "heating" || mode === "small" || xrByTab(mode) ? mode : mode === "survey" || mode === "calculator" || tabsOn.indexOf("survey") > -1 ? "survey" : tabsOn[0], bath: bathSnap(), kitchen: kitchenSnap(), heating: heatSnap(), small: sjob, electrical: ex.snap(tier), joinery: jx.snap(tier), plumbing: px.snap(tier), ids: jobIds }));
         if (draftFull) setDraftFull(false);
       } catch (err) { if (err && (err.name === "QuotaExceededError" || err.code === 22 || err.code === 1014)) setDraftFull(true); }
     };
@@ -8087,8 +8143,8 @@ function App() {
 
   /* which jobs have work on screen that differs from untouched or last saved (shown as a dot on the tab and a resume strip on the other tabs) */
   const dirtyMap = { survey: snapJ("bathroom") !== initJ.current.bath, kitchen: snapJ("kitchen") !== initJ.current.kitchen, heating: snapJ("heating") !== initJ.current.heating, small: snapJ("small") !== initJ.current.small,
-    elec: snapJ("electrical") !== initJ.current.electrical, join: snapJ("joinery") !== initJ.current.joinery };
-  const resumeList = [["small", "Maintenance"], ["survey", "Bathroom"], ["kitchen", "Kitchen"], ["heating", "Heating"], ["elec", "Electrical"], ["join", "Joinery"]].filter(([id]) => tabsOn.indexOf(id) > -1 && dirtyMap[id] && !(id === "survey" ? (mode === "survey" || mode === "calculator") : mode === id));
+    elec: snapJ("electrical") !== initJ.current.electrical, join: snapJ("joinery") !== initJ.current.joinery, plumb: snapJ("plumbing") !== initJ.current.plumbing };
+  const resumeList = [["small", "Maintenance"], ["survey", "Bathroom"], ["kitchen", "Kitchen"], ["heating", "Heating"], ["elec", "Electrical"], ["join", "Joinery"], ["plumb", "Plumbing"]].filter(([id]) => tabsOn.indexOf(id) > -1 && dirtyMap[id] && !(id === "survey" ? (mode === "survey" || mode === "calculator") : mode === id));
 
   /* first page of the work version (and "change"): pick a trade */
   if (pickTrade) return html`<div className="wrap"><${AppHeader} businessName=${businessName} setBusinessName=${setBusinessName} trade="" />
